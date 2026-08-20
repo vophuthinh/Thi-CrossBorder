@@ -1,6 +1,6 @@
 [
   {
-    "timestamp": "2026-08-20T08:27:04.993224Z",
+    "timestamp": "2026-08-20T15:13:40.313014Z",
     "transaction_ref": "AMZN MKTP US*4R8P2",
     "reason": "price_hike",
     "confidence": "high",
@@ -9,7 +9,7 @@
     "details": "Price increased from $89.99 to $123.45"
   },
   {
-    "timestamp": "2026-08-20T08:27:04.995980Z",
+    "timestamp": "2026-08-20T15:13:40.313414Z",
     "transaction_ref": "DG MEMBERSHIP SVCS",
     "reason": "price_hike",
     "confidence": "high",

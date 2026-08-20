@@ -12,8 +12,16 @@ DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 # --- LLM ---
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "byteplus")
 BYTEPLUS_API_KEY = os.getenv("BYTEPLUS_API_KEY", "")
+BYTEPLUS_ENDPOINT = os.getenv("BYTEPLUS_ENDPOINT", "")
 BYTEPLUS_MODEL = os.getenv("BYTEPLUS_MODEL", "doubao-seed-2.0-241228")
-BYTEPLUS_BASE_URL = os.getenv("BYTEPLUS_BASE_URL", "https://ark.ap-southeast.bytepluses.com/api/v3")
+BYTEPLUS_BASE_URL = os.getenv(
+    "BYTEPLUS_BASE_URL",
+    "https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions",
+)
+
+# --- Fallback LLM providers ---
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # --- Paths ---
 BASE_DIR = Path(__file__).parent

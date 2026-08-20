@@ -75,10 +75,17 @@ class AuditLog:
         return self.entries.copy()
 
     def export_flags(self, filepath: str | None = None) -> str:
-        """Export flags to JSON file. Returns the filepath."""
+        """Export flags to JSON and JSONL files. Returns the filepath."""
         export_path = filepath or str(self.path.parent / "audit_log_export.json")
         with open(export_path, "w", encoding="utf-8") as f:
             json.dump(self.entries, f, ensure_ascii=False, indent=2)
+
+        # Also export as JSONL (required by checklist)
+        jsonl_path = export_path.replace(".json", ".jsonl")
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            for entry in self.entries:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
         return export_path
 
     def clear(self):

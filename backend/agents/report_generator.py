@@ -4,6 +4,7 @@ Tháng/quý/năm + danh sách gói + kỳ trừ kế tiếp + cảnh báo tăng 
 """
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any
 
 
@@ -42,9 +43,16 @@ def generate_report(
 
     labels = _labels(lang)
 
+    # --- Monthly / Quarterly / Yearly breakdown ---
+    monthly = statement_analysis.get("monthly_breakdown", {})
+    quarterly = _aggregate_quarterly(monthly)
+    yearly = _aggregate_yearly(monthly)
+
     return {
         "overview": statement_analysis.get("summary", {}),
-        "monthly_breakdown": statement_analysis.get("monthly_breakdown", {}),
+        "monthly_breakdown": monthly,
+        "quarterly_breakdown": quarterly,
+        "yearly_breakdown": yearly,
         "subscriptions": {
             labels["active_subs"]: len(subscriptions),
             labels["monthly_cost"]: round(total_monthly_sub, 2),
@@ -63,6 +71,65 @@ def generate_report(
         ],
         "top3_largest": statement_analysis.get("top3_largest", []),
     }
+
+
+def _aggregate_quarterly(monthly: dict[str, dict]) -> dict[str, dict]:
+    """Aggregate monthly data into quarterly (Q1-Q4)."""
+    quarterly = defaultdict(lambda: {"income": 0, "spending": 0, "fees": 0, "transfers": 0})
+
+    for month_key, data in monthly.items():
+        # month_key format: "2026-06"
+        try:
+            year, month = month_key.split("-")
+            month_num = int(month)
+            quarter = (month_num - 1) // 3 + 1
+            q_key = f"{year}-Q{quarter}"
+        except (ValueError, IndexError):
+            continue
+
+        quarterly[q_key]["income"] += data.get("income", 0)
+        quarterly[q_key]["spending"] += data.get("spending", 0)
+        quarterly[q_key]["fees"] += data.get("fees", 0)
+        quarterly[q_key]["transfers"] += data.get("transfers", 0)
+
+    # Round all values
+    result = {}
+    for k, v in sorted(quarterly.items()):
+        result[k] = {
+            "income": round(v["income"], 2),
+            "spending": round(v["spending"], 2),
+            "fees": round(v["fees"], 2),
+            "transfers": round(v["transfers"], 2),
+            "net": round(v["income"] - v["spending"] - v["fees"] - v["transfers"], 2),
+        }
+    return result
+
+
+def _aggregate_yearly(monthly: dict[str, dict]) -> dict[str, dict]:
+    """Aggregate monthly data into yearly."""
+    yearly = defaultdict(lambda: {"income": 0, "spending": 0, "fees": 0, "transfers": 0})
+
+    for month_key, data in monthly.items():
+        try:
+            year = month_key.split("-")[0]
+        except (ValueError, IndexError):
+            continue
+
+        yearly[year]["income"] += data.get("income", 0)
+        yearly[year]["spending"] += data.get("spending", 0)
+        yearly[year]["fees"] += data.get("fees", 0)
+        yearly[year]["transfers"] += data.get("transfers", 0)
+
+    result = {}
+    for k, v in sorted(yearly.items()):
+        result[k] = {
+            "income": round(v["income"], 2),
+            "spending": round(v["spending"], 2),
+            "fees": round(v["fees"], 2),
+            "transfers": round(v["transfers"], 2),
+            "net": round(v["income"] - v["spending"] - v["fees"] - v["transfers"], 2),
+        }
+    return result
 
 
 def _labels(lang: str) -> dict[str, str]:

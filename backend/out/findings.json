@@ -1,0 +1,1530 @@
+[
+  {
+    "finding_id": "F-2026-000118",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "DINH_KY_DA_XAC_DINH",
+    "label_vi": "Định kỳ đã xác định",
+    "label_en": "Confirmed recurring",
+    "label_rule_id": "R-01",
+    "confidence": 0.68,
+    "title_vi": "Gói Netflix (monthly)",
+    "title_en": "Netflix subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $15.49. Kỳ trừ kế tiếp: 2026-09-02.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $15.49. Next charge: 2026-09-02.",
+    "amount_cents": 1549,
+    "currency": "USD",
+    "occurred_at": "2026-08-03",
+    "evidence_refs": [
+      "TXN-003",
+      "TXN-022",
+      "TXN-040"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "NETFLIX_COM",
+    "merchant_display_vi": "Netflix",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:e5ee08ad8d395561",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145373Z",
+    "last_seen_at": "2026-08-20T14:59:13.145375Z"
+  },
+  {
+    "finding_id": "F-2026-000119",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "DINH_KY_DA_XAC_DINH",
+    "label_vi": "Định kỳ đã xác định",
+    "label_en": "Confirmed recurring",
+    "label_rule_id": "R-01",
+    "confidence": 0.68,
+    "title_vi": "Gói Spotify (monthly)",
+    "title_en": "Spotify subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $9.99. Kỳ trừ kế tiếp: 2026-09-02.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $9.99. Next charge: 2026-09-02.",
+    "amount_cents": 999,
+    "currency": "USD",
+    "occurred_at": "2026-08-03",
+    "evidence_refs": [
+      "TXN-004",
+      "TXN-023",
+      "TXN-041"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "SPOTIFY_USA",
+    "merchant_display_vi": "Spotify",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:19b72c7b76f3dba8",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145426Z",
+    "last_seen_at": "2026-08-20T14:59:13.145427Z"
+  },
+  {
+    "finding_id": "F-2026-000120",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-02",
+    "confidence": 0.38,
+    "title_vi": "Gói Amazon Marketplace (monthly)",
+    "title_en": "Amazon Marketplace subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $123.45. Kỳ trừ kế tiếp: 2026-09-03.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $123.45. Next charge: 2026-09-03.",
+    "amount_cents": 12345,
+    "currency": "USD",
+    "occurred_at": "2026-08-04",
+    "evidence_refs": [
+      "TXN-005",
+      "TXN-024",
+      "TXN-042"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "AMZN_MKTP",
+    "merchant_display_vi": "Amazon Marketplace",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:30c6a72f438bec3d",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145471Z",
+    "last_seen_at": "2026-08-20T14:59:13.145472Z"
+  },
+  {
+    "finding_id": "F-2026-000121",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-02",
+    "confidence": 0.38,
+    "title_vi": "Gói DoorDash / DG Membership (monthly)",
+    "title_en": "DoorDash / DG Membership subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $14.99. Kỳ trừ kế tiếp: 2026-09-06.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $14.99. Next charge: 2026-09-06.",
+    "amount_cents": 1499,
+    "currency": "USD",
+    "occurred_at": "2026-08-08",
+    "evidence_refs": [
+      "TXN-010",
+      "TXN-029",
+      "TXN-046"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "DG_MEMBERSHIP",
+    "merchant_display_vi": "DoorDash / DG Membership",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:d9fd48855a3144e3",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145522Z",
+    "last_seen_at": "2026-08-20T14:59:13.145523Z"
+  },
+  {
+    "finding_id": "F-2026-000122",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-02",
+    "confidence": 0.38,
+    "title_vi": "Gói Adobe Creative Cloud (monthly)",
+    "title_en": "Adobe Creative Cloud subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $59.99. Kỳ trừ kế tiếp: 2026-09-06.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $59.99. Next charge: 2026-09-06.",
+    "amount_cents": 5999,
+    "currency": "USD",
+    "occurred_at": "2026-08-10",
+    "evidence_refs": [
+      "TXN-015",
+      "TXN-031",
+      "TXN-049"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "ADOBE_CLD",
+    "merchant_display_vi": "Adobe Creative Cloud",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:5eab4b28192910e1",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145562Z",
+    "last_seen_at": "2026-08-20T14:59:13.145563Z"
+  },
+  {
+    "finding_id": "F-2026-000123",
+    "type": "RECURRING_SUBSCRIPTION",
+    "severity_rank": 3,
+    "label": "DINH_KY_DA_XAC_DINH",
+    "label_vi": "Định kỳ đã xác định",
+    "label_en": "Confirmed recurring",
+    "label_rule_id": "R-01",
+    "confidence": 0.68,
+    "title_vi": "Gói Apple iCloud+ (monthly)",
+    "title_en": "Apple iCloud+ subscription (monthly)",
+    "explanation_vi": "Phát hiện 3 lần trừ tiền, chu kỳ monthly, giá hiện tại $2.99. Kỳ trừ kế tiếp: 2026-09-11.",
+    "explanation_en": "Detected 3 charges, monthly cadence, current price $2.99. Next charge: 2026-09-11.",
+    "amount_cents": 299,
+    "currency": "USD",
+    "occurred_at": "2026-08-15",
+    "evidence_refs": [
+      "TXN-018",
+      "TXN-033",
+      "TXN-052"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "APPLE_ICLOUD",
+    "merchant_display_vi": "Apple iCloud+",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:5ac0145598069b9a",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145601Z",
+    "last_seen_at": "2026-08-20T14:59:13.145602Z"
+  },
+  {
+    "finding_id": "F-2026-000124",
+    "type": "SILENT_PRICE_INCREASE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-04",
+    "confidence": 0.38,
+    "title_vi": "Amazon Marketplace tăng giá $34.56 → $89.99",
+    "title_en": "Amazon Marketplace price increase $34.56 → $89.99",
+    "explanation_vi": "Tăng +$55.43 (+160.4%). Tác động: +$665.16/năm.",
+    "explanation_en": "Increased +$55.43 (+160.4%). Impact: +$665.16/year.",
+    "amount_cents": 8999,
+    "currency": "USD",
+    "occurred_at": "2026-08-04",
+    "evidence_refs": [
+      "TXN-005",
+      "TXN-024",
+      "TXN-042"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "AMZN_MKTP",
+    "merchant_display_vi": "Amazon Marketplace",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:429c9196a324bdde",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145642Z",
+    "last_seen_at": "2026-08-20T14:59:13.145642Z"
+  },
+  {
+    "finding_id": "F-2026-000125",
+    "type": "SILENT_PRICE_INCREASE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-04",
+    "confidence": 0.38,
+    "title_vi": "DoorDash / DG Membership tăng giá $12.99 → $14.99",
+    "title_en": "DoorDash / DG Membership price increase $12.99 → $14.99",
+    "explanation_vi": "Tăng +$2.00 (+15.4%). Tác động: +$24.00/năm.",
+    "explanation_en": "Increased +$2.00 (+15.4%). Impact: +$24.00/year.",
+    "amount_cents": 1499,
+    "currency": "USD",
+    "occurred_at": "2026-08-08",
+    "evidence_refs": [
+      "TXN-010",
+      "TXN-029",
+      "TXN-046"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "DG_MEMBERSHIP",
+    "merchant_display_vi": "DoorDash / DG Membership",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:67f1e025f86c8336",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145667Z",
+    "last_seen_at": "2026-08-20T14:59:13.145668Z"
+  },
+  {
+    "finding_id": "F-2026-000126",
+    "type": "SILENT_PRICE_INCREASE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-04",
+    "confidence": 0.38,
+    "title_vi": "Adobe Creative Cloud tăng giá $54.99 → $59.99",
+    "title_en": "Adobe Creative Cloud price increase $54.99 → $59.99",
+    "explanation_vi": "Tăng +$5.00 (+9.1%). Tác động: +$60.00/năm.",
+    "explanation_en": "Increased +$5.00 (+9.1%). Impact: +$60.00/year.",
+    "amount_cents": 5999,
+    "currency": "USD",
+    "occurred_at": "2026-08-10",
+    "evidence_refs": [
+      "TXN-015",
+      "TXN-031",
+      "TXN-049"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "ADOBE_CLD",
+    "merchant_display_vi": "Adobe Creative Cloud",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:eb7ba0fd2b8327c3",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145691Z",
+    "last_seen_at": "2026-08-20T14:59:13.145692Z"
+  },
+  {
+    "finding_id": "F-2026-000127",
+    "type": "DUPLICATE_CHARGE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-06",
+    "confidence": 0.52,
+    "title_vi": "Hai khoản $54.99 cùng ngày tại Google Cloud",
+    "title_en": "Two charges of $54.99 same day at Google Cloud",
+    "explanation_vi": "Cùng cửa hàng, cùng số tiền, cách nhau 0 giờ, khác mã tham chiếu.",
+    "explanation_en": "Same merchant, same amount, 0 hours apart, different reference IDs.",
+    "amount_cents": 5499,
+    "currency": "USD",
+    "occurred_at": "2026-06-08",
+    "evidence_refs": [
+      "TXN-008",
+      "TXN-009"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "GOOGLE_CLOUD",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:893a1db8b3961e9e",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145765Z",
+    "last_seen_at": "2026-08-20T14:59:13.145766Z"
+  },
+  {
+    "finding_id": "F-2026-000128",
+    "type": "DOUBLE_FEE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-08",
+    "confidence": 0.42,
+    "title_vi": "Phí kép $1.62 ngày 2026-06-12",
+    "title_en": "Double fee $1.62 on 2026-06-12",
+    "explanation_vi": "2 khoản phí cùng loại, cùng số tiền, cùng ngày.",
+    "explanation_en": "2 fee charges of same type, same amount, same day.",
+    "amount_cents": 162,
+    "currency": "USD",
+    "occurred_at": "2026-06-12",
+    "evidence_refs": [
+      "TXN-011",
+      "TXN-012"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:769df34e6eb55fa2",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145856Z",
+    "last_seen_at": "2026-08-20T14:59:13.145857Z"
+  },
+  {
+    "finding_id": "F-2026-000129",
+    "type": "DOUBLE_FEE",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-08",
+    "confidence": 0.42,
+    "title_vi": "Phí kép $3.72 ngày 2026-08-08",
+    "title_en": "Double fee $3.72 on 2026-08-08",
+    "explanation_vi": "2 khoản phí cùng loại, cùng số tiền, cùng ngày.",
+    "explanation_en": "2 fee charges of same type, same amount, same day.",
+    "amount_cents": 372,
+    "currency": "USD",
+    "occurred_at": "2026-08-08",
+    "evidence_refs": [
+      "TXN-047",
+      "TXN-048"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:49eba438c156ecc7",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.145880Z",
+    "last_seen_at": "2026-08-20T14:59:13.145881Z"
+  },
+  {
+    "finding_id": "F-2026-000130",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $500.00 ngày 2026-06-02 chưa lên thẻ",
+    "title_en": "Transfer $500.00 on 2026-06-02 not on card",
+    "explanation_vi": "Chuyển sang thẻ $500.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $500.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 50000,
+    "currency": "USD",
+    "occurred_at": "2026-06-02",
+    "evidence_refs": [
+      "TXN-002"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:3804950ef355da8c",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146005Z",
+    "last_seen_at": "2026-08-20T14:59:13.146006Z"
+  },
+  {
+    "finding_id": "F-2026-000131",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $800.00 ngày 2026-06-15 chưa lên thẻ",
+    "title_en": "Transfer $800.00 on 2026-06-15 not on card",
+    "explanation_vi": "Chuyển sang thẻ $800.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $800.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 80000,
+    "currency": "USD",
+    "occurred_at": "2026-06-15",
+    "evidence_refs": [
+      "TXN-014"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:0c5c066b5be410d6",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146122Z",
+    "last_seen_at": "2026-08-20T14:59:13.146123Z"
+  },
+  {
+    "finding_id": "F-2026-000132",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $300.00 ngày 2026-06-25 chưa lên thẻ",
+    "title_en": "Transfer $300.00 on 2026-06-25 not on card",
+    "explanation_vi": "Chuyển sang thẻ $300.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $300.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 30000,
+    "currency": "USD",
+    "occurred_at": "2026-06-25",
+    "evidence_refs": [
+      "TXN-019"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:6394aedae1846826",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146236Z",
+    "last_seen_at": "2026-08-20T14:59:13.146237Z"
+  },
+  {
+    "finding_id": "F-2026-000133",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $600.00 ngày 2026-07-06 chưa lên thẻ",
+    "title_en": "Transfer $600.00 on 2026-07-06 not on card",
+    "explanation_vi": "Chuyển sang thẻ $600.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $600.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 60000,
+    "currency": "USD",
+    "occurred_at": "2026-07-06",
+    "evidence_refs": [
+      "TXN-026"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:b0c84fed6dc8ea7f",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146350Z",
+    "last_seen_at": "2026-08-20T14:59:13.146351Z"
+  },
+  {
+    "finding_id": "F-2026-000134",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $400.00 ngày 2026-07-22 chưa lên thẻ",
+    "title_en": "Transfer $400.00 on 2026-07-22 not on card",
+    "explanation_vi": "Chuyển sang thẻ $400.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $400.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 40000,
+    "currency": "USD",
+    "occurred_at": "2026-07-22",
+    "evidence_refs": [
+      "TXN-035"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:164a7c00b592282d",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146464Z",
+    "last_seen_at": "2026-08-20T14:59:13.146465Z"
+  },
+  {
+    "finding_id": "F-2026-000135",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $1000.00 ngày 2026-08-02 chưa lên thẻ",
+    "title_en": "Transfer $1000.00 on 2026-08-02 not on card",
+    "explanation_vi": "Chuyển sang thẻ $1000.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $1000.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 100000,
+    "currency": "USD",
+    "occurred_at": "2026-08-02",
+    "evidence_refs": [
+      "TXN-039"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:0ce8c628ac28e481",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146579Z",
+    "last_seen_at": "2026-08-20T14:59:13.146580Z"
+  },
+  {
+    "finding_id": "F-2026-000136",
+    "type": "IN_TRANSIT_NOT_ON_CARD",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-10",
+    "confidence": 0.18,
+    "title_vi": "Chuyển $500.00 ngày 2026-08-12 chưa lên thẻ",
+    "title_en": "Transfer $500.00 on 2026-08-12 not on card",
+    "explanation_vi": "Chuyển sang thẻ $500.00 nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+    "explanation_en": "Transfer to card $500.00 but no matching credit (±5%, within 7 days) found on card statement.",
+    "amount_cents": 50000,
+    "currency": "USD",
+    "occurred_at": "2026-08-12",
+    "evidence_refs": [
+      "TXN-050"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "card_statement",
+        "file": "card_statement.csv"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:7faee8e311394a30",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.146693Z",
+    "last_seen_at": "2026-08-20T14:59:13.146693Z"
+  },
+  {
+    "finding_id": "F-2026-000137",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch AMZN MKTP US*2K7X4",
+    "title_en": "Suspicious email for AMZN MKTP US*2K7X4",
+    "explanation_vi": "Lý do: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "explanation_en": "Reasons: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "amount_cents": 3456,
+    "currency": "USD",
+    "occurred_at": "2026-06-05",
+    "evidence_refs": [
+      "TXN-005"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "bank_notification.txt"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "AMZN_MKTP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:399ba40241009e2f",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147052Z",
+    "last_seen_at": "2026-08-20T14:59:13.147053Z"
+  },
+  {
+    "finding_id": "F-2026-000138",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.28,
+    "title_vi": "Không tìm thấy email cho UBER *EATS $18.75",
+    "title_en": "No matching email for UBER *EATS $18.75",
+    "explanation_vi": "Giao dịch $18.75 ngày 2026-06-07 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $18.75 on 2026-06-07 — best email match score 0.00 < 0.50.",
+    "amount_cents": 1875,
+    "currency": "USD",
+    "occurred_at": "2026-06-07",
+    "evidence_refs": [
+      "TXN-007"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "UBER_EATS",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:d70d9eed42729088",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147163Z",
+    "last_seen_at": "2026-08-20T14:59:13.147164Z"
+  },
+  {
+    "finding_id": "F-2026-000139",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch GOOGLE *CLOUD",
+    "title_en": "Suspicious email for GOOGLE *CLOUD",
+    "explanation_vi": "Lý do: Domain creativecloud.adobe.com không thuộc allowlist của GOOGLE_CLOUD.",
+    "explanation_en": "Reasons: Domain creativecloud.adobe.com không thuộc allowlist của GOOGLE_CLOUD.",
+    "amount_cents": 5499,
+    "currency": "USD",
+    "occurred_at": "2026-06-08",
+    "evidence_refs": [
+      "TXN-008"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "receipt_adobe.txt"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "GOOGLE_CLOUD",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:f3c2b431c67a4ba1",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147307Z",
+    "last_seen_at": "2026-08-20T14:59:13.147308Z"
+  },
+  {
+    "finding_id": "F-2026-000140",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch GOOGLE *CLOUD",
+    "title_en": "Suspicious email for GOOGLE *CLOUD",
+    "explanation_vi": "Lý do: Domain creativecloud.adobe.com không thuộc allowlist của GOOGLE_CLOUD.",
+    "explanation_en": "Reasons: Domain creativecloud.adobe.com không thuộc allowlist của GOOGLE_CLOUD.",
+    "amount_cents": 5499,
+    "currency": "USD",
+    "occurred_at": "2026-06-08",
+    "evidence_refs": [
+      "TXN-009"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "receipt_adobe.txt"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "GOOGLE_CLOUD",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:766ad1d05d7346ac",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147446Z",
+    "last_seen_at": "2026-08-20T14:59:13.147447Z"
+  },
+  {
+    "finding_id": "F-2026-000141",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.28,
+    "title_vi": "Không tìm thấy email cho DG MEMBERSHIP SVCS $12.99",
+    "title_en": "No matching email for DG MEMBERSHIP SVCS $12.99",
+    "explanation_vi": "Giao dịch $12.99 ngày 2026-06-10 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $12.99 on 2026-06-10 — best email match score 0.00 < 0.50.",
+    "amount_cents": 1299,
+    "currency": "USD",
+    "occurred_at": "2026-06-10",
+    "evidence_refs": [
+      "TXN-010"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "DG_MEMBERSHIP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:c4574e1692115f41",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147545Z",
+    "last_seen_at": "2026-08-20T14:59:13.147545Z"
+  },
+  {
+    "finding_id": "F-2026-000142",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.18,
+    "title_vi": "Không tìm thấy email cho WALMART.COM $67.23",
+    "title_en": "No matching email for WALMART.COM $67.23",
+    "explanation_vi": "Giao dịch $67.23 ngày 2026-06-18 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $67.23 on 2026-06-18 — best email match score 0.00 < 0.50.",
+    "amount_cents": 6723,
+    "currency": "USD",
+    "occurred_at": "2026-06-18",
+    "evidence_refs": [
+      "TXN-016"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:37882a5bcdfd9ebf",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147753Z",
+    "last_seen_at": "2026-08-20T14:59:13.147754Z"
+  },
+  {
+    "finding_id": "F-2026-000143",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.28,
+    "title_vi": "Không tìm thấy email cho SQ *COFFEE HOUSE $5.40",
+    "title_en": "No matching email for SQ *COFFEE HOUSE $5.40",
+    "explanation_vi": "Giao dịch $5.40 ngày 2026-06-20 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $5.40 on 2026-06-20 — best email match score 0.00 < 0.50.",
+    "amount_cents": 540,
+    "currency": "USD",
+    "occurred_at": "2026-06-20",
+    "evidence_refs": [
+      "TXN-017"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": "SQ_COFFEE",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:0643252bb6cd8909",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.147846Z",
+    "last_seen_at": "2026-08-20T14:59:13.147846Z"
+  },
+  {
+    "finding_id": "F-2026-000144",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch AMZN MKTP US*9F3M1",
+    "title_en": "Suspicious email for AMZN MKTP US*9F3M1",
+    "explanation_vi": "Lý do: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "explanation_en": "Reasons: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "amount_cents": 8999,
+    "currency": "USD",
+    "occurred_at": "2026-07-04",
+    "evidence_refs": [
+      "TXN-024"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "bank_notification.txt"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": "AMZN_MKTP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:3e3e6c1a336866cf",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148212Z",
+    "last_seen_at": "2026-08-20T14:59:13.148213Z"
+  },
+  {
+    "finding_id": "F-2026-000145",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch CHATGPT SUBSCRIPTION",
+    "title_en": "Suspicious email for CHATGPT SUBSCRIPTION",
+    "explanation_vi": "Lý do: Domain creativecloud.adobe.com không thuộc allowlist của CHATGPT.",
+    "explanation_en": "Reasons: Domain creativecloud.adobe.com không thuộc allowlist của CHATGPT.",
+    "amount_cents": 2000,
+    "currency": "USD",
+    "occurred_at": "2026-07-08",
+    "evidence_refs": [
+      "TXN-027"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "receipt_adobe.txt"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": "CHATGPT",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:643b9bce98effd12",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148350Z",
+    "last_seen_at": "2026-08-20T14:59:13.148351Z"
+  },
+  {
+    "finding_id": "F-2026-000146",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.18,
+    "title_vi": "Không tìm thấy email cho TARGET.COM $45.67",
+    "title_en": "No matching email for TARGET.COM $45.67",
+    "explanation_vi": "Giao dịch $45.67 ngày 2026-07-10 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $45.67 on 2026-07-10 — best email match score 0.00 < 0.50.",
+    "amount_cents": 4567,
+    "currency": "USD",
+    "occurred_at": "2026-07-10",
+    "evidence_refs": [
+      "TXN-028"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:68fc229b489a10be",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148447Z",
+    "last_seen_at": "2026-08-20T14:59:13.148448Z"
+  },
+  {
+    "finding_id": "F-2026-000147",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.28,
+    "title_vi": "Không tìm thấy email cho DG MEMBERSHIP SVCS $12.99",
+    "title_en": "No matching email for DG MEMBERSHIP SVCS $12.99",
+    "explanation_vi": "Giao dịch $12.99 ngày 2026-07-12 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $12.99 on 2026-07-12 — best email match score 0.00 < 0.50.",
+    "amount_cents": 1299,
+    "currency": "USD",
+    "occurred_at": "2026-07-12",
+    "evidence_refs": [
+      "TXN-029"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": "DG_MEMBERSHIP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:e0e47df8516bf4f7",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148548Z",
+    "last_seen_at": "2026-08-20T14:59:13.148548Z"
+  },
+  {
+    "finding_id": "F-2026-000148",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.28,
+    "title_vi": "Không tìm thấy email cho UBER *TRIP $22.50",
+    "title_en": "No matching email for UBER *TRIP $22.50",
+    "explanation_vi": "Giao dịch $22.50 ngày 2026-07-20 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $22.50 on 2026-07-20 — best email match score 0.00 < 0.50.",
+    "amount_cents": 2250,
+    "currency": "USD",
+    "occurred_at": "2026-07-20",
+    "evidence_refs": [
+      "TXN-034"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": "UBER_TRIP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:c75f7dab115c710e",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148818Z",
+    "last_seen_at": "2026-08-20T14:59:13.148819Z"
+  },
+  {
+    "finding_id": "F-2026-000149",
+    "type": "NO_MATCHING_EMAIL",
+    "severity_rank": 3,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-12",
+    "confidence": 0.18,
+    "title_vi": "Không tìm thấy email cho WALMART.COM $52.10",
+    "title_en": "No matching email for WALMART.COM $52.10",
+    "explanation_vi": "Giao dịch $52.10 ngày 2026-07-28 — điểm khớp email cao nhất 0.00 < 0.50.",
+    "explanation_en": "Charge $52.10 on 2026-07-28 — best email match score 0.00 < 0.50.",
+    "amount_cents": 5210,
+    "currency": "USD",
+    "occurred_at": "2026-07-28",
+    "evidence_refs": [
+      "TXN-037"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:9fe362729038686c",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.148910Z",
+    "last_seen_at": "2026-08-20T14:59:13.148910Z"
+  },
+  {
+    "finding_id": "F-2026-000150",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch AMZN MKTP US*4R8P2",
+    "title_en": "Suspicious email for AMZN MKTP US*4R8P2",
+    "explanation_vi": "Lý do: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "explanation_en": "Reasons: Domain wealify.com không thuộc allowlist của AMZN_MKTP.",
+    "amount_cents": 12345,
+    "currency": "USD",
+    "occurred_at": "2026-08-04",
+    "evidence_refs": [
+      "TXN-042"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "bank_notification.txt"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "AMZN_MKTP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:1579cd5722a9c6cb",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.149195Z",
+    "last_seen_at": "2026-08-20T14:59:13.149196Z"
+  },
+  {
+    "finding_id": "F-2026-000151",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch BLS*BLINKIST",
+    "title_en": "Suspicious email for BLS*BLINKIST",
+    "explanation_vi": "Lý do: Domain blinkist-renewal.net không thuộc allowlist của BLINKIST.",
+    "explanation_en": "Reasons: Domain blinkist-renewal.net không thuộc allowlist của BLINKIST.",
+    "amount_cents": 1499,
+    "currency": "USD",
+    "occurred_at": "2026-08-05",
+    "evidence_refs": [
+      "TXN-044"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "suspicious_blinkist.txt"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "BLINKIST",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:e81ff71fd442c03e",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.149327Z",
+    "last_seen_at": "2026-08-20T14:59:13.149328Z"
+  },
+  {
+    "finding_id": "F-2026-000152",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch DG MEMBERSHIP SVCS",
+    "title_en": "Suspicious email for DG MEMBERSHIP SVCS",
+    "explanation_vi": "Lý do: Domain blinkist-renewal.net không thuộc allowlist của DG_MEMBERSHIP.",
+    "explanation_en": "Reasons: Domain blinkist-renewal.net không thuộc allowlist của DG_MEMBERSHIP.",
+    "amount_cents": 1499,
+    "currency": "USD",
+    "occurred_at": "2026-08-08",
+    "evidence_refs": [
+      "TXN-046"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "suspicious_blinkist.txt"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "DG_MEMBERSHIP",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:40acd551a51d1c0e",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.149533Z",
+    "last_seen_at": "2026-08-20T14:59:13.149533Z"
+  },
+  {
+    "finding_id": "F-2026-000153",
+    "type": "SUSPICIOUS_EMAIL",
+    "severity_rank": 1,
+    "label": "CAN_BAN_TU_XAC_NHAN",
+    "label_vi": "Cần bạn tự xác nhận",
+    "label_en": "Needs your confirmation",
+    "label_rule_id": "R-13",
+    "confidence": 0.34,
+    "title_vi": "Email nghi giả cho giao dịch CHATGPT SUBSCRIPTION",
+    "title_en": "Suspicious email for CHATGPT SUBSCRIPTION",
+    "explanation_vi": "Lý do: Domain creativecloud.adobe.com không thuộc allowlist của CHATGPT.",
+    "explanation_en": "Reasons: Domain creativecloud.adobe.com không thuộc allowlist của CHATGPT.",
+    "amount_cents": 2000,
+    "currency": "USD",
+    "occurred_at": "2026-08-16",
+    "evidence_refs": [
+      "TXN-053"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      },
+      {
+        "source": "mailbox",
+        "email_id": "receipt_adobe.txt"
+      }
+    ],
+    "statement_date": "2026-09-28",
+    "dispute_deadline": "2026-11-27",
+    "days_left": 98,
+    "merchant_key": "CHATGPT",
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:5234d8b3c53d3263",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.150224Z",
+    "last_seen_at": "2026-08-20T14:59:13.150226Z"
+  },
+  {
+    "finding_id": "F-2026-000154",
+    "type": "UNKNOWN_MERCHANT",
+    "severity_rank": 2,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-14",
+    "confidence": 0.18,
+    "title_vi": "Cửa hàng không xác định: WALMART.COM",
+    "title_en": "Unknown merchant: WALMART.COM",
+    "explanation_vi": "Chưa xác định được.",
+    "explanation_en": "Unidentified.",
+    "amount_cents": 6723,
+    "currency": "USD",
+    "occurred_at": "2026-06-18",
+    "evidence_refs": [
+      "TXN-016"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-07-28",
+    "dispute_deadline": "2026-09-26",
+    "days_left": 36,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:9e4aefb6f21f2672",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.150274Z",
+    "last_seen_at": "2026-08-20T14:59:13.150275Z"
+  },
+  {
+    "finding_id": "F-2026-000155",
+    "type": "UNKNOWN_MERCHANT",
+    "severity_rank": 2,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-14",
+    "confidence": 0.18,
+    "title_vi": "Cửa hàng không xác định: TARGET.COM",
+    "title_en": "Unknown merchant: TARGET.COM",
+    "explanation_vi": "Chưa xác định được.",
+    "explanation_en": "Unidentified.",
+    "amount_cents": 4567,
+    "currency": "USD",
+    "occurred_at": "2026-07-10",
+    "evidence_refs": [
+      "TXN-028"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:51f298c226ad0f18",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.150344Z",
+    "last_seen_at": "2026-08-20T14:59:13.150347Z"
+  },
+  {
+    "finding_id": "F-2026-000156",
+    "type": "UNKNOWN_MERCHANT",
+    "severity_rank": 2,
+    "label": "CHUA_DU_DU_LIEU",
+    "label_vi": "Chưa đủ dữ liệu",
+    "label_en": "Insufficient data",
+    "label_rule_id": "R-14",
+    "confidence": 0.18,
+    "title_vi": "Cửa hàng không xác định: WALMART.COM",
+    "title_en": "Unknown merchant: WALMART.COM",
+    "explanation_vi": "Chưa xác định được.",
+    "explanation_en": "Unidentified.",
+    "amount_cents": 5210,
+    "currency": "USD",
+    "occurred_at": "2026-07-28",
+    "evidence_refs": [
+      "TXN-037"
+    ],
+    "evidence_sources": [
+      {
+        "source": "account_statement",
+        "file": "account_statement.csv"
+      }
+    ],
+    "statement_date": "2026-08-28",
+    "dispute_deadline": "2026-10-27",
+    "days_left": 67,
+    "merchant_key": null,
+    "merchant_display_vi": "",
+    "recommended_action_vi": "",
+    "draft_available": false,
+    "fingerprint": "sha256:6d86a0bafb496e48",
+    "status": "new",
+    "first_seen_at": "2026-08-20T14:59:13.150444Z",
+    "last_seen_at": "2026-08-20T14:59:13.150445Z"
+  }
+]

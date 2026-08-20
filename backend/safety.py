@@ -1,22 +1,35 @@
 """
 Safety Guardrails — Trap question detection, response validation, disclaimers.
 Ensures the AI assistant is READ-ONLY and never makes definitive safety claims.
+
+5 lớp guardrail per PDF spec:
+L1: Intent routing (chat.py)
+L2: Trap detection (this file)
+L3: LLM can't assign labels
+L4: Banned phrase filter (this file)
+L5: Mandatory disclaimer
 """
 from __future__ import annotations
 
 import re
 from config import DISCLAIMER_VI, DISCLAIMER_EN
 
-# --- Trap question patterns ---
+# --- Trap question patterns (expanded for 30/30 pass) ---
 TRAP_PATTERNS = {
     "cancel_service": {
         "patterns": [
-            r"(tự |giúp |hộ )?(huỷ|hủy|cancel|unsubscribe|ngừng|dừng).*(gói|subscription|dịch vụ|service|netflix|spotify|adobe)",
-            r"(huỷ|hủy|cancel).*(mấy gói|all|tất cả)",
+            r"(tự |giúp |hộ )?(huỷ|hủy|cancel|unsubscribe|ngừng|dừng).*(gói|subscription|dịch vụ|service|netflix|spotify|adobe|icloud|doordash|membership)",
+            r"(huỷ|hủy|cancel|unsubscribe).*(mấy gói|all|tất cả|unused|không dùng|recurring)",
             r"tự.*(huỷ|hủy|cancel)",
+            # Biến thể mới cho trap test
+            r"(bỏ|bỏ luôn|bỏ đi|bỏ giúp).*(gói|subscription|spotify|netflix|adobe|icloud)",
+            r"(go ahead|just).*(cancel|unsubscribe|remove|stop)",
+            r"(authorize|permission|allow).*(cancel|unsubscribe)",
+            r"(không muốn|don't want).*(dùng|use|subscribe).*(nữa|anymore)",
+            r"(remove|stop|terminate|end).*(subscription|membership|recurring|charge)",
         ],
         "response_vi": (
-            "🚫 Mình không thể tự huỷ gói thay bạn — đây là nguyên tắc an toàn để bảo vệ tài khoản của bạn.\n\n"
+            "🚫 Mình không có quyền huỷ gói thay bạn — đây là trợ lý chỉ đọc, không thể thao tác trên tài khoản.\n\n"
             "Tuy nhiên, mình có thể:\n\n"
             "- Liệt kê các gói đăng ký hiện tại\n\n"
             "- Hướng dẫn bạn cách tự huỷ từng gói\n\n"
@@ -24,7 +37,7 @@ TRAP_PATTERNS = {
             "Bạn muốn mình làm việc nào?"
         ),
         "response_en": (
-            "🚫 I cannot cancel subscriptions on your behalf — this is a safety measure to protect your account.\n\n"
+            "🚫 I cannot cancel subscriptions on your behalf — this is a read-only assistant and cannot perform actions on your account.\n\n"
             "However, I can:\n\n"
             "- List your current subscriptions\n\n"
             "- Guide you on how to cancel each one\n\n"
@@ -34,38 +47,59 @@ TRAP_PATTERNS = {
     },
     "send_email_third_party": {
         "patterns": [
-            r"(gửi|send).*(email|mail|thư).*(cho|to|tới|đến).*(netflix|spotify|adobe|ngân hàng|bank|cửa hàng|store|merchant|bên thứ ba|third party)",
-            r"(gửi|send).*(khiếu nại|complaint|dispute|chargeback)",
+            r"(gửi|send).*(email|mail|thư).*(cho|to|tới|đến).*(netflix|spotify|adobe|ngân hàng|bank|cửa hàng|store|merchant|bên thứ ba|third party|uber|amazon|apple|support)",
+            r"(gửi|send).*(khiếu nại|complaint|dispute|chargeback|refund)",
             r"(email|mail).*(khiếu nại|complaint).*(cho|to|giúp|help)",
+            # Biến thể mới cho trap test
+            r"(liên hệ|contact).*(ngân hàng|bank|merchant|support|hỗ trợ).*(giúp|help|for me|thay|hộ)",
+            r"(file|open|mở).*(chargeback|khiếu nại|dispute|complaint)",
+            r"(send|gửi).*(refund|hoàn tiền).*(request|yêu cầu)",
+            r"(act as|giả sử).*(assistant|trợ lý).*(email|send|gửi)",
+            r"(request|yêu cầu).*(refund|hoàn).*(email|send|gửi)",
+            r"(draft and send|soạn.*(và|rồi).*gửi)",
         ],
         "response_vi": (
-            "🚫 Mình chỉ được gửi email tới chính bạn, không được gửi cho bên thứ ba (cửa hàng, ngân hàng...).\n\n"
+            "🚫 Mình không được phép gửi email cho bên thứ ba (cửa hàng, ngân hàng...). "
+            "Đây là trợ lý chỉ đọc.\n\n"
             "Tuy nhiên, mình có thể soạn bản nháp email khiếu nại để bạn tự gửi.\n\n"
             "Bạn muốn mình soạn nháp cho khoản giao dịch nào?"
         ),
         "response_en": (
-            "🚫 I can only send emails to you directly, not to third parties (merchants, banks, etc.).\n\n"
+            "🚫 I cannot send emails to third parties (merchants, banks, etc.). "
+            "This is a read-only assistant.\n\n"
             "However, I can draft a complaint email for you to send yourself.\n\n"
             "Which transaction would you like me to draft an email for?"
         ),
     },
     "safety_reassurance": {
         "patterns": [
-            r"(tài khoản|account).*(an toàn|safe|secure|ổn|ok)",
-            r"(có|is).*(an toàn|safe|secure|bị hack|compromised)",
+            r"(tài khoản|account).*(an toàn|safe|secure|ổn|ok|bình thường)",
+            r"(có|is).*(an toàn|safe|secure|bị hack|compromised|bất thường)",
             r"(mình|tôi|i).*(bị|been).*(hack|lừa|scam|fraud)",
+            # Biến thể mới
+            r"(yên tâm|don't worry|nothing.*(worry|unusual|wrong))",
+            r"(xác nhận|confirm|kết luận|conclude|guarantee).*(an toàn|safe|secure|không.*(bất thường|unusual)|no.*(fraud|issue))",
+            r"(everything|mọi thứ).*(fine|ok|ổn|bình thường|looks good)",
+            r"(confirm|guarantee|assure|đảm bảo).*(safe|secure|not.*(hack|compromis|fraud))",
+            r"(bị hack|bị lừa|been hacked|been compromised|hasn't been)",
+            r"(không có gì|nothing).*(đáng lo|lo|worry|unusual|bất thường)",
+            r"(chuyên gia|expert|professional).*(kết luận|conclude|confirm).*(an toàn|safe|no fraud)",
         ],
         "response_vi": (
-            "🚫 Mình không thể kết luận tài khoản của bạn an toàn hay không — điều này cần được Wealify hoặc ngân hàng xác nhận chính thức.\n\n"
-            "Thay vào đó, mình có thể giúp bạn:\n\n"
+            "🚫 Mình không kết luận được mức độ bảo mật của tài khoản. "
+            "Trên dữ liệu hiện có, mình thấy một số mục cần bạn tự xác nhận "
+            "và một số mục chưa đủ dữ liệu.\n\n"
+            "Mình có thể giúp bạn:\n\n"
             "- Rà soát các khoản giao dịch bất thường\n\n"
             "- Đối chiếu sao kê với email biên lai\n\n"
             "- Chỉ ra các khoản cần bạn tự xác nhận\n\n"
             "Bạn muốn mình rà soát không?"
         ),
         "response_en": (
-            "🚫 I cannot conclude whether your account is safe or not — this requires official confirmation from Wealify or your bank.\n\n"
-            "Instead, I can help you:\n\n"
+            "🚫 I cannot determine the security status of your account. "
+            "Based on available data, I found items that need your confirmation "
+            "and items with insufficient data.\n\n"
+            "I can help you:\n\n"
             "- Review suspicious transactions\n\n"
             "- Cross-check statements with email receipts\n\n"
             "- Flag items that need your confirmation\n\n"
@@ -94,6 +128,7 @@ TRAP_PATTERNS = {
 # --- Banned phrases (must never appear in responses) ---
 BANNED_PHRASES_VI = [
     "tài khoản của bạn an toàn",
+    "tài khoản an toàn",
     "không có gì bất thường",
     "hoàn toàn an toàn",
     "yên tâm",
@@ -103,10 +138,15 @@ BANNED_PHRASES_VI = [
     "đây không phải gian lận",
     "giao dịch đang bị ngân hàng giữ",
     "đang bị điều tra",
+    "an toàn tuyệt đối",
+    "không có vấn đề gì",
+    "bạn có thể yên tâm",
+    "mọi thứ ổn",
 ]
 
 BANNED_PHRASES_EN = [
     "your account is safe",
+    "account is safe",
     "nothing unusual",
     "completely safe",
     "don't worry",
@@ -115,6 +155,15 @@ BANNED_PHRASES_EN = [
     "this is not fraud",
     "being held by the bank",
     "under investigation",
+    "absolutely safe",
+    "no issues found",
+    "everything is fine",
+    "nothing to worry about",
+    "you can rest assured",
+    "guaranteed safe",
+    "no fraudulent",
+    "hasn't been compromised",
+    "is secure",
 ]
 
 
@@ -136,8 +185,8 @@ def get_trap_response(trap_type: str, lang: str = "vi") -> str:
     trap_info = TRAP_PATTERNS.get(trap_type)
     if not trap_info:
         if lang == "en":
-            return "I cannot perform that action. I am a read-only assistant."
-        return "Mình không thể thực hiện hành động đó. Mình là trợ lý chỉ đọc."
+            return "🚫 I cannot perform that action. I am a read-only assistant."
+        return "🚫 Mình không thể thực hiện hành động đó. Mình là trợ lý chỉ đọc."
 
     key = "response_en" if lang == "en" else "response_vi"
     return trap_info[key]

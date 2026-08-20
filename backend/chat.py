@@ -9,6 +9,7 @@ for proper line breaks.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta
 from typing import Any
 
 from data_loader import get_all_data
@@ -21,8 +22,9 @@ from agents.reconciler import reconcile_three_sources
 from agents.anomaly_detector import detect_anomalies
 from agents.report_generator import generate_report
 from agents.email_drafter import draft_report_email, draft_dispute_reminder_email
+from agents.risk_scorer import calculate_risk_score
 
-from config import LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT
+from config import LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT, BYTEPLUS_API_KEY
 
 # Use double newline for Streamlit markdown rendering
 NL = "\n\n"
@@ -90,7 +92,7 @@ class ChatOrchestrator:
             "overview": [
                 "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
                 "how much", "total", "3 khoản lớn", "overview", "tháng này",
-                "spending", "tóm tắt",
+                "spending", "tóm tắt", "quý", "năm", "quarter", "year",
             ],
             "email_match": [
                 "email", "khớp", "biên lai", "receipt", "xác nhận",
@@ -112,6 +114,14 @@ class ChatOrchestrator:
             "send_report": [
                 "gửi báo cáo", "gửi email", "send report", "email report",
                 "send to my email", "gửi vào email",
+            ],
+            "dispute_reminder": [
+                "hạn khiếu nại", "dispute", "deadline", "sắp hết hạn",
+                "60 ngày", "nhắc hạn", "reminder",
+            ],
+            "scheduled_check": [
+                "rà soát", "kiểm tra toàn bộ", "full check", "scan",
+                "chạy kiểm tra", "run check", "giám sát", "monitor",
             ],
             "unknown_merchant": [
                 "này là gì", "what is", "khoản lạ", "không biết", "unknown",
@@ -141,6 +151,8 @@ class ChatOrchestrator:
             "subscriptions": self._handle_subscriptions,
             "duplicates": self._handle_duplicates,
             "send_report": self._handle_send_report,
+            "dispute_reminder": self._handle_dispute_reminder,
+            "scheduled_check": self._handle_scheduled_check,
             "unknown_merchant": self._handle_unknown_merchant,
             "audit_log": self._handle_audit_log,
             "general": self._handle_general,
@@ -185,9 +197,13 @@ class ChatOrchestrator:
 
     def _handle_overview(self, message: str, lang: str) -> dict[str, Any]:
         analysis = self._get_statement_analysis(lang)
+        anomalies = self._get_anomalies(lang)
+        report = generate_report(analysis, anomalies, lang)
         summary = analysis["summary"]
         top3 = analysis["top3_largest"]
         monthly = analysis["monthly_breakdown"]
+        quarterly = report.get("quarterly_breakdown", {})
+        yearly = report.get("yearly_breakdown", {})
 
         if lang == "en":
             parts = ["📊 **Account Overview**"]
@@ -201,6 +217,16 @@ class ChatOrchestrator:
             parts.append("**Monthly Breakdown:**")
             for month, data in sorted(monthly.items()):
                 parts.append(f"- `{month}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}`")
+            if quarterly:
+                parts.append("")
+                parts.append("**Quarterly Breakdown:**")
+                for q, data in sorted(quarterly.items()):
+                    parts.append(f"- `{q}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}` · Net `${data['net']:,.2f}`")
+            if yearly:
+                parts.append("")
+                parts.append("**Yearly Summary:**")
+                for y, data in sorted(yearly.items()):
+                    parts.append(f"- `{y}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}` · Net `${data['net']:,.2f}`")
         else:
             parts = ["📊 **Tổng quan tài khoản**"]
             for k, v in summary.items():
@@ -213,6 +239,16 @@ class ChatOrchestrator:
             parts.append("**Chi tiết theo tháng:**")
             for month, data in sorted(monthly.items()):
                 parts.append(f"- `{month}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}`")
+            if quarterly:
+                parts.append("")
+                parts.append("**Theo quý:**")
+                for q, data in sorted(quarterly.items()):
+                    parts.append(f"- `{q}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}` · Ròng `${data['net']:,.2f}`")
+            if yearly:
+                parts.append("")
+                parts.append("**Theo năm:**")
+                for y, data in sorted(yearly.items()):
+                    parts.append(f"- `{y}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}` · Ròng `${data['net']:,.2f}`")
 
         return {"response": NL.join(parts), "type": "overview", "data": analysis}
 
@@ -493,6 +529,129 @@ class ChatOrchestrator:
 
         return {"response": NL.join(parts), "type": "unknown_merchants", "data": unknowns}
 
+    def _handle_dispute_reminder(self, message: str, lang: str) -> dict[str, Any]:
+        """Show items approaching 60-day dispute deadline."""
+        today = datetime.utcnow()
+        approaching = []
+
+        for txn in self.data["account_statement"]:
+            if txn.get("type") not in ("charge", "fee"):
+                continue
+            deadline_str = txn.get("dispute_deadline", "")
+            if not deadline_str or deadline_str == "Unknown":
+                continue
+            try:
+                deadline = datetime.strptime(deadline_str, "%Y-%m-%d")
+                days_left = (deadline - today).days
+                if 0 < days_left <= 30:
+                    approaching.append({
+                        **txn,
+                        "days_left": days_left,
+                    })
+            except ValueError:
+                continue
+
+        approaching.sort(key=lambda x: x["days_left"])
+
+        if lang == "en":
+            parts = [f"⏰ **Dispute Deadline Reminders** — {len(approaching)} items within 30 days"]
+        else:
+            parts = [f"⏰ **Nhắc hạn khiếu nại** — {len(approaching)} khoản sắp hết hạn (trong 30 ngày)"]
+
+        if not approaching:
+            parts.append("✅ Không có khoản nào sắp hết hạn khiếu nại." if lang == "vi" else "✅ No items approaching dispute deadline.")
+        else:
+            for item in approaching:
+                urgency = "🔴" if item["days_left"] <= 7 else ("🟡" if item["days_left"] <= 14 else "🟢")
+                if lang == "en":
+                    parts.append(f"{urgency} **{item['description']}** — ${abs(item['amount']):,.2f} ({item['date']})")
+                    parts.append(f"- Deadline: **{item['dispute_deadline']}** ({item['days_left']} days left)")
+                else:
+                    parts.append(f"{urgency} **{item['description']}** — ${abs(item['amount']):,.2f} ({item['date']})")
+                    parts.append(f"- Hạn: **{item['dispute_deadline']}** (còn {item['days_left']} ngày)")
+                parts.append(f"- 🏷️ *{LABEL_NEEDS_REVIEW}*")
+
+            # Offer to draft reminder email
+            if approaching:
+                draft = draft_dispute_reminder_email(approaching, lang)
+                self.pending_email_draft = draft
+                parts.append("")
+                parts.append("📧 " + ("Mình đã soạn email nhắc hạn. Gõ 'xác nhận' để gửi vào email của bạn." if lang == "vi" else "I've drafted a reminder email. Type 'confirm' to send it to your email."))
+
+        return {"response": NL.join(parts), "type": "dispute_reminder"}
+
+    def _handle_scheduled_check(self, message: str, lang: str) -> dict[str, Any]:
+        """Run a full scheduled check: all agents, compile results, don't re-report."""
+        analysis = self._get_statement_analysis(lang)
+        anomalies = self._get_anomalies(lang)
+        recon = self._get_reconciliation(lang)
+        email_matches = self._get_email_matches(lang)
+        risk = calculate_risk_score(anomalies, recon, email_matches)
+
+        new_flags = 0
+        total_issues = 0
+
+        # Flag anomalies (skip if already flagged)
+        for u in anomalies.get("unknown_merchants", []):
+            total_issues += 1
+            if audit_log.log_flag(u["reference"], "unknown_merchant", "medium", LABEL_NEEDS_REVIEW, "anomaly_detector", u.get("explanation", "")):
+                new_flags += 1
+
+        for d in anomalies.get("duplicate_charges", []):
+            total_issues += 1
+            if audit_log.log_flag(d["reference"], "duplicate_charge", "high", LABEL_NEEDS_REVIEW, "anomaly_detector", f"Duplicate of {d.get('duplicate_of', '')}"):
+                new_flags += 1
+
+        for h in anomalies.get("price_hikes", []):
+            total_issues += 1
+            if audit_log.log_flag(h["merchant"], "price_hike", "high", LABEL_NEEDS_REVIEW, "anomaly_detector", f"${h['old_price']} → ${h['new_price']}"):
+                new_flags += 1
+
+        for disc in recon.get("discrepancies", []):
+            total_issues += 1
+            ref = disc.get("reference", disc.get("type", "unknown"))
+            if audit_log.log_flag(ref, disc.get("type", "discrepancy"), "medium", LABEL_NEEDS_REVIEW, "reconciler", disc.get("detail", "")):
+                new_flags += 1
+
+        for m in email_matches:
+            if m.get("match_status") == "suspicious_email":
+                total_issues += 1
+                if audit_log.log_flag(m["reference"], "suspicious_email", "high", LABEL_NEEDS_REVIEW, "email_matcher", "; ".join(m.get("suspicious_reasons", []))):
+                    new_flags += 1
+
+        skipped = total_issues - new_flags
+
+        if lang == "en":
+            parts = [
+                f"🔍 **Full Scan Complete** — Risk Score: **{risk['total_score']}/100** ({risk['level']})",
+                f"- Total issues found: **{total_issues}**",
+                f"- New flags logged: **{new_flags}**",
+                f"- Already reported (skipped): **{skipped}**",
+                "",
+                "**Breakdown:**",
+                f"- 🚨 Unknown merchants: {len(anomalies.get('unknown_merchants', []))}",
+                f"- 🔁 Duplicates: {len(anomalies.get('duplicate_charges', []))}",
+                f"- 💰 Price hikes: {len(anomalies.get('price_hikes', []))}",
+                f"- 🔍 3-source discrepancies: {recon.get('total_discrepancies', 0)}",
+                f"- 📧 Suspicious emails: {sum(1 for m in email_matches if m.get('match_status') == 'suspicious_email')}",
+            ]
+        else:
+            parts = [
+                f"🔍 **Rà soát toàn bộ hoàn tất** — Risk Score: **{risk['total_score']}/100** ({risk['level_vi']})",
+                f"- Tổng vấn đề phát hiện: **{total_issues}**",
+                f"- Cảnh báo mới ghi nhận: **{new_flags}**",
+                f"- Đã báo trước (bỏ qua): **{skipped}**",
+                "",
+                "**Chi tiết:**",
+                f"- 🚨 Khoản lạ: {len(anomalies.get('unknown_merchants', []))}",
+                f"- 🔁 Khoản trùng: {len(anomalies.get('duplicate_charges', []))}",
+                f"- 💰 Gói tăng giá: {len(anomalies.get('price_hikes', []))}",
+                f"- 🔍 Lệch 3 nguồn: {recon.get('total_discrepancies', 0)}",
+                f"- 📧 Email nghi giả: {sum(1 for m in email_matches if m.get('match_status') == 'suspicious_email')}",
+            ]
+
+        return {"response": NL.join(parts), "type": "scheduled_check", "data": {"risk": risk, "new_flags": new_flags}}
+
     def _handle_audit_log(self, message: str, lang: str) -> dict[str, Any]:
         flags = audit_log.get_all_flags()
         summary = audit_log.get_summary()
@@ -519,15 +678,45 @@ class ChatOrchestrator:
         return {"response": NL.join(parts), "type": "audit_log", "data": flags}
 
     def _handle_general(self, message: str, lang: str) -> dict[str, Any]:
+        # Try LLM for complex questions if API key is available
+        if BYTEPLUS_API_KEY and len(message) > 20:
+            try:
+                from llm_client import call_llm
+                # Build context from data
+                analysis = self._get_statement_analysis(lang)
+                anomalies = self._get_anomalies(lang)
+                summary_text = ", ".join(f"{k}: {v}" for k, v in analysis.get("summary", {}).items())
+
+                system = (
+                    "You are Wealify — a financial review assistant for cross-border sellers. "
+                    "You are READ-ONLY: never offer to cancel services, transfer money, or send emails to third parties. "
+                    "Always use one of these 3 labels: 'Định kỳ đã xác định' / 'Cần bạn tự xác nhận' / 'Chưa đủ dữ liệu'. "
+                    "Never say 'your account is safe' or 'nothing unusual'. "
+                    f"Respond in {'Vietnamese' if lang == 'vi' else 'English'}. Be concise."
+                )
+                prompt = (
+                    f"User question: {message}\n\n"
+                    f"Financial data summary: {summary_text}\n"
+                    f"Anomalies: {anomalies.get('total_anomalies', 0)} issues found\n"
+                    f"Subscriptions: {len(anomalies.get('subscriptions', []))} active\n"
+                    f"Price hikes: {len(anomalies.get('price_hikes', []))} detected"
+                )
+                llm_response = call_llm(prompt, system=system, max_tokens=600)
+                return {"response": llm_response, "type": "llm_response"}
+            except Exception as e:
+                print(f"[Chat] LLM fallback failed: {e}")
+
         if lang == "en":
             resp = NL.join([
                 "👋 I'm your **Wealify financial review assistant**. I can help you with:",
-                "- 📊 **Overview** — \"How much did I spend this month?\"",
+                "- 📊 **Overview** — \"How much did I spend this month/quarter/year?\"",
                 "- 📧 **Email matching** — \"Does this $9.99 charge have a receipt?\"",
                 "- 🔍 **3-source check** — \"Any money that left but didn't reach the card?\"",
                 "- 📋 **Subscriptions** — \"What subscriptions do I have? Any price increases?\"",
                 "- 🔁 **Duplicates** — \"Any double charges or duplicate fees?\"",
                 "- 📧 **Send report** — \"Send the report to my email\"",
+                "- ⏰ **Dispute deadlines** — \"Any items approaching 60-day deadline?\"",
+                "- 🔍 **Full scan** — \"Run a complete check\"",
                 "- ❓ **Transaction lookup** — \"What is this $54.99 charge?\"",
                 "- 📝 **Audit log** — \"Show flag history\"",
                 "",
@@ -536,12 +725,14 @@ class ChatOrchestrator:
         else:
             resp = NL.join([
                 "👋 Mình là **trợ lý rà soát tài chính Wealify**. Mình có thể giúp bạn:",
-                "- 📊 **Tổng quan** — \"Tháng này tôi chi bao nhiêu?\"",
+                "- 📊 **Tổng quan** — \"Tháng/quý/năm này tôi chi bao nhiêu?\"",
                 "- 📧 **Đối soát email** — \"Khoản $9.99 này có email biên lai không?\"",
                 "- 🔍 **Đối chiếu 3 nguồn** — \"Có tiền rời tài khoản mà chưa lên thẻ không?\"",
                 "- 📋 **Gói đăng ký** — \"Mình có những gói gì? Gói nào tăng giá?\"",
                 "- 🔁 **Khoản trùng** — \"Có khoản nào bị tính hai lần không?\"",
                 "- 📧 **Gửi báo cáo** — \"Gửi báo cáo vào email của tôi\"",
+                "- ⏰ **Nhắc hạn** — \"Khoản nào sắp hết hạn khiếu nại 60 ngày?\"",
+                "- 🔍 **Rà soát toàn bộ** — \"Chạy kiểm tra toàn bộ\"",
                 "- ❓ **Tra cứu** — \"Khoản $54.99 này là gì?\"",
                 "- 📝 **Nhật ký** — \"Xem lịch sử cảnh báo\"",
                 "",
