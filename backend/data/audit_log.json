@@ -1,1 +1,128 @@
-[]
+[
+  {
+    "timestamp": "2026-08-20T15:54:12.271039Z",
+    "transaction_ref": "TXN-010",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.271643Z",
+    "transaction_ref": "TXN-016",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.271745Z",
+    "transaction_ref": "TXN-028",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.271827Z",
+    "transaction_ref": "TXN-029",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.271989Z",
+    "transaction_ref": "TXN-037",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272120Z",
+    "transaction_ref": "TXN-046",
+    "reason": "unknown_merchant",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "chưa xác định được"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272230Z",
+    "transaction_ref": "TXN-009",
+    "reason": "duplicate_charge",
+    "confidence": "high",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "Duplicate of TXN-008"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272330Z",
+    "transaction_ref": "AMZN MKTP US*4R8P2",
+    "reason": "price_hike",
+    "confidence": "high",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "$89.99 → $123.45"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272426Z",
+    "transaction_ref": "DG MEMBERSHIP SVCS",
+    "reason": "price_hike",
+    "confidence": "high",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "$12.99 → $14.99"
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272527Z",
+    "transaction_ref": "TXN-009",
+    "reason": "missing_on_card",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "reconciler",
+    "details": "Khoản này rời tài khoản nhưng KHÔNG xuất hiện trên sao kê thẻ."
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272634Z",
+    "transaction_ref": "TXN-012",
+    "reason": "duplicate_fee",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "reconciler",
+    "details": "Phí kép — bị tính 2 lần cùng ngày (trùng với TXN-011)."
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272752Z",
+    "transaction_ref": "TXN-048",
+    "reason": "duplicate_fee",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "reconciler",
+    "details": "Phí kép — bị tính 2 lần cùng ngày (trùng với TXN-047)."
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.272871Z",
+    "transaction_ref": "wallet_card_mismatch",
+    "reason": "wallet_card_mismatch",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "reconciler",
+    "details": "Số dư thẻ lệch: tổng chuyển sang thẻ = $4100.00, tổng chi trên thẻ = $990.97, số dư thẻ kỳ vọng = $3109.03, số dư thẻ thực tế = $2245.01. Lệch $864.02, chưa xác định nguyên nhân."
+  },
+  {
+    "timestamp": "2026-08-20T15:54:12.273110Z",
+    "transaction_ref": "TXN-044",
+    "reason": "suspicious_email",
+    "confidence": "high",
+    "label": "Cần bạn tự xác nhận",
+    "source": "email_matcher",
+    "details": "Tên thương hiệu bị sai chính tả: 'blnkist' (đúng: 'blinkist'); Tên miền email đáng ngờ: blinkist-renewal.net; Email chứa đường link đáng ngờ"
+  }
+]
