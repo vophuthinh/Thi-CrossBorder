@@ -1,0 +1,21 @@
+From: mail@creativecloud.adobe.com
+To: user@demo-wealify.com
+Subject: Adobe Creative Cloud - Payment Receipt
+Date: 2026-08-10 06:00:00 UTC
+
+Dear Customer,
+
+Your Adobe Creative Cloud subscription has been renewed.
+
+Plan: Creative Cloud All Apps
+Amount: $59.99
+Payment method: Visa ****8842
+Invoice date: August 10, 2026
+Next renewal: September 10, 2026
+
+Note: Your subscription price has been updated from $54.99 to $59.99 as of July 2026.
+
+View your invoice at adobe.com/account.
+
+Thank you,
+Adobe

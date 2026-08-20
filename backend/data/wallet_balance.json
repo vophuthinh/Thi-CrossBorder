@@ -1,0 +1,13 @@
+{
+  "account_id": "WLF-USR-2026-DEMO",
+  "wallet_balance": 13395.72,
+  "card_balance": 2245.01,
+  "pending_in": 0.00,
+  "pending_out": 0.00,
+  "total_transferred_to_card": 3600.00,
+  "total_card_spending": 1354.99,
+  "last_updated": "2026-08-18T23:59:00Z",
+  "currency": "USD",
+  "card_last4": "8842",
+  "_note_for_judges": "card_balance should be total_transferred_to_card - total_card_spending = 3600 - 1354.99 = 2245.01. But actual card_statement shows more spending. The $500 transfer TXN-050 on Aug 12 has NOT appeared on card yet — this is a deliberate discrepancy for the reconciliation test."
+}

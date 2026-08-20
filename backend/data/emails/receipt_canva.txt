@@ -1,0 +1,19 @@
+From: no-reply@canva.com
+To: user@demo-wealify.com
+Subject: Canva Pro Annual Plan - Payment Receipt
+Date: 2026-08-06 09:00:00 UTC
+
+Hi there,
+
+Your Canva Pro annual subscription has been renewed.
+
+Plan: Canva Pro (Annual)
+Amount: $119.99/year
+Payment method: Visa ending in 8842
+Date: August 6, 2026
+Next renewal: August 6, 2027
+
+Manage your plan at canva.com/settings/billing.
+
+Thanks for being a Canva Pro member!
+The Canva Team

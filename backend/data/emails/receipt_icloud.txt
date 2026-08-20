@@ -1,0 +1,18 @@
+From: noreply@apple.com
+To: user@demo-wealify.com
+Subject: Your iCloud+ storage plan renewal
+Date: 2026-08-15 01:00:00 UTC
+
+Dear Customer,
+
+Your Apple iCloud+ subscription has been renewed.
+
+Plan: iCloud+ 50 GB
+Amount: $2.99/month
+Apple ID: user@demo-wealify.com
+Date: August 15, 2026
+Next billing: September 15, 2026
+
+Manage storage at appleid.apple.com.
+
+Apple

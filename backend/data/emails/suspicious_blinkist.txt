@@ -1,0 +1,13 @@
+From: billing@blinkist-renewal.net
+To: user@demo-wealify.com
+Subject: Your Blnkist subscription - Payment processed
+Date: 2026-08-05 03:10:00 UTC
+
+Hi user,
+
+Your Blnkist subscription payment of $14.99 has been processed on Aug 5 2026.
+
+Click here to manage: http://blinkist-renewal.net/manage?token=xk38f
+
+Thanks,
+Blnkist Team

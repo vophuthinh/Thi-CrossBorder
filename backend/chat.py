@@ -1,0 +1,560 @@
+"""
+Chat Orchestrator — Routes user messages to the right agents.
+Handles intent detection, safety checks, and response formatting.
+
+NOTE: All responses use double-newline (\\n\\n) for Streamlit markdown compatibility.
+Streamlit's st.markdown() treats single \\n as same paragraph, so we need \\n\\n
+for proper line breaks.
+"""
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from data_loader import get_all_data
+from safety import detect_trap_question, get_trap_response, validate_response, detect_language, get_disclaimer
+from audit_log import audit_log
+
+from agents.statement_parser import analyze_statement
+from agents.email_matcher import match_transactions_to_emails, get_match_summary
+from agents.reconciler import reconcile_three_sources
+from agents.anomaly_detector import detect_anomalies
+from agents.report_generator import generate_report
+from agents.email_drafter import draft_report_email, draft_dispute_reminder_email
+
+from config import LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT
+
+# Use double newline for Streamlit markdown rendering
+NL = "\n\n"
+
+
+class ChatOrchestrator:
+    """Main chat logic — routes intents, calls agents, formats responses."""
+
+    def __init__(self):
+        self.data = get_all_data()
+        self.conversation_history: list[dict[str, str]] = []
+        self._cache: dict[str, Any] = {}
+        self.pending_email_draft: dict[str, Any] | None = None
+
+    def process_message(self, message: str) -> dict[str, Any]:
+        """Process a user message and return response."""
+        lang = detect_language(message)
+
+        # 1. Safety check — detect trap questions
+        trap = detect_trap_question(message)
+        if trap:
+            response_text = get_trap_response(trap, lang)
+            self.conversation_history.append({"role": "user", "content": message})
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+            return {
+                "response": response_text,
+                "type": "safety_rejection",
+                "lang": lang,
+                "disclaimer": get_disclaimer(lang),
+            }
+
+        # 2. Check for email confirmation
+        if self.pending_email_draft and _is_confirmation(message):
+            draft = self.pending_email_draft
+            self.pending_email_draft = None
+            confirm_msg = "✅ Email đã được gửi tới " + draft["to"] if lang == "vi" else "✅ Email sent to " + draft["to"]
+            return {
+                "response": confirm_msg,
+                "type": "email_sent",
+                "email": draft,
+                "lang": lang,
+                "disclaimer": get_disclaimer(lang),
+            }
+
+        # 3. Detect intent and route to agents
+        intent = self._detect_intent(message, lang)
+        response = self._handle_intent(intent, message, lang)
+
+        # 4. Validate response (no banned phrases)
+        response["response"] = validate_response(response["response"])
+        response["disclaimer"] = get_disclaimer(lang)
+        response["lang"] = lang
+
+        # 5. Update conversation history
+        self.conversation_history.append({"role": "user", "content": message})
+        self.conversation_history.append({"role": "assistant", "content": response["response"]})
+
+        return response
+
+    def _detect_intent(self, message: str, lang: str) -> str:
+        """Detect user intent from message."""
+        lower = message.lower()
+
+        intents = {
+            "overview": [
+                "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
+                "how much", "total", "3 khoản lớn", "overview", "tháng này",
+                "spending", "tóm tắt",
+            ],
+            "email_match": [
+                "email", "khớp", "biên lai", "receipt", "xác nhận",
+                "match", "confirmation", "có email", "đối soát",
+            ],
+            "reconcile": [
+                "lệch", "đối chiếu", "3 nguồn", "chưa lên thẻ", "rời tài khoản",
+                "discrepancy", "reconcile", "mismatch", "card", "wallet",
+                "chưa thấy", "số dư",
+            ],
+            "subscriptions": [
+                "gói", "đăng ký", "định kỳ", "subscription", "recurring",
+                "tăng giá", "price", "quên huỷ", "netflix", "spotify",
+            ],
+            "duplicates": [
+                "trùng", "hai lần", "phí kép", "duplicate", "double",
+                "charged twice", "tính 2 lần",
+            ],
+            "send_report": [
+                "gửi báo cáo", "gửi email", "send report", "email report",
+                "send to my email", "gửi vào email",
+            ],
+            "unknown_merchant": [
+                "này là gì", "what is", "khoản lạ", "không biết", "unknown",
+                "giải thích", "explain", "$",
+            ],
+            "audit_log": [
+                "nhật ký", "audit", "log", "lịch sử cảnh báo", "flag history",
+            ],
+        }
+
+        scores = {intent: 0 for intent in intents}
+        for intent, keywords in intents.items():
+            for kw in keywords:
+                if kw in lower:
+                    scores[intent] += 1
+
+        best = max(scores, key=scores.get)
+        if scores[best] == 0:
+            return "general"
+        return best
+
+    def _handle_intent(self, intent: str, message: str, lang: str) -> dict[str, Any]:
+        handlers = {
+            "overview": self._handle_overview,
+            "email_match": self._handle_email_match,
+            "reconcile": self._handle_reconcile,
+            "subscriptions": self._handle_subscriptions,
+            "duplicates": self._handle_duplicates,
+            "send_report": self._handle_send_report,
+            "unknown_merchant": self._handle_unknown_merchant,
+            "audit_log": self._handle_audit_log,
+            "general": self._handle_general,
+        }
+        handler = handlers.get(intent, self._handle_general)
+        return handler(message, lang)
+
+    def _get_statement_analysis(self, lang: str) -> dict[str, Any]:
+        cache_key = f"statement_{lang}"
+        if cache_key not in self._cache:
+            self._cache[cache_key] = analyze_statement(self.data["account_statement"], lang)
+        return self._cache[cache_key]
+
+    def _get_anomalies(self, lang: str) -> dict[str, Any]:
+        cache_key = f"anomalies_{lang}"
+        if cache_key not in self._cache:
+            self._cache[cache_key] = detect_anomalies(self.data["account_statement"], lang)
+        return self._cache[cache_key]
+
+    def _get_reconciliation(self, lang: str) -> dict[str, Any]:
+        cache_key = f"reconciliation_{lang}"
+        if cache_key not in self._cache:
+            self._cache[cache_key] = reconcile_three_sources(
+                self.data["account_statement"],
+                self.data["card_statement"],
+                self.data["wallet_balance"],
+                lang,
+            )
+        return self._cache[cache_key]
+
+    def _get_email_matches(self, lang: str) -> list[dict[str, Any]]:
+        cache_key = f"email_matches_{lang}"
+        if cache_key not in self._cache:
+            self._cache[cache_key] = match_transactions_to_emails(
+                self.data["account_statement"],
+                self.data["emails"],
+                lang,
+            )
+        return self._cache[cache_key]
+
+    # --- Intent handlers ---
+
+    def _handle_overview(self, message: str, lang: str) -> dict[str, Any]:
+        analysis = self._get_statement_analysis(lang)
+        summary = analysis["summary"]
+        top3 = analysis["top3_largest"]
+        monthly = analysis["monthly_breakdown"]
+
+        if lang == "en":
+            parts = ["📊 **Account Overview**"]
+            for k, v in summary.items():
+                parts.append(f"- **{k}:** ${v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+            parts.append("")
+            parts.append("**Top 3 Largest Charges:**")
+            for i, t in enumerate(top3, 1):
+                parts.append(f"{i}. `{t['description']}` — `${abs(t['amount']):,.2f}` ({t['date']})")
+            parts.append("")
+            parts.append("**Monthly Breakdown:**")
+            for month, data in sorted(monthly.items()):
+                parts.append(f"- `{month}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}`")
+        else:
+            parts = ["📊 **Tổng quan tài khoản**"]
+            for k, v in summary.items():
+                parts.append(f"- **{k}:** ${v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+            parts.append("")
+            parts.append("**3 khoản lớn nhất:**")
+            for i, t in enumerate(top3, 1):
+                parts.append(f"{i}. `{t['description']}` — `${abs(t['amount']):,.2f}` ({t['date']})")
+            parts.append("")
+            parts.append("**Chi tiết theo tháng:**")
+            for month, data in sorted(monthly.items()):
+                parts.append(f"- `{month}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}`")
+
+        return {"response": NL.join(parts), "type": "overview", "data": analysis}
+
+    def _handle_email_match(self, message: str, lang: str) -> dict[str, Any]:
+        matches = self._get_email_matches(lang)
+        summary = get_match_summary(matches, lang)
+
+        if lang == "en":
+            parts = ["📧 **Transaction ↔ Email Cross-Check**"]
+            for k, v in summary.items():
+                parts.append(f"- **{k}:** {v}")
+            parts.append("")
+            parts.append("**Details:**")
+        else:
+            parts = ["📧 **Đối soát giao dịch ↔ email**"]
+            for k, v in summary.items():
+                parts.append(f"- **{k}:** {v}")
+            parts.append("")
+            parts.append("**Chi tiết:**")
+
+        # Group by status for cleaner display
+        suspicious_items = []
+        no_email_items = []
+        matched_items = []
+
+        for m in matches:
+            status_icon = {"matched": "✅", "no_email": "❌", "suspicious_email": "⚠️"}.get(m["match_status"], "❓")
+            status_text = {
+                "matched": "Có email khớp" if lang == "vi" else "Email matched",
+                "no_email": "Không tìm thấy email" if lang == "vi" else "No matching email",
+                "suspicious_email": "Email nghi giả" if lang == "vi" else "Suspicious email",
+            }.get(m["match_status"], "")
+
+            line = f"- {status_icon} `{m['description']}` — ${abs(m['amount']):,.2f} ({m['date']}) → **{status_text}**"
+
+            if m["match_status"] == "matched":
+                matched_items.append(line)
+            elif m["match_status"] == "suspicious_email":
+                suspicious_items.append(line)
+                if m.get("suspicious_reasons"):
+                    for reason in m["suspicious_reasons"]:
+                        suspicious_items.append(f"  - ⚠️ _{reason}_")
+            else:
+                no_email_items.append(line)
+
+        # Show suspicious first, then no email, then matched
+        for line in suspicious_items + no_email_items + matched_items:
+            parts.append(line)
+
+        return {"response": NL.join(parts), "type": "email_match", "data": matches}
+
+    def _handle_reconcile(self, message: str, lang: str) -> dict[str, Any]:
+        recon = self._get_reconciliation(lang)
+        discs = recon["discrepancies"]
+
+        if lang == "en":
+            parts = [f"🔍 **3-Source Reconciliation** — Found **{len(discs)}** discrepancies"]
+        else:
+            parts = [f"🔍 **Đối chiếu 3 nguồn** — Phát hiện **{len(discs)}** khoản lệch"]
+
+        for d in discs:
+            dtype = d.get("type", "")
+            icon = {"duplicate_charge": "🔁", "duplicate_fee": "🔁", "missing_on_card": "❗",
+                    "missing_in_account": "❗", "wallet_card_mismatch": "💰"}.get(dtype, "⚠️")
+
+            if "reference" in d:
+                parts.append(f"---")
+                parts.append(f"{icon} **{d.get('reference', '')}** — `{d.get('description', '')}` (${abs(d.get('amount', 0)):,.2f})")
+
+            parts.append(f"> {d.get('detail', '')}")
+
+            if d.get("source"):
+                src_label = "Nguồn" if lang == "vi" else "Source"
+                parts.append(f"📎 *{src_label}: {d['source']}*")
+
+            # Log to audit
+            if "reference" in d:
+                audit_log.log_flag(
+                    transaction_ref=d.get("reference", ""),
+                    reason=dtype,
+                    confidence="medium",
+                    label=LABEL_NEEDS_REVIEW,
+                    source=d.get("source", "reconciliation"),
+                    details=d.get("detail", ""),
+                )
+
+        return {"response": NL.join(parts), "type": "reconciliation", "data": recon}
+
+    def _handle_subscriptions(self, message: str, lang: str) -> dict[str, Any]:
+        anomalies = self._get_anomalies(lang)
+        subs = anomalies["subscriptions"]
+        hikes = anomalies["price_hikes"]
+
+        if lang == "en":
+            parts = [f"📋 **Active Subscriptions** — {len(subs)} found"]
+        else:
+            parts = [f"📋 **Gói đăng ký đang hoạt động** — {len(subs)} gói"]
+
+        for s in subs:
+            label_icon = "✅" if s["label"] == LABEL_CONFIRMED else "⚠️"
+            freq_vi = {"monthly": "Hàng tháng", "yearly": "Hàng năm", "quarterly": "Hàng quý"}.get(s["frequency"], s["frequency"])
+            freq = freq_vi if lang == "vi" else s["frequency"]
+            parts.append(f"{label_icon} **{s['description']}**")
+            if lang == "en":
+                parts.append(f"- Price: `${s['current_price']:.2f}` / {freq}")
+                parts.append(f"- Next charge: {s['next_charge_date']}")
+            else:
+                parts.append(f"- Giá: `${s['current_price']:.2f}` / {freq}")
+                parts.append(f"- Kỳ trừ tiếp: {s['next_charge_date']}")
+            parts.append(f"- 🏷️ _{s['label']}_")
+
+        # Explanations
+        parts.append("")
+        explain_header = "**Giải thích tên dịch vụ:**" if lang == "vi" else "**Service Explanations:**"
+        parts.append(explain_header)
+        for s in subs:
+            if s.get("explanation") and s["explanation"] != "chưa xác định được":
+                parts.append(f"- `{s['description']}`: {s['explanation']}")
+
+        # Price hikes
+        if hikes:
+            parts.append("")
+            hike_header = "⚠️ **Phát hiện tăng giá âm thầm:**" if lang == "vi" else "⚠️ **Price Increases Detected:**"
+            parts.append(hike_header)
+
+            for h in hikes:
+                parts.append(f"- 🔺 **{h['merchant']}**: `${h['old_price']:.2f}` → `${h['new_price']:.2f}` (+`${h['increase']:.2f}`, +{h['increase_pct']}%)")
+                parts.append(f"  - 🏷️ *{h['label']}*")
+
+                audit_log.log_flag(
+                    transaction_ref=h["merchant"],
+                    reason="price_hike",
+                    confidence="high",
+                    label=LABEL_NEEDS_REVIEW,
+                    source="anomaly_detector",
+                    details=f"Price increased from ${h['old_price']} to ${h['new_price']}",
+                )
+
+        return {"response": NL.join(parts), "type": "subscriptions", "data": anomalies}
+
+    def _handle_duplicates(self, message: str, lang: str) -> dict[str, Any]:
+        anomalies = self._get_anomalies(lang)
+        dups = anomalies["duplicate_charges"]
+        recon = self._get_reconciliation(lang)
+        fee_dups = [d for d in recon["discrepancies"] if d.get("type") in ("duplicate_charge", "duplicate_fee")]
+
+        all_dups = dups + fee_dups
+
+        if lang == "en":
+            parts = [f"🔁 **Duplicate/Double Charges** — {len(all_dups)} found"]
+        else:
+            parts = [f"🔁 **Khoản trùng / Phí kép** — {len(all_dups)} khoản"]
+
+        if not all_dups:
+            no_msg = "Không phát hiện khoản trùng nào." if lang == "vi" else "No duplicate charges found."
+            parts.append(no_msg)
+        else:
+            # Deduplicate by reference
+            seen_refs = set()
+            for d in all_dups:
+                ref = d.get("reference", "")
+                if ref in seen_refs:
+                    continue
+                seen_refs.add(ref)
+
+                desc = d.get("description", "")
+                amount = d.get("amount", 0)
+                date = d.get("date", "")
+                deadline = d.get("dispute_deadline", "")
+                dup_of = d.get("duplicate_of", "")
+
+                parts.append("---")
+                parts.append(f"⚠️ **{ref}** — `{desc}` — ${abs(amount):,.2f} ({date})")
+
+                if dup_of:
+                    dup_label = "Trùng với" if lang == "vi" else "Duplicate of"
+                    parts.append(f"- 🔁 {dup_label}: `{dup_of}`")
+                if deadline:
+                    dl_label = "Hạn khiếu nại" if lang == "vi" else "Dispute deadline"
+                    parts.append(f"- ⏰ {dl_label}: **{deadline}**")
+
+                parts.append(f"- 🏷️ *{LABEL_NEEDS_REVIEW}*")
+
+        return {"response": NL.join(parts), "type": "duplicates", "data": all_dups}
+
+    def _handle_send_report(self, message: str, lang: str) -> dict[str, Any]:
+        analysis = self._get_statement_analysis(lang)
+        anomalies = self._get_anomalies(lang)
+        recon = self._get_reconciliation(lang)
+        report = generate_report(analysis, anomalies, lang)
+        draft = draft_report_email(report, anomalies, recon, lang)
+
+        self.pending_email_draft = draft
+
+        if lang == "en":
+            parts = [
+                "📧 **Email Report Draft Ready**",
+                f"**To:** {draft['to']}",
+                f"**Subject:** {draft['subject']}",
+                "---",
+                draft["body"],
+                "---",
+                "⚠️ **This is a draft. Type 'yes' or 'confirm' to send.**",
+            ]
+        else:
+            parts = [
+                "📧 **Bản nháp email báo cáo đã sẵn sàng**",
+                f"**Gửi tới:** {draft['to']}",
+                f"**Tiêu đề:** {draft['subject']}",
+                "---",
+                draft["body"],
+                "---",
+                "⚠️ **Đây là bản nháp. Gõ 'có' hoặc 'xác nhận' để gửi.**",
+            ]
+
+        return {"response": NL.join(parts), "type": "email_draft", "data": draft}
+
+    def _handle_unknown_merchant(self, message: str, lang: str) -> dict[str, Any]:
+        anomalies = self._get_anomalies(lang)
+        unknowns = anomalies["unknown_merchants"]
+
+        # Check if user is asking about a specific amount
+        amount_match = re.search(r'\$?([\d,]+\.?\d*)', message)
+
+        if amount_match:
+            target_amount = float(amount_match.group(1).replace(",", ""))
+            for txn in self.data["account_statement"]:
+                if abs(abs(txn["amount"]) - target_amount) < 0.01:
+                    email_matches = self._get_email_matches(lang)
+                    email_info = ""
+                    for em in email_matches:
+                        if em.get("reference") == txn.get("reference"):
+                            if em["match_status"] == "matched":
+                                email_info = NL + ("✅ **Có email biên lai khớp**: " if lang == "vi" else "✅ **Matching receipt email found**: ") + em["matched_email"]["subject"]
+                            elif em["match_status"] == "suspicious_email":
+                                email_info = NL + ("⚠️ **Email nghi giả**" if lang == "vi" else "⚠️ **Suspicious email found**")
+                            else:
+                                email_info = NL + ("❌ **Không tìm thấy email biên lai**" if lang == "vi" else "❌ **No matching receipt email**")
+                            break
+
+                    from agents.anomaly_detector import _explain_merchant
+                    explanation = _explain_merchant(txn.get("merchant_code", ""), txn.get("description", ""))
+
+                    if lang == "en":
+                        resp = NL.join([
+                            f"🔍 **Transaction: `{txn['description']}`**",
+                            f"- **Amount:** ${abs(txn['amount']):,.2f}",
+                            f"- **Date:** {txn['date']}",
+                            f"- **Type:** {txn['type']}",
+                            f"- **Explanation:** {explanation}",
+                            f"- **Dispute deadline:** {txn.get('dispute_deadline', 'N/A')}",
+                        ]) + email_info
+                    else:
+                        resp = NL.join([
+                            f"🔍 **Giao dịch: `{txn['description']}`**",
+                            f"- **Số tiền:** ${abs(txn['amount']):,.2f}",
+                            f"- **Ngày:** {txn['date']}",
+                            f"- **Loại:** {txn['type']}",
+                            f"- **Giải thích:** {explanation}",
+                            f"- **Hạn khiếu nại:** {txn.get('dispute_deadline', 'N/A')}",
+                        ]) + email_info
+
+                    return {"response": resp, "type": "transaction_lookup"}
+
+        # General unknown merchants list
+        if lang == "en":
+            parts = [f"❓ **Unknown/Unclear Merchants** — {len(unknowns)} found"]
+        else:
+            parts = [f"❓ **Khoản lạ / Tên cửa hàng khó hiểu** — {len(unknowns)} khoản"]
+
+        for u in unknowns:
+            parts.append("---")
+            parts.append(f"⚠️ **`{u['description']}`** — ${abs(u['amount']):,.2f} ({u['date']})")
+            parts.append(f"- ℹ️ {u['explanation']}")
+            dl_label = "Hạn khiếu nại" if lang == "vi" else "Dispute deadline"
+            parts.append(f"- ⏰ {dl_label}: **{u.get('dispute_deadline', 'N/A')}**")
+            parts.append(f"- 🏷️ *{u['label']}*")
+
+        return {"response": NL.join(parts), "type": "unknown_merchants", "data": unknowns}
+
+    def _handle_audit_log(self, message: str, lang: str) -> dict[str, Any]:
+        flags = audit_log.get_all_flags()
+        summary = audit_log.get_summary()
+
+        if lang == "en":
+            parts = [f"📝 **Audit Log** — {summary['total_flags']} flags"]
+        else:
+            parts = [f"📝 **Nhật ký cảnh báo** — {summary['total_flags']} mục"]
+
+        if not flags:
+            parts.append("Chưa có cảnh báo nào." if lang == "vi" else "No flags yet.")
+        else:
+            by_label = summary.get("by_label", {})
+            for label, count in by_label.items():
+                parts.append(f"- {label}: **{count}**")
+
+            parts.append("")
+            recent_label = "**Gần đây nhất:**" if lang == "vi" else "**Recent:**"
+            parts.append(recent_label)
+
+            for f in flags[-10:]:
+                parts.append(f"- `{f['transaction_ref']}` — {f['reason']} — *{f['label']}* ({f['timestamp'][:16]})")
+
+        return {"response": NL.join(parts), "type": "audit_log", "data": flags}
+
+    def _handle_general(self, message: str, lang: str) -> dict[str, Any]:
+        if lang == "en":
+            resp = NL.join([
+                "👋 I'm your **Wealify financial review assistant**. I can help you with:",
+                "- 📊 **Overview** — \"How much did I spend this month?\"",
+                "- 📧 **Email matching** — \"Does this $9.99 charge have a receipt?\"",
+                "- 🔍 **3-source check** — \"Any money that left but didn't reach the card?\"",
+                "- 📋 **Subscriptions** — \"What subscriptions do I have? Any price increases?\"",
+                "- 🔁 **Duplicates** — \"Any double charges or duplicate fees?\"",
+                "- 📧 **Send report** — \"Send the report to my email\"",
+                "- ❓ **Transaction lookup** — \"What is this $54.99 charge?\"",
+                "- 📝 **Audit log** — \"Show flag history\"",
+                "",
+                "What would you like to check?",
+            ])
+        else:
+            resp = NL.join([
+                "👋 Mình là **trợ lý rà soát tài chính Wealify**. Mình có thể giúp bạn:",
+                "- 📊 **Tổng quan** — \"Tháng này tôi chi bao nhiêu?\"",
+                "- 📧 **Đối soát email** — \"Khoản $9.99 này có email biên lai không?\"",
+                "- 🔍 **Đối chiếu 3 nguồn** — \"Có tiền rời tài khoản mà chưa lên thẻ không?\"",
+                "- 📋 **Gói đăng ký** — \"Mình có những gói gì? Gói nào tăng giá?\"",
+                "- 🔁 **Khoản trùng** — \"Có khoản nào bị tính hai lần không?\"",
+                "- 📧 **Gửi báo cáo** — \"Gửi báo cáo vào email của tôi\"",
+                "- ❓ **Tra cứu** — \"Khoản $54.99 này là gì?\"",
+                "- 📝 **Nhật ký** — \"Xem lịch sử cảnh báo\"",
+                "",
+                "Bạn muốn kiểm tra gì?",
+            ])
+
+        return {"response": resp, "type": "general"}
+
+
+def _is_confirmation(message: str) -> bool:
+    """Check if message is a confirmation."""
+    confirmations = [
+        "yes", "ok", "confirm", "send", "gửi", "có", "xác nhận",
+        "đồng ý", "gửi đi", "chấp nhận", "proceed",
+    ]
+    return message.strip().lower() in confirmations

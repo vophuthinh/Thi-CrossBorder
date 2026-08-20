@@ -1,0 +1,19 @@
+From: no-reply@spotify.com
+To: user@demo-wealify.com
+Subject: Spotify Premium - Payment Confirmation
+Date: 2026-08-03 08:30:00 UTC
+
+Hello,
+
+Your Spotify Premium subscription payment has been received.
+
+Plan: Spotify Premium Individual
+Amount charged: $9.99
+Card: ending in 8842
+Date: August 3, 2026
+Next payment: September 3, 2026
+
+Manage your subscription at spotify.com/account.
+
+Best,
+Spotify

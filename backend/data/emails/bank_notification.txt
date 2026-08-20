@@ -1,0 +1,17 @@
+From: alerts@wealify.com
+To: user@demo-wealify.com
+Subject: Account Activity Alert - Large Transaction Detected
+Date: 2026-08-04 10:45:00 UTC
+
+Dear Valued Customer,
+
+We detected a large transaction on your account:
+
+Transaction: AMZN MKTP US*4R8P2
+Amount: $123.45
+Date: August 4, 2026
+Card: ending in 8842
+
+This transaction exceeded your usual spending pattern. If you recognize this charge, no action is needed. If not, please contact us within 60 days of your statement date.
+
+Wealify Security Team

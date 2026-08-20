@@ -1,0 +1,19 @@
+From: info@account.netflix.com
+To: user@demo-wealify.com
+Subject: Your Netflix receipt - August 2026
+Date: 2026-08-03 02:15:00 UTC
+
+Hi there,
+
+Thanks for being a Netflix member! Your monthly payment has been processed.
+
+Subscription: Netflix Premium
+Amount: $15.49
+Payment method: Visa ending in 8842
+Billing date: August 3, 2026
+Next billing date: September 3, 2026
+
+If you have questions about your account, visit help.netflix.com.
+
+Thanks,
+The Netflix Team

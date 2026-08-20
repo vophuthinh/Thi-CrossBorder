@@ -1,0 +1,24 @@
+From: noreply@wealify.com
+To: user@demo-wealify.com
+Subject: Transfer Confirmation - $1,000.00 to Virtual Card
+Date: 2026-08-02 14:22:00 UTC
+
+Hello,
+
+Your transfer has been processed successfully.
+
+Transfer details:
+- From: Wealify Account (WLF-USR-2026-DEMO)
+- To: Virtual Card ending in 8842
+- Amount: $1,000.00
+- Date: August 2, 2026
+- Reference: TXN-039
+- Status: Completed
+
+Your updated balances:
+- Account balance: $11,800.02
+- Card balance: Updated within 24 hours
+
+If you did not authorize this transfer, please contact us immediately.
+
+Wealify Support Team
