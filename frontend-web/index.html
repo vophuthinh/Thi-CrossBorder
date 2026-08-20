@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Wealify Smart Finance — AI Dashboard soi sao kê, quản lý chi tiêu & an toàn giao dịch cho Seller Cross-Border">
+  <title>Wealify Smart Finance — AI Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <!-- ═══ Sidebar ═══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛡️</div>
+      <span class="brand-text">Wealify</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+        <span class="nav-icon">📊</span> <span data-i18n="nav_overview">Tổng quan</span>
+      </div>
+      <div class="nav-item" data-tab="reconcile" onclick="switchTab('reconcile')">
+        <span class="nav-icon">🔍</span> <span data-i18n="nav_reconcile">Đối chiếu</span>
+      </div>
+      <div class="nav-item" data-tab="safety" onclick="switchTab('safety')">
+        <span class="nav-icon">🛡️</span> <span data-i18n="nav_safety">An toàn</span>
+      </div>
+      <div class="nav-item" data-tab="findings" onclick="switchTab('findings')">
+        <span class="nav-icon">🎯</span> <span data-i18n="nav_findings">Findings</span>
+      </div>
+      <div class="nav-item" data-tab="chat" onclick="switchTab('chat')">
+        <span class="nav-icon">💬</span> <span>Chat AI</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-actions">
+      <button class="sidebar-btn" onclick="runScheduledCheck()">
+        🔍 <span data-i18n="btn_scan">Rà soát định kỳ</span>
+      </button>
+      <button class="sidebar-btn" onclick="exportAuditLog()">
+        📝 <span data-i18n="btn_export">Xuất nhật ký</span>
+      </button>
+      <button class="sidebar-btn" onclick="refreshData()">
+        🔄 <span data-i18n="btn_refresh">Làm mới dữ liệu</span>
+      </button>
+    </div>
+
+    <div class="lang-toggle">
+      <button class="active" onclick="setLang('vi')">VN</button>
+      <button onclick="setLang('en')">EN</button>
+    </div>
+
+    <div class="sidebar-footer">
+      <small>Built with <strong>BytePlus Seed 2.0</strong><br>AI Cross-Border Hackathon 2026</small>
+      <br><span class="status-dot online"></span> <small>Backend Online</small>
+    </div>
+  </aside>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="main-content">
+    <!-- Hero -->
+    <header class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>🛡️ Wealify Smart Finance</h1>
+          <p class="hero-subtitle" data-i18n="hero_subtitle">AI Dashboard soi sao kê · Quản lý chi tiêu & An toàn giao dịch cho Seller Cross-Border</p>
+        </div>
+        <span class="hero-badge">⚡ Powered by BytePlus Seed 2.0</span>
+      </div>
+    </header>
+
+    <!-- Metrics -->
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card income">
+        <div class="metric-icon">💰</div>
+        <div class="metric-label" data-i18n="metric_income">TỔNG TIỀN VÀO</div>
+        <div class="metric-value green" id="metricIncome">—</div>
+      </div>
+      <div class="metric-card spending">
+        <div class="metric-icon">🛒</div>
+        <div class="metric-label" data-i18n="metric_spending">TỔNG CHI TIÊU</div>
+        <div class="metric-value red" id="metricSpending">—</div>
+      </div>
+      <div class="metric-card fees">
+        <div class="metric-icon">🏷️</div>
+        <div class="metric-label" data-i18n="metric_fees">TỔNG PHÍ</div>
+        <div class="metric-value yellow" id="metricFees">—</div>
+      </div>
+      <div class="metric-card risk">
+        <div class="metric-icon">⚠️</div>
+        <div class="metric-label">RISK SCORE</div>
+        <div class="metric-value red" id="metricRisk">—</div>
+        <div class="metric-change" id="metricRiskLevel"></div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="padding: 16px 40px 0;">
+      <div class="disclaimer-bar" id="disclaimerBar"></div>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="content-area">
+      <!-- TAB: OVERVIEW -->
+      <div class="tab-content active" id="tab-overview"></div>
+
+      <!-- TAB: RECONCILE -->
+      <div class="tab-content" id="tab-reconcile"></div>
+
+      <!-- TAB: SAFETY -->
+      <div class="tab-content" id="tab-safety"></div>
+
+      <!-- TAB: FINDINGS -->
+      <div class="tab-content" id="tab-findings"></div>
+
+      <!-- TAB: CHAT -->
+      <div class="tab-content" id="tab-chat">
+        <div class="chat-container">
+          <div class="chat-quick-btns" id="chatQuickBtns"></div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg bot">👋 Xin chào! Mình là trợ lý rà soát tài chính Wealify. Hỏi mình bất kỳ điều gì về sao kê của bạn!</div>
+          </div>
+          <div class="chat-input-area">
+            <input class="chat-input" id="chatInput" placeholder="Nhập câu hỏi..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="chat-send-btn" onclick="sendChat()" data-i18n="btn_send">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

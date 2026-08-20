@@ -4,8 +4,12 @@ Dashboard-first API + AI Chatbot
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import DEMO_MODE, DISCLAIMER_VI, DISCLAIMER_EN, BYTEPLUS_API_KEY
@@ -470,6 +474,20 @@ def _generate_cached_insight(summary, anomalies, reconciliation) -> str:
     )
 
     return "\n\n".join(parts)
+
+
+# ─── Serve Frontend ─────────────────────────────────────
+
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend-web"
+
+
+@app.get("/")
+def serve_frontend():
+    """Serve the HTML frontend."""
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
 
 
 if __name__ == "__main__":
