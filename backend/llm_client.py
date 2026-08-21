@@ -1,8 +1,9 @@
 """
-LLM Client — Unified wrapper for BytePlus Seed 2.0 with fallback to OpenAI / Anthropic.
-Supports retry logic, token counting, and provider switching via env var.
+LLM Client — Unified wrapper for BytePlus ModelArk (Responses API) with
+fallback to OpenAI / Anthropic. Supports retry logic, token counting, and
+provider switching via env var.
 
-Built with BytePlus ModelArk — Seed 2.0
+Built with BytePlus ModelArk — DeepSeek V4 Flash
 """
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ import time
 import httpx
 from config import (
     LLM_PROVIDER,
-    BYTEPLUS_ENDPOINT,
+    BYTEPLUS_MODEL,
     BYTEPLUS_API_KEY,
     BYTEPLUS_BASE_URL,
     OPENAI_API_KEY,
@@ -23,7 +24,7 @@ from config import (
 PROVIDERS = {
     "byteplus": {
         "url": BYTEPLUS_BASE_URL,
-        "model": BYTEPLUS_ENDPOINT,
+        "model": BYTEPLUS_MODEL,
         "api_key": BYTEPLUS_API_KEY,
         "headers_fn": lambda key: {
             "Content-Type": "application/json",
@@ -65,6 +66,27 @@ def get_usage_log() -> list[dict]:
 def get_total_tokens() -> int:
     """Return total tokens used across all calls."""
     return sum(entry.get("total_tokens", 0) for entry in _usage_log)
+
+
+def _extract_responses_api_text(result: dict) -> str:
+    """
+    Pull the assistant's text out of a BytePlus Ark Responses API result.
+    Shape: result["output"] is a list of items; the one with
+    type == "message" holds content parts, one of which is
+    type == "output_text" with the actual text.
+    Fails loudly (instead of guessing) if the shape doesn't match, so a
+    wrong assumption about the API surfaces immediately rather than
+    silently returning garbage.
+    """
+    for item in result.get("output", []):
+        if item.get("type") == "message":
+            for part in item.get("content", []):
+                if part.get("type") == "output_text":
+                    return part.get("text", "")
+    raise RuntimeError(
+        f"Unexpected BytePlus Responses API shape, no output_text found: "
+        f"{json.dumps(result)[:500]}"
+    )
 
 
 # ─── Core LLM Call ───────────────────────────────────────────
@@ -113,6 +135,20 @@ def call_llm(
             "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
         }
+    elif provider == "byteplus":
+        # BytePlus Ark "Responses API" — different shape from Chat Completions:
+        # messages become "input" items with typed content parts, and the
+        # token-limit field is "max_output_tokens" instead of "max_tokens".
+        payload = {
+            "model": cfg["model"],
+            "input": [
+                {"role": "system", "content": [{"type": "input_text", "text": system}]},
+                {"role": "user", "content": [{"type": "input_text", "text": prompt}]},
+            ],
+            "max_output_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": False,
+        }
     else:
         payload = {
             "model": cfg["model"],
@@ -139,6 +175,10 @@ def call_llm(
                 text = result["content"][0]["text"]
                 tokens = result.get("usage", {})
                 total = tokens.get("input_tokens", 0) + tokens.get("output_tokens", 0)
+            elif provider == "byteplus":
+                text = _extract_responses_api_text(result)
+                tokens = result.get("usage", {})
+                total = tokens.get("total_tokens", 0)
             else:
                 text = result["choices"][0]["message"]["content"]
                 tokens = result.get("usage", {})

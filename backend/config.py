@@ -12,11 +12,14 @@ DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 # --- LLM ---
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "byteplus")
 BYTEPLUS_API_KEY = os.getenv("BYTEPLUS_API_KEY", "")
+# The model ID sent in API calls (BytePlus Ark "Responses API" takes the plain
+# model ID, not the console's Endpoint ID — see llm_client.py).
+BYTEPLUS_MODEL = os.getenv("BYTEPLUS_MODEL", "deepseek-v4-flash-260425")
+# Console's Endpoint ID, kept for reference/bookkeeping only — not sent in requests.
 BYTEPLUS_ENDPOINT = os.getenv("BYTEPLUS_ENDPOINT", "")
-BYTEPLUS_MODEL = os.getenv("BYTEPLUS_MODEL", "doubao-seed-2.0-241228")
 BYTEPLUS_BASE_URL = os.getenv(
     "BYTEPLUS_BASE_URL",
-    "https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions",
+    "https://ark.ap-southeast.bytepluses.com/api/v3/responses",
 )
 
 # --- Fallback LLM providers ---

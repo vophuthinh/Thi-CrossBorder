@@ -133,6 +133,18 @@ class ChatOrchestrator:
         """Detect user intent from message."""
         lower = message.lower()
 
+        # A specific dollar amount + "what is this" phrasing is an
+        # unambiguous single-transaction lookup — route straight there
+        # instead of letting it compete with the generic email-match
+        # keyword score (both often co-occur, e.g. "$9.99 này là gì —
+        # có email khớp không?").
+        has_amount = bool(re.search(r"\$\s?[\d,]+\.?\d*", message))
+        asks_what_is = any(
+            p in lower for p in ("này là gì", "what is", "giải thích", "explain")
+        )
+        if has_amount and asks_what_is:
+            return "unknown_merchant"
+
         intents = {
             "overview": [
                 "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
