@@ -153,27 +153,12 @@ def _labels(lang: str) -> dict[str, str]:
 
 def income_note(lang: str) -> str:
     """
-    "Tổng tiền vào" in this report only counts dated card-side transactions
-    (refunds). Wealify's virtual-account transaction history API
-    (GET /v2/virtual-accounts/transactions) always returns no data, so
-    individual, dated VA deposit events can't be reconstructed — showing $0
-    income would be misleading, not "no fake data", since real deposits do
-    happen. This note makes that gap explicit instead of hiding it.
+    Previously "Tổng tiền vào" only counted dated card-side refunds because
+    Wealify's GET /v2/virtual-accounts/transactions always returned no
+    data. GET /v2/transactions/va is a different, working endpoint that
+    returns real per-transaction VA deposits — wired into
+    wealify_adapter.py, so "Tổng tiền vào" now reflects real dated income.
+    No caveat needed anymore; kept as a function (returning "") so callers
+    don't need updating if this ever needs to change again.
     """
-    if lang == "en":
-        return (
-            "Note: 'Total Income' here only reflects dated card-side refunds. "
-            "Wealify's virtual-account deposit history API is currently "
-            "unavailable, so individual deposit transactions can't be listed "
-            "or dated — this is NOT the same as zero income. See lifetime "
-            "totals per account and the current wallet balance in the "
-            "Wealify Accounts tab."
-        )
-    return (
-        "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có "
-        "ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của "
-        "Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản "
-        "tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu "
-        "nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở "
-        "tab Tài khoản Wealify."
-    )
+    return ""

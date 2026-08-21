@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-21T19:44:25.821457+00:00",
-  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
-  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
+  "generated_at": "2026-08-21T20:23:55.819520+00:00",
+  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
+  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 17755.11,
         "Tổng chi tiêu": 1745.16,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 3836.3,
-        "Tổng rút ra khác": 13787.15,
-        "Thay đổi số dư ròng": -1613.5,
-        "Số giao dịch": 54
+        "Tổng chuyển sang thẻ": 19451.88,
+        "Tổng rút ra khác": 29375.04,
+        "Thay đổi số dư ròng": -32816.97,
+        "Số giao dịch": 80
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
@@ -38,7 +38,7 @@
           "income": 17755.11,
           "spending": 1745.1600000000003,
           "fees": 0,
-          "transfers": 3836.3000000000006
+          "transfers": 19451.879999999997
         }
       },
       "EUR": {
@@ -64,8 +64,8 @@
           "income": 17755.11,
           "spending": 1745.16,
           "fees": 0,
-          "transfers": 3836.3,
-          "net": 12173.65
+          "transfers": 19451.88,
+          "net": -3441.93
         }
       },
       "EUR": {
@@ -93,8 +93,8 @@
           "income": 17755.11,
           "spending": 1745.16,
           "fees": 0,
-          "transfers": 3836.3,
-          "net": 12173.65
+          "transfers": 19451.88,
+          "net": -3441.93
         }
       },
       "EUR": {
@@ -116,7 +116,7 @@
         }
       }
     },
-    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "income_note": "",
     "subscriptions": {
       "Gói đang hoạt động": 5,
       "Chi phí gói hàng tháng": 115.96,

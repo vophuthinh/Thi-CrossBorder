@@ -197,20 +197,46 @@ class WealifyClient:
     def get_vc_transactions(self) -> list[dict[str, Any]]:
         """
         Get all VC transactions from all cards.
-        Transactions are embedded in card data — we extract and flatten them.
+        Endpoint: GET {vc_api_url}/v1/transactions
         """
+        # First get cards to map names
         cards = self.get_vc_list(limit=100)
+        card_map = {c.get("id"): c for c in cards if c.get("id")}
+        
         all_txns = []
-        for card in cards:
-            card_name = card.get("card_name", "Unknown")
-            card_last4 = card.get("last_four", "")
-            txns = card.get("transactions") or []
-            for txn in txns:
-                txn["_card_name"] = card_name
-                txn["_card_last4"] = card_last4
-                txn["_card_id"] = card.get("id", "")
-                all_txns.append(txn)
-        return all_txns
+        page = 1
+        try:
+            while True:
+                resp = requests.get(
+                    f"{self.vc_api_url}/v1/transactions",
+                    headers=self._headers(),
+                    params={"page": page, "limit": 100},
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                data = resp.json().get("data", {})
+                items = data.get("items", [])
+                
+                if not items:
+                    break
+                    
+                for txn in items:
+                    cid = txn.get("virtual_card_id")
+                    card = card_map.get(cid, {})
+                    txn["_card_name"] = card.get("card_name", "Unknown")
+                    txn["_card_last4"] = card.get("last_four", "")
+                    txn["_card_id"] = cid
+                    all_txns.append(txn)
+                    
+                total_page = data.get("total_page", 0)
+                if page >= total_page:
+                    break
+                page += 1
+                
+            return all_txns
+        except Exception as e:
+            logger.warning("Failed to fetch VC transactions: %s", e)
+            return all_txns
 
     def get_va_transactions(self, limit: int = 100) -> list[dict[str, Any]]:
         """

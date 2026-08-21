@@ -20,15 +20,21 @@ def adapt_va_to_account_statement(
     va_transactions: list[dict],
     vc_transactions: list[dict],
     wallets: list[dict],
+    va_accounts: list[dict] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Transform Wealify VC transactions → account_statement format.
+    Transform Wealify VA + VC transactions → account_statement format.
 
     The account_statement CSV has columns:
       date, reference, description, type, amount, balance, merchant_code, card_last4
 
-    VC transactions provide individual, dated card records. VA accounts are
-    NOT a source here — see the note below on why.
+    VA transactions come from GET /v2/transactions/va (real per-transaction
+    deposit/withdrawal events — verified against live data: fields are
+    va_transaction_status [SUCCESS/FAILURE/PROCESSING/WAITING], not
+    "transaction_status"; transaction_type is TOP_UP/WITHDRAWAL, there is
+    no "direction" field). Only SUCCESS transactions are real, settled
+    money — FAILURE never completed, PROCESSING/WAITING haven't yet
+    (reminder_checker.py flags those as stuck, doesn't hide them).
     """
     transactions = []
     running_balance = 0.0
@@ -39,33 +45,35 @@ def adapt_va_to_account_statement(
             running_balance = float(w.get("balance", 0))
             break
 
-    # NOTE: va_accounts[].total_received is a LIFETIME cumulative figure,
-    # so we no longer use it. We now have real per-transaction data from
-    # GET /v2/transactions/va. We will add those real payins/withdrawals below.
+    va_name_by_id = {
+        va.get("id"): va.get("card_holder") or va.get("nickname") or "VA"
+        for va in (va_accounts or [])
+    }
 
     # Build transactions from VA deposit/withdrawal events
     for txn in va_transactions:
-        status = txn.get("transaction_status", "APPROVED")
-        amount = float(txn.get("amount", 0))
-        direction = txn.get("direction", "IN")
-        if direction == "OUT":
-            amount = -abs(amount)
-        elif direction == "IN":
-            amount = abs(amount)
-            
-        txn_type = txn.get("transaction_type", "TOP_UP")
+        if txn.get("va_transaction_status") != "SUCCESS":
+            continue  # not settled money — see reminder_checker.py for stuck ones
+
+        amount = abs(float(txn.get("amount", 0)))
+        txn_type = txn.get("transaction_type", "")
         created_at = txn.get("created_at", "")
         txn_date = _parse_date(created_at)
         remark = txn.get("note", "")
         txn_ref = txn.get("transaction_id", "")
         currency = txn.get("currency_symbol", "VND")
-        
-        va_info = txn.get("virtual_account") or {}
-        card_name = va_info.get("card_holder", "VA")
-        
+        card_name = va_name_by_id.get(txn.get("virtual_account_id"), "VA")
+
+        if txn_type == "TOP_UP":
+            mapped_type = "payin"
+        elif txn_type == "WITHDRAWAL":
+            mapped_type = "payout"
+            amount = -amount
+        else:
+            mapped_type = txn_type.lower() or "unknown"
+
         description = remark or f"{txn_type} ({card_name})"
-        mapped_type = "payin" if direction == "IN" else "withdrawal"
-        
+
         transactions.append({
             "date": txn_date,
             "reference": txn_ref,
@@ -76,7 +84,6 @@ def adapt_va_to_account_statement(
             "merchant_code": _guess_merchant_code(remark, card_name),
             "card_last4": "",
             "dispute_deadline": _calc_dispute_deadline(txn_date),
-            "_record_at": created_at or txn_date,
             "_source": "wealify_va",
             "_currency": currency,
         })
@@ -353,7 +360,7 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
     wallets = wealify_data.get("wallets", [])
 
     account_statement = adapt_va_to_account_statement(
-        va_transactions, vc_transactions, wallets
+        va_transactions, vc_transactions, wallets, va_accounts
     )
     card_statement = adapt_vc_to_card_statement(vc_cards, vc_transactions)
     wallet_balance = adapt_to_wallet_balance(wallets, vc_cards, va_accounts, vc_transactions)
@@ -365,6 +372,7 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
         "emails": [],  # No email data from Wealify API
         "_wealify_raw": {
             "va_accounts": va_accounts,
+            "va_transactions": va_transactions,
             "vc_cards": vc_cards,
             "wallets": wallets,
             "user_info": wealify_data.get("user_info", {}),

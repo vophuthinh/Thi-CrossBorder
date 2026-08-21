@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-08-21T19:44:25.823329+00:00",
-  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
-  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
+  "generated_at": "2026-08-21T20:23:55.825506+00:00",
+  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
+  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 9625.92,
         "Tổng chi tiêu": 2086.31,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 926.41,
-        "Tổng rút ra khác": 12148.71,
-        "Thay đổi số dư ròng": -5535.51,
-        "Số giao dịch": 43
+        "Tổng chuyển sang thẻ": 13075.12,
+        "Tổng rút ra khác": 22933.95,
+        "Thay đổi số dư ròng": -28469.46,
+        "Số giao dịch": 60
       },
       "VND": {
-        "Tổng tiền vào": 368642000.0,
+        "Tổng tiền vào": 514138000.0,
         "Tổng chi tiêu": 0.0,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 0.0,
         "Tổng rút ra khác": 404930000.0,
-        "Thay đổi số dư ròng": -36288000.0,
-        "Số giao dịch": 9
+        "Thay đổi số dư ròng": 109208000.0,
+        "Số giao dịch": 10
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
@@ -38,12 +38,12 @@
           "income": 9625.92,
           "spending": 2086.3100000000004,
           "fees": 0,
-          "transfers": 926.4100000000001
+          "transfers": 13075.12
         }
       },
       "VND": {
         "2026-05": {
-          "income": 368642000.0,
+          "income": 514138000.0,
           "spending": 0,
           "fees": 0,
           "transfers": 0
@@ -64,17 +64,17 @@
           "income": 9625.92,
           "spending": 2086.31,
           "fees": 0,
-          "transfers": 926.41,
-          "net": 6613.2
+          "transfers": 13075.12,
+          "net": -5535.51
         }
       },
       "VND": {
         "2026-Q2": {
-          "income": 368642000.0,
+          "income": 514138000.0,
           "spending": 0,
           "fees": 0,
           "transfers": 0,
-          "net": 368642000.0
+          "net": 514138000.0
         }
       },
       "EUR": {
@@ -93,17 +93,17 @@
           "income": 9625.92,
           "spending": 2086.31,
           "fees": 0,
-          "transfers": 926.41,
-          "net": 6613.2
+          "transfers": 13075.12,
+          "net": -5535.51
         }
       },
       "VND": {
         "2026": {
-          "income": 368642000.0,
+          "income": 514138000.0,
           "spending": 0,
           "fees": 0,
           "transfers": 0,
-          "net": 368642000.0
+          "net": 514138000.0
         }
       },
       "EUR": {
@@ -116,7 +116,7 @@
         }
       }
     },
-    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "income_note": "",
     "subscriptions": {
       "Gói đang hoạt động": 5,
       "Chi phí gói hàng tháng": 115.96,

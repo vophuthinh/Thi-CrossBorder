@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-21T19:44:25.840612+00:00",
-  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
-  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
+  "generated_at": "2026-08-21T20:23:55.908227+00:00",
+  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
+  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
   "report": {
     "overview": {
       "VND": {
@@ -17,10 +17,10 @@
         "Tổng tiền vào": 12317.15,
         "Tổng chi tiêu": 2680.76,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 0.0,
-        "Tổng rút ra khác": 7896.14,
-        "Thay đổi số dư ròng": 1740.25,
-        "Số giao dịch": 40
+        "Tổng chuyển sang thẻ": 10446.71,
+        "Tổng rút ra khác": 20531.63,
+        "Thay đổi số dư ròng": -21341.95,
+        "Số giao dịch": 53
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
@@ -46,7 +46,7 @@
           "income": 12317.15,
           "spending": 2680.76,
           "fees": 0,
-          "transfers": 0
+          "transfers": 10446.71
         }
       },
       "EUR": {
@@ -73,8 +73,8 @@
           "income": 12317.15,
           "spending": 2680.76,
           "fees": 0,
-          "transfers": 0,
-          "net": 9636.39
+          "transfers": 10446.71,
+          "net": -810.32
         }
       },
       "EUR": {
@@ -102,8 +102,8 @@
           "income": 12317.15,
           "spending": 2680.76,
           "fees": 0,
-          "transfers": 0,
-          "net": 9636.39
+          "transfers": 10446.71,
+          "net": -810.32
         }
       },
       "EUR": {
@@ -116,7 +116,7 @@
         }
       }
     },
-    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "income_note": "",
     "subscriptions": {
       "Gói đang hoạt động": 5,
       "Chi phí gói hàng tháng": 115.96,

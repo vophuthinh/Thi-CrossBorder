@@ -278,16 +278,21 @@ def set_reminder_config(req: ReminderConfigRequest):
 def dashboard_reminders():
     """
     Nhiệm vụ 7 — 2 situations, each triggered past its configured
-    threshold: (1) an inbound-payment email that Wealify's broken
-    VA-transactions API still can't confirm, (2) a real Wealify
-    transaction stuck in PENDING/PROCESSING status.
+    threshold: (1) an inbound-payment email not yet cleanly resolved on
+    Wealify (no match / still processing / amount mismatch / failed),
+    (2) a real Wealify transaction (card or VA) stuck in
+    PENDING/PROCESSING/WAITING status.
     """
     cfg = reminder_checker.load_reminder_config()
+    va_transactions = _data.get("_wealify_raw", {}).get("va_transactions", [])
+
     stale_processing = reminder_checker.check_stale_processing_transactions(
         _data["card_statement"], cfg["processing_status_hours"], "vi"
+    ) + reminder_checker.check_stale_va_transactions(
+        va_transactions, cfg["processing_status_hours"], "vi"
     )
     stale_inbound = reminder_checker.check_stale_unverified_inbound_emails(
-        _data["emails"], cfg["inbound_email_hours"], "vi"
+        _data["emails"], va_transactions, cfg["inbound_email_hours"], "vi"
     )
     return {
         "config": cfg,
@@ -452,12 +457,12 @@ def ai_insight(req: InsightRequest):
         try:
             from llm_client import call_llm
 
+            note_line = f"({note})\n" if note else ""
             prompt = f"""Phân tích tài chính ngắn gọn cho seller cross-border, dựa trên dữ liệu:
 
 Tổng quan:
 {_dict_to_text(summary)}
-({note})
-
+{note_line}
 Phát hiện:
 - {n_anomalies} khoản bất thường
 - {n_subs} gói đăng ký đang hoạt động
@@ -801,9 +806,9 @@ def dashboard_suspicious_domains():
 @app.get("/dashboard/inbound-reconciliation")
 def dashboard_inbound_reconciliation():
     """
-    Luồng Tiền vào: check bank-payout emails (Gmail) against Wealify.
-    Honestly labeled "Chưa đủ dữ liệu" — the VA-transactions API needed to
-    verify these is broken on the dev sandbox (confirmed, not guessed).
+    Luồng Tiền vào: check bank-payout emails (Gmail) against real Wealify
+    VA transactions (GET /v2/transactions/va — confirmed working, unlike
+    the broken GET /v2/virtual-accounts/transactions).
     """
     try:
         from gmail_client import fetch_emails
@@ -814,7 +819,8 @@ def dashboard_inbound_reconciliation():
         if WEALIFY_EMAIL:
             emails = [e for e in emails if e.get("to") == WEALIFY_EMAIL]
 
-        result = check_inbound_emails(emails, lang="vi")
+        va_transactions = _data.get("_wealify_raw", {}).get("va_transactions", [])
+        result = check_inbound_emails(emails, va_transactions, lang="vi")
         result["status"] = "live"
         return result
     except Exception as e:

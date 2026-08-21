@@ -82,16 +82,62 @@ def check_stale_processing_transactions(
     return flagged
 
 
-def check_stale_unverified_inbound_emails(
-    emails: list[dict[str, Any]], threshold_hours: float, lang: str = "vi"
+def check_stale_va_transactions(
+    va_transactions: list[dict[str, Any]], threshold_hours: float, lang: str = "vi"
 ) -> list[dict[str, Any]]:
-    """Emails indicating money received that still can't be matched to a
-    Wealify transaction (VA-transactions API is broken), past the
-    configured wait threshold."""
-    inbound = check_inbound_emails(emails, lang)
+    """Real Wealify VA (bank payout) transactions still PROCESSING/WAITING
+    past the configured threshold hours — GET /v2/transactions/va, a
+    different endpoint from the broken virtual-accounts/transactions one,
+    confirmed to return real per-transaction status/dates."""
+    now = datetime.now(timezone.utc)
+    flagged = []
+    for txn in va_transactions:
+        status = txn.get("va_transaction_status", "")
+        if status not in ("PROCESSING", "WAITING"):
+            continue
+        try:
+            txn_date = datetime.fromisoformat(txn["created_at"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+        age_hours = (now - txn_date).total_seconds() / 3600
+        if age_hours < threshold_hours:
+            continue
+        flagged.append({
+            "reference": txn.get("transaction_id", ""),
+            "merchant": txn.get("note", ""),
+            "amount": txn.get("amount", 0),
+            "currency": txn.get("currency_symbol", ""),
+            "date": txn_date.strftime("%Y-%m-%d"),
+            "status": status.lower(),
+            "age_hours": round(age_hours, 1),
+            "reason": _msg(
+                f"Giao dịch VA đang \"{status}\" đã {round(age_hours)} giờ, vượt ngưỡng "
+                f"{threshold_hours:g} giờ đã cài đặt.",
+                f"VA transaction has been \"{status}\" for {round(age_hours)}h, past the "
+                f"configured {threshold_hours:g}h threshold.",
+                lang,
+            ),
+        })
+    return flagged
+
+
+def check_stale_unverified_inbound_emails(
+    emails: list[dict[str, Any]],
+    va_transactions: list[dict[str, Any]] | None,
+    threshold_hours: float,
+    lang: str = "vi",
+) -> list[dict[str, Any]]:
+    """Emails indicating money received that still aren't cleanly resolved
+    on Wealify (no matching transaction found, still pending, amount
+    mismatch, or failed) past the configured wait threshold. Items that
+    already matched a real SUCCESS transaction are excluded — nothing to
+    remind about there."""
+    inbound = check_inbound_emails(emails, va_transactions, lang)
     now = datetime.now(timezone.utc)
     flagged = []
     for item in inbound["items"]:
+        if item.get("category") == "matched_success":
+            continue
         email_date = _parse_email_date(item.get("email_date", ""))
         if email_date is None:
             continue

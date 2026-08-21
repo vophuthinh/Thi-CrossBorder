@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-21T19:44:25.822353+00:00",
-  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
-  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
+  "generated_at": "2026-08-21T20:23:55.820434+00:00",
+  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
+  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
   "report": {
     "overview": {
       "EUR": {
@@ -26,17 +26,17 @@
         "Tổng tiền vào": 21517.86,
         "Tổng chi tiêu": 1673.92,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 5559.13,
-        "Tổng rút ra khác": 21590.78,
-        "Thay đổi số dư ròng": -7305.97,
-        "Số giao dịch": 79
+        "Tổng chuyển sang thẻ": 29216.52,
+        "Tổng rút ra khác": 45241.77,
+        "Thay đổi số dư ròng": -54614.35,
+        "Số giao dịch": 123
       }
     },
     "monthly_breakdown": {
       "EUR": {
         "2026-04": {
           "income": 0,
-          "spending": 512.0699999999999,
+          "spending": 512.07,
           "fees": 0,
           "transfers": 901.3000000000001
         }
@@ -54,7 +54,7 @@
           "income": 21517.860000000004,
           "spending": 1673.9199999999998,
           "fees": 0,
-          "transfers": 5559.13
+          "transfers": 29216.52
         }
       }
     },
@@ -82,8 +82,8 @@
           "income": 21517.86,
           "spending": 1673.92,
           "fees": 0,
-          "transfers": 5559.13,
-          "net": 14284.81
+          "transfers": 29216.52,
+          "net": -9372.58
         }
       }
     },
@@ -111,12 +111,12 @@
           "income": 21517.86,
           "spending": 1673.92,
           "fees": 0,
-          "transfers": 5559.13,
-          "net": 14284.81
+          "transfers": 29216.52,
+          "net": -9372.58
         }
       }
     },
-    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "income_note": "",
     "subscriptions": {
       "Gói đang hoạt động": 5,
       "Chi phí gói hàng tháng": 115.96,

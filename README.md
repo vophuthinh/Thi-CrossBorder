@@ -200,7 +200,8 @@ hackathon/
 | GET | `/dashboard/wealify-accounts` | VA/VC live từ Wealify API, chỉ đọc, đã che số |
 | GET | `/dashboard/wealify-transactions` | Giao dịch thẻ live từ Wealify API |
 | GET | `/dashboard/outbound-reconciliation` | Đối chiếu email biên lai thật ↔ giao dịch VC (cần Gmail) |
-| GET | `/dashboard/inbound-reconciliation` | Đối chiếu email báo có VA ↔ giao dịch (cần Gmail; luôn "Chưa đủ dữ liệu" vì API VA-transactions của Wealify hiện lỗi) |
+| GET | `/dashboard/inbound-reconciliation` | Đối chiếu email báo có VA ↔ giao dịch VA thật (cần Gmail) |
+| GET | `/dashboard/reminders` | Nhiệm vụ 7 — khoản cần nhắc: email chưa xác nhận / giao dịch treo processing, theo ngưỡng ở `/reminders` |
 | GET | `/dashboard/suspicious-domains` | Quét domain giả mạo/lookalike trong toàn bộ hộp thư (cần Gmail) |
 | GET | `/setup` | Setup Wizard 3 bước (Gmail / Wealify / whitelist) |
 | POST | `/ai/insight` | AI Insight (BytePlus Seed 2.0) |
@@ -224,10 +225,8 @@ hackathon/
 
 - `DEMO_MODE=true` chỉ tắt gọi LLM thật (dùng insight/chat rule-based) — dữ liệu tài chính (Wealify) và email luôn là dữ liệu thật, không có chế độ "cached/mock" cho phần này.
 - Live mode requires valid BytePlus API key (AI Insight/Chat qua LLM thật)
-- Wealify API `GET /v2/virtual-accounts/transactions` hiện luôn trả `data: null` (lỗi phía Wealify, không phải app) — vì vậy `/dashboard/inbound-reconciliation` luôn trả nhãn "Chưa đủ dữ liệu" thay vì đối chiếu được, đúng tinh thần không tự nhận đã kiểm tra khi chưa kiểm tra được.
-- Cùng nguyên nhân trên: báo cáo tháng/quý/năm (`/dashboard/report`, tab Tổng quan, chat "tổng quan tài khoản") không tính được "Tổng tiền vào" theo từng khoản nạp có ngày cụ thể — vì API không cho danh sách giao dịch VA. App **không giả lập số này** (đã có bug ở bản trước lấy nhầm `total_received` — một trường tổng cộng trọn đời của mỗi tài khoản ảo — làm một giao dịch nạp trong ngày, khiến báo cáo hiện sai hàng tỷ VND; đã sửa, xác nhận khớp với số dư thật trên trang Wealify qua ảnh chụp màn hình). Số dư ví hiện tại (khớp trang Wealify) xem ở `/dashboard/wallet`; tổng nhận trọn đời từng tài khoản xem ở `/dashboard/wealify-accounts`.
+- Wealify API `GET /v2/virtual-accounts/transactions` luôn trả `data: null` (lỗi phía Wealify, xác nhận qua nhiều lần thử) — nhưng `GET /v2/transactions/va` là endpoint **khác**, hoạt động bình thường và trả về đầy đủ giao dịch VA thật theo từng khoản (219 giao dịch thật ở thời điểm viết README này). App dùng endpoint này cho toàn bộ luồng "tiền vào": `/dashboard/inbound-reconciliation` đối chiếu email thật với giao dịch VA thật (không còn luôn báo "Chưa đủ dữ liệu"), báo cáo tháng/quý/năm tính "Tổng tiền vào" từ giao dịch nạp có ngày cụ thể thật (không phải suy diễn từ `total_received` — một trường tổng cộng trọn đời từng tài khoản, đã có bug ở bản trước dùng nhầm trường này gây sai hàng tỷ VND, đã sửa), và **R-09**/**R-11** trong `finding_engine.py` giờ chạy được trên dữ liệu live thật thay vì luôn im lặng. Số dư ví hiện tại (khớp trang Wealify) xem ở `/dashboard/wallet`.
 - Statement thật trộn nhiều loại tiền (VND cho ví, USD/EUR cho thẻ) trên cùng tài khoản — mọi tổng số (summary, top3, theo tháng/quý/năm) đều tách riêng theo từng loại tiền, không quy đổi (Wealify API không có sẵn tỷ giá thật cho giao dịch thẻ, nên không tự bịa tỷ giá).
-- Cùng nguyên nhân (API VA lỗi): 2 rule detector trong `finding_engine.py` không bao giờ báo trên dữ liệu live — **R-09** (nạp trùng, vì không có giao dịch nạp có ngày cụ thể để so trùng) và **R-11** (lệch số dư ví, vì không có dữ liệu số dư chạy theo từng giao dịch để tính số dư đầu kỳ thật). Đây là hành vi có chủ đích (thà im lặng còn hơn báo số bịa) chứ không phải bug — cả 2 vẫn hoạt động đầy đủ trên dữ liệu mock (`USE_LIVE_WEALIFY=false`).
 - Statistical anomaly detection uses heuristic matching (production would need ML)
 - Risk Score uses weighted formula (production would need training data)
 
