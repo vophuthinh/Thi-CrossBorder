@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html class="light" lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wealify - Setup Wizard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        primary: "#00236f", "primary-container": "#1e3a8a", "on-primary": "#ffffff",
+        "on-primary-container": "#90a8ff", secondary: "#505f76",
+        surface: "#f9f9f9", "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#f3f3f4", "surface-container": "#eeeeee",
+        "surface-container-high": "#e8e8e8", "surface-variant": "#e2e2e2",
+        "on-surface": "#1a1c1c", "on-surface-variant": "#444651",
+        outline: "#757682", "outline-variant": "#c5c5d3",
+        error: "#ba1a1a", "error-container": "#ffdad6",
+        background: "#f9f9f9",
+      },
+      borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+      spacing: { xs: "4px", sm: "8px", md: "16px", gutter: "20px", lg: "24px", xl: "32px" },
+      fontFamily: { sans: ["Inter", "sans-serif"], mono: ["monospace"] },
+    } }
+  }
+</script>
+<style>
+  body { background-color: #f3f3f4; }
+  .ambient-shadow { box-shadow: 0 10px 40px -10px rgba(0, 35, 111, 0.08); }
+  .input-glow:focus { box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2); }
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-md text-on-surface font-sans">
+
+<main class="w-full max-w-[960px] mx-auto bg-surface-container-lowest rounded-xl ambient-shadow border border-outline-variant/30 flex flex-col md:flex-row overflow-hidden">
+
+  <!-- Sidebar Stepper -->
+  <aside class="w-full md:w-64 bg-surface border-b md:border-b-0 md:border-r border-outline-variant/30 p-lg flex flex-col shrink-0">
+    <div class="mb-xl">
+      <h1 class="text-2xl font-bold text-primary">Wealify</h1>
+      <p class="text-sm text-on-surface-variant mt-sm">Setup Wizard</p>
+    </div>
+    <nav class="flex-1">
+      <ol class="space-y-md relative" id="stepper"></ol>
+    </nav>
+    <div class="mt-auto pt-xl">
+      <p class="text-xs text-on-surface-variant">Bạn có thể quay lại bước bất kỳ để chỉnh sửa.</p>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <section class="flex-1 p-lg md:p-xl lg:p-[48px] bg-surface-container-lowest">
+
+    <!-- Step 1: Credentials -->
+    <div class="step-panel active" id="panel-1">
+      <header class="mb-xl">
+        <h2 class="text-3xl md:text-4xl font-bold text-on-surface mb-sm">Chào mừng đến với Wealify</h2>
+        <p class="text-base text-on-surface-variant max-w-[600px]">Thiết lập kết nối để trợ lý có thể đọc email biên lai và đối soát với dữ liệu Wealify của bạn.</p>
+      </header>
+
+      <div class="space-y-lg">
+        <div class="bg-surface rounded-xl p-lg border border-outline-variant/40">
+          <div class="flex items-center gap-sm mb-md border-b border-outline-variant/30 pb-sm">
+            <span class="material-symbols-outlined text-primary">mail</span>
+            <h3 class="text-lg font-semibold text-on-surface">Gmail API</h3>
+            <span class="ml-auto text-xs px-sm py-xs rounded-full" id="gmail-status">—</span>
+          </div>
+          <p class="text-sm text-on-surface-variant mb-md bg-surface-container-low p-sm rounded-md border border-outline-variant/20 inline-flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px] text-secondary">info</span>
+            Bạn cần tạo OAuth Client trên Google Cloud Console (loại "Desktop app") để lấy Client ID/Secret.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <div class="flex flex-col gap-xs">
+              <label class="text-sm font-bold text-on-surface">Client ID</label>
+              <input class="w-full bg-white border border-outline rounded-md px-md py-sm focus:border-primary focus:ring-0 input-glow transition-all" id="gmailClientId" placeholder="xxx.apps.googleusercontent.com" type="text"/>
+            </div>
+            <div class="flex flex-col gap-xs">
+              <label class="text-sm font-bold text-on-surface">Client Secret</label>
+              <input class="w-full bg-white border border-outline rounded-md px-md py-sm focus:border-primary focus:ring-0 input-glow transition-all" id="gmailClientSecret" placeholder="GOCSPX-..." type="password"/>
+            </div>
+          </div>
+          <button class="mt-md px-lg py-[8px] bg-primary text-on-primary hover:opacity-90 rounded-md text-sm font-semibold transition-colors flex items-center gap-2" onclick="connectGmail()" id="gmailConnectBtn">
+            <span class="material-symbols-outlined text-[18px]">link</span>
+            Kết nối Gmail (sẽ mở trình duyệt để xác nhận)
+          </button>
+          <p class="text-sm mt-sm hidden" id="gmailResult"></p>
+        </div>
+
+        <div class="bg-surface rounded-xl p-lg border border-outline-variant/40">
+          <div class="flex items-center gap-sm mb-md border-b border-outline-variant/30 pb-sm">
+            <span class="material-symbols-outlined text-primary">vpn_key</span>
+            <h3 class="text-lg font-semibold text-on-surface">Tài khoản Wealify</h3>
+            <span class="ml-auto text-xs px-sm py-xs rounded-full" id="wealify-status">—</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <div class="flex flex-col gap-xs">
+              <label class="text-sm font-bold text-on-surface">Email đăng nhập</label>
+              <input class="w-full bg-white border border-outline rounded-md px-md py-sm focus:border-primary focus:ring-0 input-glow transition-all" id="wealifyUsername" placeholder="you@yopmail.com" type="text"/>
+            </div>
+            <div class="flex flex-col gap-xs">
+              <label class="text-sm font-bold text-on-surface">Mật khẩu</label>
+              <input class="w-full bg-white border border-outline rounded-md px-md py-sm focus:border-primary focus:ring-0 input-glow transition-all" id="wealifyPassword" placeholder="••••••••" type="password"/>
+            </div>
+          </div>
+          <button class="mt-md px-lg py-[8px] bg-primary text-on-primary hover:opacity-90 rounded-md text-sm font-semibold transition-colors flex items-center gap-2" onclick="connectWealify()">
+            <span class="material-symbols-outlined text-[18px]">login</span>
+            Xác thực Wealify
+          </button>
+          <p class="text-sm mt-sm hidden" id="wealifyResult"></p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-lg border-t border-outline-variant/30 mt-xl">
+        <button class="px-lg py-[8px] bg-primary text-on-primary rounded-md text-sm font-semibold flex items-center gap-2" onclick="goToStep(2)">
+          Tiếp tục <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Whitelist -->
+    <div class="step-panel" id="panel-2">
+      <header class="mb-xl">
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mb-sm">Thiết lập Danh sách lọc Email</h2>
+        <p class="text-base text-on-surface-variant max-w-[640px]">Chỉ email từ các domain trong danh sách này mới được coi là biên lai đáng tin — email từ domain lạ hoặc na ná (giả mạo) sẽ bị gắn cờ để bạn tự xác nhận.</p>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+        <div class="lg:col-span-7 flex flex-col gap-lg">
+          <div class="bg-white rounded-xl p-lg border border-outline-variant/30 flex flex-col gap-md">
+            <h3 class="text-lg font-semibold text-on-surface">Thêm Domain Tùy chỉnh</h3>
+            <div class="flex gap-sm items-end">
+              <input class="flex-1 bg-white border border-outline-variant rounded-lg px-md py-sm focus:outline-none focus:border-primary" id="domainInput" placeholder="ex: vendor.com" type="text" onkeydown="if(event.key==='Enter'){event.preventDefault(); addDomain(document.getElementById('domainInput').value); document.getElementById('domainInput').value='';}"/>
+              <button class="h-[42px] px-md bg-primary text-on-primary rounded-lg text-sm font-semibold flex items-center gap-xs" onclick="addDomain(document.getElementById('domainInput').value); document.getElementById('domainInput').value='';">
+                <span class="material-symbols-outlined text-[18px]">add</span> Thêm
+              </button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl p-lg border border-outline-variant/30 flex flex-col gap-md flex-1">
+            <h3 class="text-lg font-semibold text-on-surface">Domain Gợi ý (từ dữ liệu thật đã xác minh)</h3>
+            <div class="flex flex-wrap gap-sm" id="suggestedDomains"></div>
+          </div>
+        </div>
+        <div class="lg:col-span-5 bg-white rounded-xl border border-primary/20 flex flex-col overflow-hidden">
+          <div class="p-lg border-b border-outline-variant/30 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-primary flex items-center gap-sm">
+              <span class="material-symbols-outlined text-[20px]">fact_check</span> Đang chọn
+            </h3>
+            <span class="bg-primary-container text-on-primary-container px-2 py-0.5 rounded-full text-xs font-semibold" id="whitelistCount">0</span>
+          </div>
+          <ul class="flex-1 overflow-y-auto p-sm max-h-[400px]" id="whitelistList"></ul>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center pt-lg border-t border-outline-variant/30 mt-xl">
+        <button class="px-md py-sm border border-outline-variant rounded-lg text-sm flex items-center gap-xs" onclick="goToStep(1)">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
+        </button>
+        <button class="px-xl py-sm bg-primary text-on-primary rounded-lg text-sm font-semibold flex items-center gap-xs" onclick="goToStep(3)">
+          Tiếp tục <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Review -->
+    <div class="step-panel" id="panel-3">
+      <header class="mb-xl">
+        <h2 class="text-3xl md:text-4xl font-bold text-primary mb-sm">Sẵn sàng khởi đầu</h2>
+        <p class="text-base text-on-surface-variant">Kiểm tra lại thông tin trước khi bắt đầu.</p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+        <div class="bg-white p-lg rounded-xl border border-outline-variant/30">
+          <div class="flex items-center gap-sm mb-md text-primary">
+            <span class="material-symbols-outlined">mail</span>
+            <h3 class="text-lg font-semibold">Gmail</h3>
+          </div>
+          <span class="text-xs text-secondary block mb-xs">CONNECTED ACCOUNT</span>
+          <span class="font-mono text-sm" id="review-gmail">—</span>
+        </div>
+        <div class="bg-white p-lg rounded-xl border border-outline-variant/30">
+          <div class="flex items-center gap-sm mb-md text-primary">
+            <span class="material-symbols-outlined">account_circle</span>
+            <h3 class="text-lg font-semibold">Wealify</h3>
+          </div>
+          <span class="text-xs text-secondary block mb-xs">USERNAME</span>
+          <span class="font-mono text-sm" id="review-wealify">—</span>
+        </div>
+        <div class="bg-white p-lg rounded-xl border border-outline-variant/30 md:col-span-2">
+          <div class="flex items-center gap-sm mb-md text-primary">
+            <span class="material-symbols-outlined">domain_verification</span>
+            <h3 class="text-lg font-semibold">Whitelist (<span id="review-count">0</span> domain)</h3>
+          </div>
+          <div class="flex flex-wrap gap-sm" id="review-whitelist"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mt-xl pt-lg border-t border-outline-variant/30">
+        <button class="px-md py-sm border border-outline-variant rounded-lg text-sm flex items-center gap-xs" onclick="goToStep(2)">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
+        </button>
+        <button class="bg-primary text-on-primary px-xl py-md rounded-lg text-sm font-semibold flex items-center gap-sm" onclick="finalizeSetup()">
+          Hoàn tất &amp; Bắt đầu <span class="material-symbols-outlined">rocket_launch</span>
+        </button>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script src="/static/setup.js"></script>
+</body>
+</html>

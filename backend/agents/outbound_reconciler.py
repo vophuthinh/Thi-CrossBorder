@@ -11,6 +11,62 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from finding_engine import _levenshtein
+
+
+def check_suspicious_domains(
+    emails: list[dict[str, Any]],
+    whitelist: list[str],
+    lang: str = "vi",
+) -> list[dict[str, Any]]:
+    """
+    Scan every email's sender domain against the user's whitelist — flags
+    lookalike domains (small edit distance from a whitelisted one) as
+    "Cần bạn tự xác nhận". Domains that are neither whitelisted nor a
+    lookalike are left alone (not enough basis to call them suspicious —
+    most are just unrelated real senders like promo emails).
+    """
+    flags = []
+    whitelist_set = set(whitelist)
+    # Compare by brand-name token, not the full domain string — "wealify.com"
+    # vs "wea1ify-support.com" differ by 9 chars overall (mostly the added
+    # "-support"), but the actual brand token "wea1ify" is 1 edit away from
+    # "wealify". Whole-string distance would miss that entirely.
+    brand_names = {known.split(".")[0] for known in whitelist_set}
+
+    for email in emails:
+        sender = email.get("from", "")
+        domain = sender.split("@")[-1].strip().lower().rstrip(">")
+        if not domain or domain in whitelist_set:
+            continue
+
+        tokens = re.split(r"[.\-]", domain)
+
+        best_match, best_dist = None, 99
+        for token in tokens:
+            for brand in brand_names:
+                if token == brand:
+                    continue  # exact brand token present — not a lookalike
+                dist = _levenshtein(token, brand)
+                if dist < best_dist:
+                    best_match, best_dist = brand, dist
+
+        if best_match and 0 < best_dist <= 2:
+            flags.append({
+                "email_from": sender,
+                "email_subject": email.get("subject", ""),
+                "email_date": email.get("date", ""),
+                "lookalike_of": best_match,
+                "edit_distance": best_dist,
+                "label": _msg("Cần bạn tự xác nhận", "Needs your confirmation", lang),
+                "detail": _msg(
+                    f"Domain người gửi '{domain}' rất giống '{best_match}' (đã tin cậy) nhưng không khớp — có thể là giả mạo.",
+                    f"Sender domain '{domain}' closely resembles the trusted '{best_match}' but doesn't match exactly — possible impersonation.",
+                    lang,
+                ),
+            })
+    return flags
+
 
 def match_outbound_emails(
     emails: list[dict[str, Any]],

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wealify - Review &amp; Finalize</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f3f3f4",
+                        "inverse-on-surface": "#f0f1f1",
+                        "on-tertiary-container": "#f39461",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#4059aa",
+                        "primary": "#00236f",
+                        "surface-dim": "#dadada",
+                        "secondary": "#505f76",
+                        "surface-bright": "#f9f9f9",
+                        "on-surface-variant": "#444651",
+                        "error-container": "#ffdad6",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-container": "#54647a",
+                        "surface-variant": "#e2e2e2",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface": "#f9f9f9",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-primary": "#b6c4ff",
+                        "outline": "#757682",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#eeeeee",
+                        "on-primary-fixed-variant": "#264191",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "surface-container-highest": "#e2e2e2",
+                        "on-surface": "#1a1c1c",
+                        "on-primary-container": "#90a8ff",
+                        "outline-variant": "#c5c5d3",
+                        "on-tertiary-fixed-variant": "#773205",
+                        "primary-fixed": "#dce1ff",
+                        "background": "#f9f9f9",
+                        "primary-container": "#1e3a8a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-primary-fixed": "#00164e",
+                        "surface-container-high": "#e8e8e8",
+                        "inverse-surface": "#2f3131",
+                        "secondary-container": "#d0e1fb",
+                        "tertiary-container": "#6e2c00",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "tertiary": "#4b1c00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xs": "4px",
+                        "container-max": "1440px",
+                        "unit": "4px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "gutter": "20px"
+                    },
+                    "fontFamily": {
+                        "mono-data": ["monospace"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-data": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-lowest dark:bg-surface-dim h-screen w-72 flex-shrink-0 border-r border-outline-variant dark:border-outline fixed left-0 top-0 flex flex-col p-lg">
+<div class="mb-xl">
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">Wealify</h1>
+<p class="font-body-sm text-body-sm text-secondary mt-1">Setup Wizard</p>
+</div>
+<ul class="space-y-sm flex-1">
+<li class="flex items-center gap-md p-md text-on-surface-variant dark:text-on-surface hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors cursor-pointer duration-200 active:scale-95 rounded-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">start</span>
+<span class="font-body-md text-body-md">Welcome</span>
+</li>
+<li class="flex items-center gap-md p-md text-on-surface-variant dark:text-on-surface hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors cursor-pointer duration-200 active:scale-95 rounded-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-body-md text-body-md">Configuration</span>
+</li>
+<li class="flex items-center gap-md p-md text-on-surface-variant dark:text-on-surface hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors cursor-pointer duration-200 active:scale-95 rounded-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person_add</span>
+<span class="font-body-md text-body-md">Account Setup</span>
+</li>
+<li class="flex items-center gap-md p-md bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-lg font-bold cursor-pointer transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<span class="font-body-md text-body-md">Review &amp; Finalize</span>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-72 flex-1 flex flex-col h-full overflow-y-auto">
+<!-- TopNavBar (Optional/Semantic Shell alignment) -->
+<header class="bg-surface dark:bg-background docked full-width top-0 border-b border-outline-variant dark:border-outline flex justify-between items-center w-full h-16 px-lg sticky top-0 z-50">
+<div class="flex items-center">
+<!-- Empty left for layout balance -->
+</div>
+<div class="flex items-center gap-md">
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container dark:hover:text-primary-fixed transition-colors duration-150 ease-in-out p-xs">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container dark:hover:text-primary-fixed transition-colors duration-150 ease-in-out p-xs">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-secondary dark:text-secondary-fixed-dim hover:text-primary-container dark:hover:text-primary-fixed transition-colors duration-150 ease-in-out font-label-md text-label-md ml-md">
+                    Save Progress
+                </button>
+<img class="w-8 h-8 rounded-full ml-md object-cover border border-outline-variant" data-alt="A small circular profile image of a professional user in a minimalist corporate setting, light mode aesthetic, clean white background, sharp focus, 8k resolution, photorealistic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByMsEAqcFlxwhcZR0hXe4CjfAZPBFJluBBgl6guVRzfsWn2vUqkGbEZSSd1fQTVPUUNFkUmDhup2E_kQwAcDs4yA0olzK_k0R3nkopYWBeyXFx7tPo7hGcO6UXd8qwykST_Wo7u5eOfcdl_UdE0qvzPO2KwYcqaQG3sutLeLlR1_iG0U8d-W4fVs2f8Hl4984U1oZPDtfe0d9J7M0egAvgXwF81Xa1ZsLbJ5AEiu5eB1FQLPW5nN0Y"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-xl max-w-4xl mx-auto w-full">
+<!-- Header Section -->
+<div class="mb-xl text-center">
+<h2 class="font-display-lg text-display-lg text-primary mb-sm">Sẵn sàng khởi đầu với Wealify</h2>
+<p class="font-body-lg text-body-lg text-secondary">Hãy kiểm tra lại thông tin cấu hình trước khi chúng ta bắt đầu quá trình đồng bộ hóa tài chính tự động của bạn.</p>
+</div>
+<!-- Summary Cards Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-xl">
+<!-- Gmail API Card -->
+<div class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant/30 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-sm mb-md text-primary">
+<span class="material-symbols-outlined">mail</span>
+<h3 class="font-headline-sm text-headline-sm">Gmail API</h3>
+</div>
+<div class="mb-lg">
+<span class="font-label-md text-label-md text-secondary block mb-xs">CONNECTED ACCOUNT</span>
+<span class="font-mono-data text-mono-data text-on-surface">finance.admin@example.com</span>
+</div>
+</div>
+<div class="flex items-center">
+<span class="bg-[#e6f4ea] text-[#137333] px-sm py-xs rounded-full font-label-md text-label-md flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Đã kết nối
+                        </span>
+</div>
+</div>
+<!-- Wealify Account Card -->
+<div class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant/30 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-sm mb-md text-primary">
+<span class="material-symbols-outlined">account_circle</span>
+<h3 class="font-headline-sm text-headline-sm">Tài khoản Wealify</h3>
+</div>
+<div class="mb-lg">
+<span class="font-label-md text-label-md text-secondary block mb-xs">USERNAME</span>
+<span class="font-mono-data text-mono-data text-on-surface">admin_user_99</span>
+</div>
+</div>
+<div class="flex items-center">
+<span class="bg-[#e6f4ea] text-[#137333] px-sm py-xs rounded-full font-label-md text-label-md flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">verified</span> Hợp lệ
+                        </span>
+</div>
+</div>
+<!-- Whitelist Domains Card (Spans full width) -->
+<div class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant/30 md:col-span-2">
+<div class="flex items-center gap-sm mb-md text-primary">
+<span class="material-symbols-outlined">domain_verification</span>
+<h3 class="font-headline-sm text-headline-sm">Danh sách Whitelist</h3>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mb-md">Hệ thống sẽ chỉ tự động quét và đối soát hóa đơn từ các tên miền nguồn sau đây.</p>
+<div class="flex flex-wrap gap-sm">
+<span class="border border-outline-variant px-md py-sm rounded-lg font-mono-data text-mono-data text-on-surface bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">receipt</span> shopee.vn
+                        </span>
+<span class="border border-outline-variant px-md py-sm rounded-lg font-mono-data text-mono-data text-on-surface bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">local_taxi</span> grab.com
+                        </span>
+<span class="border border-outline-variant px-md py-sm rounded-lg font-mono-data text-mono-data text-on-surface bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">credit_card</span> invoice.stripe.com
+                        </span>
+<span class="border border-outline-variant px-md py-sm rounded-lg font-mono-data text-mono-data text-on-surface bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">flight</span> vietnamairlines.com
+                        </span>
+<span class="border border-outline-variant px-md py-sm rounded-lg font-mono-data text-mono-data text-on-surface bg-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px] text-secondary">shopping_cart</span> tiki.vn
+                        </span>
+</div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="flex justify-end mt-xl border-t border-outline-variant/30 pt-lg">
+<button class="bg-primary text-on-primary px-xl py-md rounded-lg font-label-md text-label-md flex items-center gap-sm hover:bg-primary-container transition-colors shadow-sm">
+                    Hoàn tất &amp; Bắt đầu <span class="material-symbols-outlined">rocket_launch</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

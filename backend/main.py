@@ -58,6 +58,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from setup_api import router as setup_router
+app.include_router(setup_router)
+
 # --- Preload data (once) ---
 _data = get_all_data()
 
@@ -656,6 +659,28 @@ def dashboard_outbound_reconciliation():
         return {"status": "unavailable", "error": str(e), "items": []}
 
 
+@app.get("/dashboard/suspicious-domains")
+def dashboard_suspicious_domains():
+    """
+    Scan every email (not just ones with a Ref) against the user's domain
+    whitelist for lookalike-domain impersonation attempts.
+    """
+    try:
+        from gmail_client import fetch_emails
+        from agents.outbound_reconciler import check_suspicious_domains
+        from domain_whitelist import get_whitelist
+        from config import WEALIFY_EMAIL
+
+        emails = fetch_emails()
+        if WEALIFY_EMAIL:
+            emails = [e for e in emails if e.get("to") == WEALIFY_EMAIL]
+
+        flags = check_suspicious_domains(emails, get_whitelist(), lang="vi")
+        return {"status": "live", "total_flagged": len(flags), "items": flags}
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e), "items": []}
+
+
 @app.get("/dashboard/inbound-reconciliation")
 def dashboard_inbound_reconciliation():
     """
@@ -688,6 +713,12 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend-web"
 def serve_frontend():
     """Serve the HTML frontend."""
     return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/setup")
+def serve_setup_wizard():
+    """Serve the Setup Wizard (Gmail/Wealify credentials + domain whitelist)."""
+    return FileResponse(FRONTEND_DIR / "setup.html")
 
 
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
