@@ -183,22 +183,32 @@ def adapt_vc_to_card_statement(
         created_at = txn.get("created_at", "")
         status = txn.get("transaction_vc_status", "SUCCESS")
 
-        # Include both spending (PAYMENT/REFUND) and top-ups (TOP_UP).
-        # TOP_UP has to be here — it's the "money arrived on the card" side
-        # of a wallet-to-card transfer, which is exactly what R-10 (transfer
-        # reconciliation) checks the card statement for. Leaving it out meant
-        # every transfer looked like it never reached the card, regardless
-        # of whether it actually had.
-        if txn_type in ("PAYMENT", "REFUND", "TOP_UP"):
+        # Include spending (PAYMENT/REFUND), top-ups (TOP_UP), and
+        # withdrawals (WITHDRAWAL). TOP_UP has to be here — it's the
+        # "money arrived on the card" side of a wallet-to-card transfer,
+        # which is exactly what R-10 (transfer reconciliation) checks the
+        # card statement for. WITHDRAWAL was missing entirely (real bug:
+        # 88 real USD withdrawals, ~$85,943, silently dropped) — reconciler.py's
+        # wallet_card_mismatch check treated every real card-side balance
+        # reduction as unexplained, reporting an ~$88,784 "mismatch" that
+        # was really just this omission.
+        if txn_type in ("PAYMENT", "REFUND", "TOP_UP", "WITHDRAWAL"):
             if txn_type == "PAYMENT":
                 amount = -abs(amount)
                 category = "spending"
             elif txn_type == "REFUND":
                 amount = abs(amount)
                 category = "refund"
+            elif txn_type == "WITHDRAWAL":
+                amount = -abs(amount)
+                category = "withdrawal"
             else:  # TOP_UP
                 amount = abs(amount)
                 category = "top_up"
+
+            currency = "USD"
+            if isinstance(txn.get("currency"), dict):
+                currency = txn["currency"].get("symbol", "USD")
 
             statements.append({
                 "date": _parse_date(created_at),
@@ -210,6 +220,7 @@ def adapt_vc_to_card_statement(
                 "reference": txn.get("transaction_id", ""),
                 "_record_at": created_at or _parse_date(created_at),
                 "_source": "wealify_vc",
+                "_currency": currency,
             })
 
     # Sort by date descending

@@ -19,12 +19,35 @@ def reconcile_three_sources(
     discrepancies = []
 
     # 1. Check transfers: money left account but didn't appear on card
-    transfer_txns = [t for t in account_txns if t.get("type") == "transfer"]
+    # USD-only: wallet["card_balance"] (compared against this further down)
+    # is itself a USD-only figure (adapt_to_wallet_balance) — this account
+    # has both USD and EUR cards, and mixing them here compared a
+    # USD-only balance against a USD+EUR flow, producing an inflated,
+    # currency-confused "mismatch".
+    transfer_txns = [t for t in account_txns if t.get("type") == "transfer" and (t.get("_currency") or "USD") == "USD"]
     total_transferred = sum(abs(t["amount"]) for t in transfer_txns)
 
     # 2. Check charges in account vs card
+    # card_txns also includes "top_up" (wallet→card transfers) and "refund"
+    # entries — those map to account_statement's "transfer"/"refund" types,
+    # never "charge", so comparing them against account_charges here always
+    # false-flagged them as "missing" regardless of whether the data was
+    # actually consistent. Real bug, not a side effect of any status
+    # filter: found when live pagination made vc_transactions more
+    # complete (268 → 414) and the false-positive count became impossible
+    # to miss (103 of 126 "missing" were legitimate top_ups).
+    # Also SUCCESS-only: a card charge still PENDING/PROCESSING or that
+    # FAILED/was CANCELled never became real settled money, so it not
+    # being in account_statement (SUCCESS-only, see wealify_adapter.py)
+    # isn't a discrepancy to reconcile — it's expected. Unsettled ones are
+    # already surfaced separately by reminder_checker.py's stale-processing
+    # check instead of being double-reported here as a false "lệch".
     account_charges = {t["reference"]: t for t in account_txns if t.get("type") == "charge"}
-    card_refs = {t["reference"]: t for t in card_txns}
+    card_refs = {
+        t["reference"]: t
+        for t in card_txns
+        if t.get("category") == "spending" and t.get("status") == "success"
+    }
 
     # Find charges in account but NOT on card
     missing_on_card = []
@@ -101,7 +124,23 @@ def reconcile_three_sources(
             fee_seen[key] = txn
 
     # 5. Wallet balance check
-    card_spending_total = sum(abs(t["amount"]) for t in card_txns)
+    # Same bug class as the ref-matching above: this summed every card_txns
+    # row regardless of category, so top_up (money arriving on the card,
+    # not spent) got counted as "spending" too — inflating this total by
+    # roughly the entire top_up volume. Also now includes "withdrawal"
+    # (cash withdrawn from the card — previously missing from
+    # card_statement entirely) as an outflow, and nets out "refund"
+    # (money returned) — all real ways the card balance moves besides
+    # top_up, which total_transferred already accounts for separately.
+    success_card_txns = [
+        t for t in card_txns
+        if t.get("status") == "success" and (t.get("_currency") or "USD") == "USD"
+    ]
+    card_spending_total = (
+        sum(abs(t["amount"]) for t in success_card_txns if t.get("category") == "spending")
+        + sum(abs(t["amount"]) for t in success_card_txns if t.get("category") == "withdrawal")
+        - sum(abs(t["amount"]) for t in success_card_txns if t.get("category") == "refund")
+    )
     expected_card_balance = total_transferred - card_spending_total
     actual_card_balance = wallet.get("card_balance", 0)
 
