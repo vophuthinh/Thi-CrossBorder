@@ -23,6 +23,7 @@ from config import (
     BYTEPLUS_API_KEY,
     SCHEDULED_CHECK_INTERVAL_SECONDS,
     CURRENCY_SYMBOLS,
+    USER_EMAIL,
 )
 from chat import ChatOrchestrator
 from audit_log import audit_log
@@ -102,6 +103,11 @@ class InsightRequest(BaseModel):
 class ReminderConfigRequest(BaseModel):
     inbound_email_hours: float = Field(gt=0)
     processing_status_hours: float = Field(gt=0)
+
+
+class ReportEmailRequest(BaseModel):
+    period_type: str  # month | quarter | year
+    period_value: int | None = None
 
 
 # ─── Health ──────────────────────────────────────────────
@@ -237,6 +243,471 @@ def dashboard_report():
     analysis = analyze_statement(_data["account_statement"], "vi")
     anomalies = detect_anomalies(_data["account_statement"], "vi")
     return generate_report(analysis, anomalies, "vi")
+
+
+_REPORT_CATEGORY_LABELS_VI = {
+    "top_up": "Nạp tiền",
+    "withdrawal": "Rút tiền",
+    "adjustment": "Điều chỉnh",
+    "refund": "Hoàn tiền",
+}
+
+
+def _report_year() -> int:
+    years = []
+    for t in _data["account_statement"]:
+        date = str(t.get("date", ""))
+        if len(date) >= 4 and date[:4].isdigit():
+            years.append(int(date[:4]))
+    return max(years) if years else datetime.utcnow().year
+
+
+def _normalize_report_type(type_value: str) -> str | None:
+    t = (type_value or "").strip().lower()
+    mapping = {
+        "top_up": "top_up",
+        "topup": "top_up",
+        "payin": "top_up",
+        "transfer": "top_up",
+        "withdrawal": "withdrawal",
+        "withdraw": "withdrawal",
+        "payout": "withdrawal",
+        "adjustment": "adjustment",
+        "refund": "refund",
+    }
+    return mapping.get(t)
+
+
+def _is_success_status(status_value: str | None) -> bool:
+    if status_value is None:
+        return True
+    return str(status_value).strip().lower() == "success"
+
+
+def _extract_report_transactions(year: int, month: int | None = None) -> list[dict]:
+    out = []
+    raw = _data.get("_wealify_raw", {})
+    va_transactions = raw.get("va_transactions") if isinstance(raw, dict) else None
+    vc_transactions = raw.get("vc_transactions") if isinstance(raw, dict) else None
+
+    if isinstance(va_transactions, list) or isinstance(vc_transactions, list):
+        for txn in (va_transactions or []):
+            if not _is_success_status(txn.get("va_transaction_status")):
+                continue
+            date = str(txn.get("created_at", ""))[:10]
+            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
+                continue
+            y = int(date[:4])
+            m = int(date[5:7])
+            if y != year or (month is not None and m != month):
+                continue
+
+            category_key = _normalize_report_type(str(txn.get("transaction_type", "")))
+            if category_key is None:
+                continue
+
+            amount_raw = float(txn.get("amount", 0.0) or 0.0)
+            amount_abs = abs(amount_raw)
+            if category_key == "top_up":
+                money_in, money_out = amount_abs, 0.0
+            elif category_key == "withdrawal":
+                money_in, money_out = 0.0, amount_abs
+            else:
+                money_in, money_out = (amount_abs, 0.0) if amount_raw >= 0 else (0.0, amount_abs)
+
+            currency = txn.get("currency_symbol") or "VND"
+            out.append(
+                {
+                    "date": date,
+                    "currency": currency,
+                    "category_key": category_key,
+                    "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
+                    "amount_abs": amount_abs,
+                    "money_in": money_in,
+                    "money_out": money_out,
+                }
+            )
+
+        for txn in vc_transactions:
+            if not _is_success_status(txn.get("transaction_vc_status")):
+                continue
+            date = str(txn.get("created_at", ""))[:10]
+            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
+                continue
+            y = int(date[:4])
+            m = int(date[5:7])
+            if y != year or (month is not None and m != month):
+                continue
+
+            category_key = _normalize_report_type(str(txn.get("transaction_vc_type", "")))
+            if category_key is None:
+                continue
+
+            amount_raw = float(txn.get("amount", 0.0) or 0.0)
+            amount_abs = abs(amount_raw)
+            if category_key in ("top_up", "refund"):
+                money_in = amount_abs
+                money_out = 0.0
+            elif category_key == "withdrawal":
+                money_in = 0.0
+                money_out = amount_abs
+            else:  # adjustment
+                if amount_raw >= 0:
+                    money_in = amount_abs
+                    money_out = 0.0
+                else:
+                    money_in = 0.0
+                    money_out = amount_abs
+
+            currency = "USD"
+            if isinstance(txn.get("currency"), dict):
+                currency = txn["currency"].get("symbol", "USD")
+
+            out.append(
+                {
+                    "date": date,
+                    "currency": currency,
+                    "category_key": category_key,
+                    "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
+                    "amount_abs": amount_abs,
+                    "money_in": money_in,
+                    "money_out": money_out,
+                }
+            )
+        return out
+
+    # Fallback for non-live/mock mode
+    for txn in _data["account_statement"]:
+        date = str(txn.get("date", ""))
+        if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
+            continue
+        y = int(date[:4])
+        m = int(date[5:7])
+        if y != year or (month is not None and m != month):
+            continue
+        if not _is_success_status(txn.get("status")):
+            continue
+
+        category_key = _normalize_report_type(str(txn.get("type", "")))
+        if category_key is None:
+            continue
+        amount_raw = float(txn.get("amount", 0.0) or 0.0)
+        amount_abs = abs(amount_raw)
+        money_in = amount_abs if amount_raw > 0 else 0.0
+        money_out = amount_abs if amount_raw < 0 else 0.0
+        currency = txn.get("_currency") or "USD"
+        out.append(
+            {
+                "date": date,
+                "currency": currency,
+                "category_key": category_key,
+                "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
+                "amount_abs": amount_abs,
+                "money_in": money_in,
+                "money_out": money_out,
+            }
+        )
+    return out
+
+
+def _count_success_transactions(year: int, month: int) -> int:
+    raw = _data.get("_wealify_raw", {})
+    va_transactions = raw.get("va_transactions") if isinstance(raw, dict) else None
+    vc_transactions = raw.get("vc_transactions") if isinstance(raw, dict) else None
+
+    if isinstance(va_transactions, list) or isinstance(vc_transactions, list):
+        total = 0
+        for txn in (va_transactions or []):
+            date = str(txn.get("created_at", ""))[:10]
+            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
+                continue
+            y = int(date[:4])
+            m = int(date[5:7])
+            if y == year and m == month and _is_success_status(txn.get("va_transaction_status")):
+                total += 1
+        for txn in (vc_transactions or []):
+            date = str(txn.get("created_at", ""))[:10]
+            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
+                continue
+            y = int(date[:4])
+            m = int(date[5:7])
+            if y == year and m == month and _is_success_status(txn.get("transaction_vc_status")):
+                total += 1
+        return total
+
+    # Fallback for non-live/mock mode where explicit status may not exist.
+    return len([t for t in _data["account_statement"] if str(t.get("date", "")).startswith(f"{year}-{month:02d}")])
+
+
+def _money_series_for_year(year: int) -> dict:
+    rows = _extract_report_transactions(year)
+    totals = {}
+    for row in rows:
+        cur = row["currency"]
+        month_key = row["date"][:7]
+        if cur not in totals:
+            totals[cur] = {}
+        if month_key not in totals[cur]:
+            totals[cur][month_key] = {"money_in": 0.0, "money_out": 0.0}
+        totals[cur][month_key]["money_in"] += row["money_in"]
+        totals[cur][month_key]["money_out"] += row["money_out"]
+
+    result = {}
+    for cur, months in totals.items():
+        list_rows = []
+        for m in range(1, 13):
+            month_key = f"{year}-{m:02d}"
+            values = months.get(month_key, {"money_in": 0.0, "money_out": 0.0})
+            list_rows.append(
+                {
+                    "month": month_key,
+                    "money_in": round(values["money_in"], 2),
+                    "money_out": round(values["money_out"], 2),
+                }
+            )
+        result[cur] = list_rows
+    return result
+
+
+def _build_month_report(year: int, month: int) -> dict:
+    month_prefix = f"{year}-{month:02d}"
+    transactions = _extract_report_transactions(year, month)
+    success_total_count = _count_success_transactions(year, month)
+    categories_by_currency = {}
+    for txn in transactions:
+        currency = txn["currency"]
+        cat = txn["category_key"]
+        if currency not in categories_by_currency:
+            categories_by_currency[currency] = {}
+        if cat not in categories_by_currency[currency]:
+            categories_by_currency[currency][cat] = {
+                "category_key": cat,
+                "category_label": txn["category_label"],
+                "total_amount": 0.0,
+                "transaction_count": 0,
+            }
+        categories_by_currency[currency][cat]["total_amount"] += txn["amount_abs"]
+        categories_by_currency[currency][cat]["transaction_count"] += 1
+
+    money_summary_by_currency = {}
+    normalized = {}
+    for currency, cat_map in categories_by_currency.items():
+        normalized[currency] = sorted(
+            [
+                {
+                    **row,
+                    "total_amount": round(row["total_amount"], 2),
+                }
+                for row in cat_map.values()
+            ],
+            key=lambda r: r["total_amount"],
+            reverse=True,
+        )
+        money_in = sum(t["money_in"] for t in transactions if t["currency"] == currency)
+        money_out = sum(t["money_out"] for t in transactions if t["currency"] == currency)
+        money_summary_by_currency[currency] = {
+            "money_in": round(money_in, 2),
+            "money_out": round(money_out, 2),
+        }
+
+    return {
+        "period_type": "month",
+        "year": year,
+        "month": month,
+        "month_key": month_prefix,
+        "success_total_count": success_total_count,
+        "success_in_report_count": len(transactions),
+        "currencies": sorted(normalized.keys()),
+        "categories_by_currency": normalized,
+        "money_summary_by_currency": money_summary_by_currency,
+        "text_summary": (
+            f"Tháng {month}/{year} có {success_total_count} giao dịch SUCCESS, "
+            f"trong đó {len(transactions)} giao dịch thuộc 4 loại báo cáo: "
+            "nạp tiền, rút tiền, điều chỉnh, hoàn tiền."
+        ),
+    }
+
+
+def _build_quarter_report(year: int, quarter: int) -> dict:
+    monthly = _money_series_for_year(year)
+    month_start = (quarter - 1) * 3 + 1
+    month_end = month_start + 2
+    month_keys = [f"{year}-{m:02d}" for m in range(month_start, month_end + 1)]
+
+    by_currency = {}
+    for currency, rows in monthly.items():
+        selected = [row for row in rows if row["month"] in month_keys]
+        by_currency[currency] = selected
+
+    return {
+        "period_type": "quarter",
+        "year": year,
+        "quarter": quarter,
+        "month_keys": month_keys,
+        "currencies": sorted(by_currency.keys()),
+        "comparison_by_currency": by_currency,
+        "text_summary": (
+            f"Quý {quarter}/{year} so sánh tiền vào và tiền ra theo từng tháng."
+        ),
+    }
+
+
+def _build_year_report(year: int) -> dict:
+    monthly = _money_series_for_year(year)
+    return {
+        "period_type": "year",
+        "year": year,
+        "currencies": sorted(monthly.keys()),
+        "comparison_by_currency": monthly,
+        "text_summary": (
+            f"Báo cáo năm {year} so sánh 12 tháng theo tiền vào và tiền ra."
+        ),
+    }
+
+
+def _render_report_email_body(report: dict) -> str:
+    period_type = report.get("period_type")
+    if period_type == "month":
+        month = report.get("month")
+        year = report.get("year")
+        lines = [
+            f"Báo cáo tháng {month}/{year}",
+            "",
+            report.get("text_summary", ""),
+            "",
+        ]
+        categories = report.get("categories_by_currency", {})
+        for currency, rows in categories.items():
+            lines.append(f"[{currency}]")
+            for row in rows:
+                lines.append(
+                    f"- {row['category_label']}: {row['total_amount']:,.2f} ({row['transaction_count']} giao dịch)"
+                )
+            money = report.get("money_summary_by_currency", {}).get(currency, {})
+            lines.append(f"- Tổng tiền vào: {money.get('money_in', 0):,.2f}")
+            lines.append(f"- Tổng tiền ra: {money.get('money_out', 0):,.2f}")
+            lines.append("")
+        lines.append(DISCLAIMER_VI)
+        return "\n".join(lines)
+
+    if period_type == "quarter":
+        quarter = report.get("quarter")
+        year = report.get("year")
+        lines = [
+            f"Báo cáo quý {quarter}/{year}",
+            "",
+            report.get("text_summary", ""),
+            "",
+        ]
+        for currency, rows in report.get("comparison_by_currency", {}).items():
+            lines.append(f"[{currency}]")
+            for row in rows:
+                lines.append(
+                    f"- {row['month']}: Tiền vào {row['money_in']:,.2f} | Tiền ra {row['money_out']:,.2f}"
+                )
+            lines.append("")
+        lines.append(DISCLAIMER_VI)
+        return "\n".join(lines)
+
+    year = report.get("year")
+    lines = [
+        f"Báo cáo năm {year}",
+        "",
+        report.get("text_summary", ""),
+        "",
+    ]
+    for currency, rows in report.get("comparison_by_currency", {}).items():
+        lines.append(f"[{currency}]")
+        for row in rows:
+            lines.append(
+                f"- {row['month']}: Tiền vào {row['money_in']:,.2f} | Tiền ra {row['money_out']:,.2f}"
+            )
+        lines.append("")
+    lines.append(DISCLAIMER_VI)
+    return "\n".join(lines)
+
+
+@app.get("/dashboard/reporting/meta")
+def dashboard_reporting_meta():
+    year = _report_year()
+    return {
+        "year": year,
+        "months": list(range(1, 13)),
+        "quarters": [1, 2, 3, 4],
+    }
+
+
+@app.get("/dashboard/reporting/month/{month}")
+def dashboard_reporting_month(month: int):
+    if month < 1 or month > 12:
+        return {"status": "invalid_month", "message": "month must be 1..12"}
+    year = _report_year()
+    return _build_month_report(year, month)
+
+
+@app.get("/dashboard/reporting/quarter/{quarter}")
+def dashboard_reporting_quarter(quarter: int):
+    if quarter < 1 or quarter > 4:
+        return {"status": "invalid_quarter", "message": "quarter must be 1..4"}
+    year = _report_year()
+    return _build_quarter_report(year, quarter)
+
+
+@app.get("/dashboard/reporting/year")
+def dashboard_reporting_year():
+    year = _report_year()
+    return _build_year_report(year)
+
+
+@app.post("/dashboard/reporting/send-email")
+def dashboard_reporting_send_email(req: ReportEmailRequest):
+    period_type = req.period_type.strip().lower()
+
+    if period_type == "month":
+        if req.period_value is None or req.period_value < 1 or req.period_value > 12:
+            return {"status": "invalid_month", "message": "period_value must be 1..12 for month"}
+        report = dashboard_reporting_month(req.period_value)
+        subject = f"Wealify báo cáo tháng {req.period_value}/{report['year']}"
+    elif period_type == "quarter":
+        if req.period_value is None or req.period_value < 1 or req.period_value > 4:
+            return {"status": "invalid_quarter", "message": "period_value must be 1..4 for quarter"}
+        report = dashboard_reporting_quarter(req.period_value)
+        subject = f"Wealify báo cáo quý {req.period_value}/{report['year']}"
+    elif period_type == "year":
+        report = dashboard_reporting_year()
+        subject = f"Wealify báo cáo năm {report['year']}"
+    else:
+        return {"status": "invalid_period_type", "message": "period_type must be month|quarter|year"}
+
+    from email_sender import send_email, is_configured, EmailSendError
+
+    body = _render_report_email_body(report)
+
+    if not is_configured():
+        return {
+            "status": "email_send_failed",
+            "to": USER_EMAIL,
+            "reason": "SMTP chưa được cấu hình",
+            "subject": subject,
+            "body": body,
+        }
+
+    try:
+        send_email(USER_EMAIL, subject, body)
+    except EmailSendError as e:
+        return {
+            "status": "email_send_failed",
+            "to": USER_EMAIL,
+            "reason": str(e),
+            "subject": subject,
+            "body": body,
+        }
+
+    return {
+        "status": "sent",
+        "to": USER_EMAIL,
+        "subject": subject,
+    }
 
 
 @app.get("/dashboard/reports")
