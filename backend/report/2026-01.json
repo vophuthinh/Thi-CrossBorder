@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-08-21T17:04:10.480444+00:00",
+  "newest_txn_date_at_generation": "2026-08-20",
+  "report": {
+    "overview": {},
+    "monthly_breakdown": {},
+    "quarterly_breakdown": {},
+    "yearly_breakdown": {},
+    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "subscriptions": {
+      "Gói đang hoạt động": 5,
+      "Chi phí gói hàng tháng": 115.96,
+      "Chi phí gói hàng năm": 0,
+      "Dự báo tổng chi năm": 1391.52
+    },
+    "upcoming_charges": [
+      {
+        "service": "Subscription CANVA* PRO MONTHLY",
+        "amount": 12.99,
+        "next_date": "2026-08-20",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription OPENAI *CHATGPT SUBSCR",
+        "amount": 20.0,
+        "next_date": "2026-09-02",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription NETFLIX.COM",
+        "amount": 17.99,
+        "next_date": "2026-09-05",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription Spotify P0F2K",
+        "amount": 9.99,
+        "next_date": "2026-09-08",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription ADOBE *CREATIVE CLD",
+        "amount": 54.99,
+        "next_date": "2026-09-14",
+        "frequency": "monthly"
+      }
+    ],
+    "price_hike_alerts": [],
+    "top3_largest": {}
+  }
+}

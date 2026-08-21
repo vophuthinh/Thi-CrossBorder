@@ -57,12 +57,18 @@ _IDENTITY_KEYWORDS = ["bạn tên gì", "bạn là ai", "who are you", "your nam
 _WELLBEING_KEYWORDS = ["khoẻ không", "khỏe không", "how are you"]
 
 
+def _has_any(patterns: list[str], text: str) -> bool:
+    """Word-boundary match — plain substring would let "hi" match inside
+    "this" and misfire the greeting reply on a real question."""
+    return any(re.search(rf"\b{re.escape(p)}\b", text) for p in patterns)
+
+
 def _greeting_reply(message: str, lang: str) -> str | None:
     lower = message.lower().strip()
     if len(lower) > 30:
         return None
 
-    if any(p in lower for p in _IDENTITY_KEYWORDS):
+    if _has_any(_IDENTITY_KEYWORDS, lower):
         return (
             "Mình là trợ lý rà soát tài chính Wealify — đọc sao kê, đối chiếu email, "
             "phát hiện bất thường trong tài khoản của bạn. Hỏi mình bất kỳ điều gì nhé!"
@@ -70,18 +76,18 @@ def _greeting_reply(message: str, lang: str) -> str | None:
             "I'm the Wealify financial review assistant — I read statements, cross-check "
             "emails, and flag anomalies on your account. Ask me anything!"
         )
-    if any(p in lower for p in _WELLBEING_KEYWORDS):
+    if _has_any(_WELLBEING_KEYWORDS, lower):
         return (
             "Mình ổn, cảm ơn bạn! Bạn muốn mình kiểm tra gì trên tài khoản không?"
             if lang == "vi" else
             "I'm doing well, thanks for asking! Anything you'd like me to check?"
         )
-    if any(p in lower for p in _THANKS_KEYWORDS):
+    if _has_any(_THANKS_KEYWORDS, lower):
         return (
             "Không có gì! Cần kiểm tra thêm gì cứ hỏi mình nhé." if lang == "vi"
             else "You're welcome! Let me know if there's anything else to check."
         )
-    if any(p in lower for p in _GREETING_KEYWORDS):
+    if _has_any(_GREETING_KEYWORDS, lower):
         return (
             "Chào bạn! Mình có thể giúp rà soát sao kê, đối chiếu email, gói đăng ký, "
             "khoản bất thường... Bạn muốn kiểm tra gì?"
@@ -522,7 +528,11 @@ class ChatOrchestrator:
                 parts.append(f"  - 🏷️ *{_label_text(h['label'], lang)}*")
 
                 audit_log.log_flag(
-                    transaction_ref=h["merchant"],
+                    # Must match main.py's _run_scheduled_check ref format
+                    # (merchant + old/new prices) — merchant alone would
+                    # dedup a merchant's second, different price hike
+                    # against its first instead of logging it as new.
+                    transaction_ref=f"{h['merchant']}|{h['old_price']}->{h['new_price']}",
                     reason="price_hike",
                     confidence="high",
                     label=LABEL_NEEDS_REVIEW,
@@ -754,7 +764,11 @@ class ChatOrchestrator:
 
         for h in anomalies.get("price_hikes", []):
             total_issues += 1
-            if audit_log.log_flag(h["merchant"], "price_hike", "high", LABEL_NEEDS_REVIEW, "anomaly_detector", f"${h['old_price']} → ${h['new_price']}"):
+            # Ref must match main.py's _run_scheduled_check and the other
+            # price_hike logging site above — merchant alone would dedup a
+            # merchant's second, different price hike against its first.
+            ref = f"{h['merchant']}|{h['old_price']}->{h['new_price']}"
+            if audit_log.log_flag(ref, "price_hike", "high", LABEL_NEEDS_REVIEW, "anomaly_detector", f"${h['old_price']} → ${h['new_price']}"):
                 new_flags += 1
 
         for disc in recon.get("discrepancies", []):

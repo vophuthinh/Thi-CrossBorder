@@ -84,7 +84,11 @@ def adapt_va_to_account_statement(
             mapped_type = "refund"
             description = remark or f"Refund ({card_name})"
             amount = abs(amount)
-        elif txn_type == "WITHDRAW":
+        elif txn_type == "WITHDRAWAL":
+            # The real API sends "WITHDRAWAL", not "WITHDRAW" — the old
+            # string here never matched, so this branch's sign-flip never
+            # ran and a real $250 withdrawal was counted as a positive
+            # (inflow) amount instead of an outflow.
             mapped_type = "withdrawal"
             description = remark or f"Withdrawal ({card_name})"
             amount = -abs(amount)
@@ -176,6 +180,7 @@ def adapt_to_wallet_balance(
     wallets: list[dict],
     vc_cards: list[dict],
     va_accounts: list[dict],
+    vc_transactions: list[dict],
 ) -> dict[str, Any]:
     """
     Transform Wealify wallet data → wallet_balance.json format.
@@ -204,17 +209,60 @@ def adapt_to_wallet_balance(
                 wallet_balance = bal
                 currency = w.get("currency", "VND")
 
-    # Card balances from VC cards — Wealify sums ALL cards (including FROZEN/CANCELLED)
-    total_card_balance = 0.0
-    total_top_up = 0.0
-    total_withdraw = 0.0
+    # vc_cards has no currency field of its own — derive each card's
+    # currency from its own transactions (which do carry one) so
+    # per-card totals can be grouped correctly instead of summed together
+    # regardless of currency (the same class of bug fixed elsewhere today
+    # for VA payin totals: real sellers here have both USD and EUR cards).
+    card_currency: dict[str, str] = {}
+    for txn in vc_transactions:
+        cid = txn.get("_card_id")
+        if cid and cid not in card_currency:
+            cur = "USD"
+            if isinstance(txn.get("currency"), dict):
+                cur = txn["currency"].get("symbol", "USD")
+            card_currency[cid] = cur
+
+    # Card balances from VC cards — only ACTIVE cards count toward "what
+    # you have now" (a cancelled/pending card's stale balance shouldn't).
+    totals_by_currency: dict[str, dict[str, float]] = {}
+    empty_bucket = lambda: {"balance": 0.0, "top_up": 0.0, "spending": 0.0}
     card_last4 = ""
     for card in vc_cards:
-        total_card_balance += float(card.get("balance", "0"))
-        total_top_up += float(card.get("total_top_up", "0"))
-        total_withdraw += float(card.get("total_withdraw", "0"))
-        if not card_last4 and card.get("card_status") == "ACTIVE":
+        if card.get("card_status") != "ACTIVE":
+            continue
+        cur = card_currency.get(card.get("id"), "USD")
+        bucket = totals_by_currency.setdefault(cur, empty_bucket())
+        bucket["balance"] += float(card.get("balance", "0"))
+        if not card_last4:
             card_last4 = card.get("last_four", "")
+
+    for txn in vc_transactions:
+        txn_type = txn.get("transaction_vc_type", "")
+        # "Spending" is PAYMENT — real purchases, matching card_statement's
+        # own charge classification (adapt_vc_to_card_statement). WITHDRAW
+        # is a cash withdrawal, a different concept the old code mislabeled
+        # as "total_card_spending" (it was always 0 here: this account has
+        # only 1 WITHDRAW transaction total, so "spending" read as $0 despite
+        # 214 real card charges).
+        if txn_type not in ("TOP_UP", "PAYMENT"):
+            continue
+        amount = float(txn.get("amount", 0))
+        cur = "USD"
+        if isinstance(txn.get("currency"), dict):
+            cur = txn["currency"].get("symbol", "USD")
+        bucket = totals_by_currency.setdefault(cur, empty_bucket())
+        if txn_type == "TOP_UP":
+            bucket["top_up"] += amount
+        else:
+            bucket["spending"] += amount
+
+    # Flat *_usd fields kept for existing consumers (reconciler.py compares
+    # card_balance against USD card_statement spending) — USD is this
+    # account's dominant card currency. Full breakdown is exposed
+    # separately so other currencies (EUR here) aren't silently dropped.
+    usd = totals_by_currency.get("USD", empty_bucket())
+    total_card_balance = usd["balance"]
 
     # VC wallet balance (Số dư ví USD)
     # NOTE: This is a server-side value (2,750.01 USD on Wealify web).
@@ -223,22 +271,38 @@ def adapt_to_wallet_balance(
     vc_wallet_balance = 0.0  # Not available via API
     vc_total_balance = total_card_balance  # Best available approximation
 
-    # Total received across VA accounts
-    total_received = sum(float(va.get("total_received", 0)) for va in va_accounts)
+    # Total received across VA accounts, split by currency — total_received
+    # is itself a lifetime cumulative figure per account (see the note in
+    # adapt_va_to_account_statement on why that can't be a dated
+    # transaction); summing across VND and USD VA accounts here would
+    # reproduce the same fabricated-magnitude bug already fixed there.
+    received_by_currency: dict[str, float] = {}
+    for va in va_accounts:
+        cur = va.get("currency_symbol", "VND")
+        received_by_currency[cur] = received_by_currency.get(cur, 0.0) + float(va.get("total_received", 0))
 
     return {
         "account_id": "WEALIFY-LIVE",
         "account_id_masked": "WLF-***-LIVE",
         "wallet_balance": wallet_balance,
-        "card_balance": total_card_balance,
+        "card_balance": round(total_card_balance, 2),
         "vc_wallet_balance_usd": round(vc_wallet_balance, 2),
         "vc_card_balance_usd": round(total_card_balance, 2),
         "vc_total_balance_usd": round(vc_total_balance, 2),
         "pending_in": 0.0,
         "pending_out": 0.0,
-        "total_transferred_to_card": total_top_up,
-        "total_card_spending": total_withdraw,
-        "total_va_received": total_received,
+        "total_transferred_to_card": round(usd["top_up"], 2),
+        "total_card_spending": round(usd["spending"], 2),
+        "card_totals_by_currency": {
+            cur: {
+                "balance": round(v["balance"], 2),
+                "total_transferred_to_card": round(v["top_up"], 2),
+                "total_card_spending": round(v["spending"], 2),
+            }
+            for cur, v in totals_by_currency.items()
+        },
+        "total_va_received": round(received_by_currency.get("VND", 0.0), 2),
+        "total_va_received_by_currency": {k: round(v, 2) for k, v in received_by_currency.items()},
         "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "currency": currency,
         "card_last4": f"****{card_last4}" if card_last4 else "",
@@ -263,7 +327,7 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
         vc_transactions, wallets
     )
     card_statement = adapt_vc_to_card_statement(vc_cards, vc_transactions)
-    wallet_balance = adapt_to_wallet_balance(wallets, vc_cards, va_accounts)
+    wallet_balance = adapt_to_wallet_balance(wallets, vc_cards, va_accounts, vc_transactions)
 
     return {
         "account_statement": account_statement,

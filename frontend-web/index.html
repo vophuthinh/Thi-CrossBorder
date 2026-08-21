@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,17 +32,32 @@
             </div>
 
             <div class="nav-right">
+                <a class="icon-btn" href="/reminders" title="Reminder settings">
+                    <i class="ph ph-gear-six" aria-hidden="true"></i>
+                    <span data-i18n="reminder_settings">Reminders</span>
+                </a>
+
+                <button class="icon-btn" id="scheduledCheckBtn" type="button" title="Run scheduled check">
+                    <i class="ph ph-arrows-clockwise" aria-hidden="true"></i>
+                    <span data-i18n="run_check">Run check</span>
+                </button>
+
+                <button class="icon-btn" id="exportAuditBtn" type="button" title="Export audit log">
+                    <i class="ph ph-download-simple" aria-hidden="true"></i>
+                    <span data-i18n="export_audit">Export log</span>
+                </button>
+
                 <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
-                    <button class="lang-btn is-active" type="button" data-lang="en">EN</button>
-                    <button class="lang-btn" type="button" data-lang="vi">VI</button>
+                    <button class="lang-btn" type="button" data-lang="en">EN</button>
+                    <button class="lang-btn is-active" type="button" data-lang="vi">VI</button>
                 </div>
 
                 <div class="profile">
                     <div class="profile-meta">
-                        <div class="profile-name">TienNX</div>
-                        <div class="profile-card num" data-i18n="profile_card">Card 4218 · 7734</div>
+                        <div class="profile-name">—</div>
+                        <div class="profile-card num">—</div>
                     </div>
-                    <div class="avatar">TN</div>
+                    <div class="avatar">—</div>
                 </div>
             </div>
         </header>
@@ -62,27 +77,25 @@
                         <h3 class="block-title" data-i18n="block_reconciliation">Reconciliation</h3>
 
                         <ol class="flow">
-                            <li class="flow-node">
-                                <span class="flow-label" data-i18n="flow_bank">Bank account</span>
-                                <span class="flow-value num">$1,042.60</span>
-                            </li>
-                            <li class="flow-node">
+                            <li class="flow-node" data-flow="wallet">
                                 <span class="flow-label" data-i18n="flow_wallet">Wealify wallet</span>
-                                <span class="flow-value num">$214.35</span>
+                                <span class="flow-value num">—</span>
                             </li>
-                            <li class="flow-node is-gap">
-                                <span class="flow-label" data-i18n="flow_card">Card statement</span>
-                                <span class="flow-value num">$778.20</span>
+                            <li class="flow-node" data-flow="transferred">
+                                <span class="flow-label" data-i18n="flow_transferred">Transferred to card</span>
+                                <span class="flow-value num">—</span>
+                            </li>
+                            <li class="flow-node" data-flow="card">
+                                <span class="flow-label" data-i18n="flow_card">Card spending</span>
+                                <span class="flow-value num">—</span>
                             </li>
                         </ol>
 
                         <div class="note note-caution">
                             <i class="ph ph-warning-circle" aria-hidden="true"></i>
                             <div>
-                                <strong data-i18n="alert_mismatch">$50.05 unaccounted for</strong>
-                                <div class="note-sub" data-i18n="alert_mismatch_sub">
-                                    Left the account, not yet on the card
-                                </div>
+                                <strong>—</strong>
+                                <div class="note-sub">—</div>
                             </div>
                         </div>
                     </section>
@@ -97,9 +110,9 @@
                             </span>
                             <span class="flag-text">
                                 <span class="flag-name" data-i18n="flag_duplicate">Duplicate charges</span>
-                                <span class="flag-sub" data-i18n="flag_duplicate_sub">3 transactions</span>
+                                <span class="flag-sub">—</span>
                             </span>
-                            <span class="badge badge-danger num">3</span>
+                            <span class="badge badge-danger num">—</span>
                         </button>
 
                         <button class="flag-card" data-flag="unrecognized" type="button">
@@ -108,9 +121,9 @@
                             </span>
                             <span class="flag-text">
                                 <span class="flag-name" data-i18n="flag_unrecognized">Unrecognized</span>
-                                <span class="flag-sub" data-i18n="flag_unrecognized_sub">5 transactions</span>
+                                <span class="flag-sub">—</span>
                             </span>
-                            <span class="badge badge-muted num">5</span>
+                            <span class="badge badge-muted num">—</span>
                         </button>
 
                         <button class="flag-card" data-flag="audit" type="button">
@@ -119,9 +132,9 @@
                             </span>
                             <span class="flag-text">
                                 <span class="flag-name" data-i18n="flag_audit">Audit required</span>
-                                <span class="flag-sub" data-i18n="flag_audit_sub">5 transactions</span>
+                                <span class="flag-sub">—</span>
                             </span>
-                            <span class="badge badge-caution num">5</span>
+                            <span class="badge badge-caution num">—</span>
                         </button>
                     </section>
 
@@ -133,25 +146,25 @@
                             <li>
                                 <button class="sub-item" data-flag="price-hike" type="button">
                                     <span class="sub-name" data-i18n="sub_price">Price increased</span>
-                                    <span class="pill pill-caution num">2</span>
+                                    <span class="pill pill-caution num">—</span>
                                 </button>
                             </li>
                             <li>
                                 <button class="sub-item" data-flag="active-subs" type="button">
                                     <span class="sub-name" data-i18n="sub_active">Active subscriptions</span>
-                                    <span class="pill num">7</span>
+                                    <span class="pill num">—</span>
                                 </button>
                             </li>
                             <li>
                                 <button class="sub-item" data-flag="trial" type="button">
                                     <span class="sub-name" data-i18n="sub_trial">Trials ending soon</span>
-                                    <span class="pill num">1</span>
+                                    <span class="pill num">—</span>
                                 </button>
                             </li>
                             <li>
                                 <button class="sub-item" data-flag="unused" type="button">
                                     <span class="sub-name" data-i18n="sub_unused">Unused 60+ days</span>
-                                    <span class="pill num">3</span>
+                                    <span class="pill num">—</span>
                                 </button>
                             </li>
                         </ul>
@@ -172,8 +185,7 @@
                     <div class="msg msg-ai">
                         <div class="msg-avatar">AI</div>
                         <div class="bubble bubble-ai" data-i18n="chat_greeting">
-                            Hi TienNX, I've cross-checked your card statements, wallet, and emails. Where should we
-                            start?
+                            Hi! Ask me anything about your statements, subscriptions, or email cross-checks.
                         </div>
                     </div>
                 </div>
@@ -184,6 +196,7 @@
                         <button class="chip" type="button" data-i18n="chip_duplicate">Any duplicate charges?</button>
                         <button class="chip" type="button" data-i18n="chip_subs">Which subscriptions increased?</button>
                         <button class="chip" type="button" data-i18n="chip_report">Draft monthly report</button>
+                        <button class="chip" type="button" data-i18n="chip_deadline">Anything nearing the 60-day deadline?</button>
                     </div>
 
                     <form class="chat-input" id="chatForm" autocomplete="off">

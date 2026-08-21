@@ -221,12 +221,17 @@ def detect_language(message: str) -> str:
     lower = message.lower()
     vn_count = sum(1 for c in lower if c in vn_chars)
 
-    # Vietnamese keywords
+    # Vietnamese keywords — matched on word boundaries, not raw substring.
+    # Short ASCII entries like "chi" or "có" would otherwise match inside
+    # ordinary English words ("ma-CHI-ne", "achie-VE"), flipping an English
+    # message to Vietnamese on a single accidental hit.
     vn_keywords = ["tôi", "mình", "bạn", "chi", "giao dịch", "tài khoản", "sao kê",
                    "khoản", "phí", "tiền", "thẻ", "gói", "tháng", "năm", "có", "không",
                    "gửi", "báo cáo", "kiểm tra", "chào", "sao", "làm", "giúp", "được",
                    "cần", "muốn", "xin", "gì", "này", "đây", "nào", "ơi", "dạ"]
-    vn_keyword_count = sum(1 for kw in vn_keywords if kw in lower)
+    vn_keyword_count = sum(
+        1 for kw in vn_keywords if re.search(rf"\b{re.escape(kw)}\b", lower)
+    )
 
     # A short greeting ("xin chào") or a one-keyword question only has one
     # diacritic/keyword hit — the old `> 2` / `>= 2` thresholds misclassified

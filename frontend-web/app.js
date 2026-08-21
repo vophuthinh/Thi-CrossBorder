@@ -1,406 +1,356 @@
 /* ═══════════════════════════════════════════════════════
    Wealify Scout — UI interactivity (vanilla JS)
+   Wired to the real backend (no mock data) — every number here comes from
+   GET /findings, /dashboard/wallet, /dashboard/wealify-accounts, and
+   POST /chat, all fetched live from the running FastAPI backend.
    ═══════════════════════════════════════════════════════ */
 
-// ─── i18n dictionary ───────────────────────────────
+const API = 'http://localhost:8000';
 
+// ─── i18n dictionary (UI chrome text only — live data is rendered
+// directly from bilingual fields the backend already provides, e.g.
+// finding.title_vi / finding.title_en) ───────────────────────────
 const I18N = {
     en: {
         brand_sub: 'AI financial review',
-        profile_card: 'Card 4218 · 7734',
 
         panel_command: 'Command Center',
         panel_hint_live: 'Live review',
+        export_audit: 'Export log',
+        export_done: 'Audit log exported to',
+        export_failed: 'Export failed — check the backend is running.',
+        reminder_settings: 'Reminders',
+        run_check: 'Run check',
+        run_check_running: 'Running...',
+        run_check_done: (n, already) => `Done! ${n} new flags, ${already} already reported.`,
+        run_check_failed: 'Check failed — the backend may be restarting.',
         block_reconciliation: 'Reconciliation',
-        flow_bank: 'Bank account',
         flow_wallet: 'Wealify wallet',
-        flow_card: 'Card statement',
-        alert_mismatch: '$50.05 unaccounted for',
-        alert_mismatch_sub: 'Left the account, not yet on the card',
+        flow_transferred: 'Transferred to card',
+        flow_card: 'Card spending',
+        mismatch_ok: 'No transfer-to-card mismatch found',
+        mismatch_ok_sub: 'Every wallet-to-card transfer is accounted for',
 
         block_urgent: 'Urgent flags',
         flag_duplicate: 'Duplicate charges',
-        flag_duplicate_sub: '3 transactions',
-        flag_unrecognized: 'Unrecognized',
-        flag_unrecognized_sub: '5 transactions',
-        flag_audit: 'Audit required',
-        flag_audit_sub: '5 transactions',
+        flag_unrecognized: 'Unrecognized / no receipt',
+        flag_audit: 'Needs your confirmation',
 
         block_radar: 'Subscription radar',
         sub_price: 'Price increased',
         sub_active: 'Active subscriptions',
         sub_trial: 'Trials ending soon',
         sub_unused: 'Unused 60+ days',
+        not_tracked: 'Not tracked by this build — out of scope for the current detection rules.',
 
         panel_chat: 'AI Chat Assistant',
         status_online: 'Online',
-        chat_greeting: "Hi TienNX, I've cross-checked your card statements, wallet, and emails. Where should we start?",
-        chip_top3: 'Top 3 expenses?',
+        status_offline: 'Offline',
+        chat_greeting: 'Hi! Ask me anything about your statements, subscriptions, or email cross-checks.',
+        chip_top3: 'Top 3 expenses this month?',
         chip_duplicate: 'Any duplicate charges?',
         chip_subs: 'Which subscriptions increased?',
-        chip_report: 'Draft monthly report',
+        chip_report: 'Send me the monthly report',
+        chip_deadline: 'Anything nearing the 60-day deadline?',
         chat_placeholder: 'Ask about your transactions',
         readonly_note: 'Read-only access mode',
-        ai_reply:
-            'Reviewing that against your card statement, wallet and receipt emails now. Results are for reference ' +
-            'only, so please confirm anything unusual with support.',
+        thinking: 'Analyzing...',
+        chat_error: 'Connection error — the backend may be restarting. Try again in a moment.',
 
         panel_detail: 'Detail view',
         empty_title: 'Nothing selected',
         empty_sub: 'Pick a flag in the Command Center to inspect the underlying transactions.',
-        detail_duplicate: 'Duplicate charges',
-        detail_unrecognized: 'Unrecognized',
-        detail_audit: 'Audit required',
-        detail_price_hike: 'Price increased',
-        detail_active_subs: 'Active subscriptions',
-        detail_trial: 'Trials ending soon',
-        detail_unused: 'Unused 60+ days',
-        label_txn_id: 'Transaction ID',
-        label_merchant: 'Merchant',
-        label_time: 'Time',
+        empty_none_title: 'Nothing to show',
+        empty_none_sub: 'No items currently match this category.',
+        label_finding_id: 'Finding ID',
         label_status: 'Status',
-        label_reason: 'Reason',
+        label_deadline: 'Dispute deadline',
+        label_days_left: 'days left',
+        label_confidence: 'Confidence',
+        label_evidence: 'Evidence',
         count_items: (n) => `${n} item${n === 1 ? '' : 's'}`,
-        action_draft_email: 'Draft support email',
-        // Single line on purpose: a text input strips newlines.
-        prompt_draft_email: (item) =>
-            `Draft a support email asking Wealify to review this transaction — ` +
-            `merchant: ${item.details.name} (${item.merchant}); ` +
-            `amount: ${item.amount}; ` +
-            `date: ${loc(item.date)}; ` +
-            `transaction ID: ${item.details.id}; ` +
-            `reason for review: ${item.reason.en}. ` +
-            `Keep it factual and polite, ask for a written response, and mention that the US dispute window is ` +
-            `60 days from the statement date. Do not accuse anyone of fraud.`,
+        action_draft_email: 'Draft note for chat',
 
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
-            'This tool only assists in financial review. Results are for reference only. If you see strange ' +
-            'transactions, contact support immediately. US dispute timeframe is 60 days from the statement date.',
+            '⚠️ This tool only assists you in reviewing your finances. Results are for reference only, not ' +
+            'official Wealify conclusions, and do not replace your own verification. If you notice suspicious ' +
+            'transactions, contact support immediately — in the US, the dispute deadline is 60 days from the ' +
+            'statement date.',
     },
 
     vi: {
         brand_sub: 'Rà soát tài chính bằng AI',
-        profile_card: 'Thẻ 4218 · 7734',
 
         panel_command: 'Trung tâm điều khiển',
         panel_hint_live: 'Rà soát trực tiếp',
+        export_audit: 'Xuất nhật ký',
+        export_done: 'Đã xuất nhật ký cảnh báo ra',
+        export_failed: 'Xuất thất bại — kiểm tra backend có đang chạy không.',
+        reminder_settings: 'Nhắc hạn',
+        run_check: 'Rà soát định kỳ',
+        run_check_running: 'Đang rà soát...',
+        run_check_done: (n, already) => `Hoàn tất! ${n} cảnh báo mới, ${already} đã báo trước.`,
+        run_check_failed: 'Rà soát thất bại — backend có thể đang khởi động lại.',
         block_reconciliation: 'Đối soát',
-        flow_bank: 'Tài khoản ngân hàng',
         flow_wallet: 'Ví Wealify',
-        flow_card: 'Sao kê thẻ',
-        alert_mismatch: 'Chưa khớp $50.05',
-        alert_mismatch_sub: 'Đã rời tài khoản nhưng chưa lên thẻ',
+        flow_transferred: 'Đã chuyển sang thẻ',
+        flow_card: 'Chi tiêu trên thẻ',
+        mismatch_ok: 'Không phát hiện lệch chuyển tiền sang thẻ',
+        mismatch_ok_sub: 'Mọi khoản chuyển từ ví sang thẻ đều đã được đối chiếu khớp',
 
         block_urgent: 'Cảnh báo giao dịch bất thường',
         flag_duplicate: 'Giao dịch trùng lặp',
-        flag_duplicate_sub: '3 giao dịch',
-        flag_unrecognized: 'Chưa có email biên lai',
-        flag_unrecognized_sub: '5 giao dịch',
-        flag_audit: 'Cần kiểm tra thủ công',
-        flag_audit_sub: '5 giao dịch',
+        flag_unrecognized: 'Chưa nhận diện / không có biên lai',
+        flag_audit: 'Cần bạn tự xác nhận',
 
         block_radar: 'Radar gói đăng ký',
         sub_price: 'Gói tăng giá',
         sub_active: 'Gói đang hoạt động',
         sub_trial: 'Bản dùng thử sắp hết hạn',
         sub_unused: 'Không dùng 60+ ngày',
+        not_tracked: 'Bản build này chưa theo dõi mục này — nằm ngoài phạm vi các luật phát hiện hiện có.',
 
         panel_chat: 'Trợ lý AI',
         status_online: 'Trực tuyến',
-        chat_greeting: 'Chào TienNX, mình đã đối chiếu sao kê thẻ, ví và email của bạn. Bạn muốn bắt đầu từ đâu?',
-        chip_top3: '3 khoản chi lớn nhất?',
+        status_offline: 'Mất kết nối',
+        chat_greeting: 'Xin chào! Hỏi mình bất kỳ điều gì về sao kê, gói đăng ký, hay đối chiếu email của bạn.',
+        chip_top3: '3 khoản chi lớn nhất tháng này?',
         chip_duplicate: 'Có giao dịch trùng không?',
         chip_subs: 'Gói nào vừa tăng giá?',
-        chip_report: 'Soạn báo cáo tháng',
+        chip_report: 'Gửi báo cáo tháng cho tôi',
+        chip_deadline: 'Khoản nào sắp hết hạn khiếu nại 60 ngày?',
         chat_placeholder: 'Hỏi về giao dịch của bạn',
         readonly_note: 'Chế độ chỉ đọc',
-        ai_reply:
-            'Mình đang đối chiếu với sao kê thẻ, ví và email biên lai của bạn. Kết quả chỉ để tham khảo, bạn nên ' +
-            'xác nhận lại với bộ phận hỗ trợ nếu thấy điểm bất thường.',
+        thinking: 'Đang phân tích...',
+        chat_error: 'Lỗi kết nối — backend có thể đang khởi động lại. Thử lại sau giây lát.',
 
         panel_detail: 'Chi tiết',
         empty_title: 'Chưa chọn mục nào',
         empty_sub: 'Chọn một cảnh báo ở Trung tâm điều khiển để xem chi tiết giao dịch.',
-        detail_duplicate: 'Giao dịch trùng lặp',
-        detail_unrecognized: 'Chưa nhận diện',
-        detail_audit: 'Cần kiểm tra thủ công',
-        detail_price_hike: 'Gói tăng giá',
-        detail_active_subs: 'Gói đang hoạt động',
-        detail_trial: 'Bản dùng thử sắp hết hạn',
-        detail_unused: 'Không dùng 60+ ngày',
-        label_txn_id: 'Mã giao dịch',
-        label_merchant: 'Đơn vị bán',
-        label_time: 'Thời gian',
-        label_status: 'Trạng thái',
-        label_reason: 'Lý do',
+        empty_none_title: 'Không có mục nào',
+        empty_none_sub: 'Hiện chưa có giao dịch nào khớp mục này.',
+        label_finding_id: 'Mã cảnh báo',
+        label_status: 'Nhãn',
+        label_deadline: 'Hạn khiếu nại',
+        label_days_left: 'ngày còn lại',
+        label_confidence: 'Độ tin cậy',
+        label_evidence: 'Bằng chứng',
         count_items: (n) => `${n} mục`,
-        action_draft_email: 'Soạn email hỗ trợ',
-        // Một dòng duy nhất vì ô input sẽ bỏ ký tự xuống dòng.
-        prompt_draft_email: (item) =>
-            `Soạn mẫu email gửi bộ phận hỗ trợ Wealify để yêu cầu kiểm tra giao dịch này — ` +
-            `đơn vị bán: ${item.details.name} (${item.merchant}); ` +
-            `số tiền: ${item.amount}; ` +
-            `ngày: ${loc(item.date)}; ` +
-            `mã giao dịch: ${item.details.id}; ` +
-            `lý do cần kiểm tra: ${item.reason.vi}. ` +
-            `Viết tiếng Việt, giọng lịch sự và bám sát dữ kiện, đề nghị phản hồi bằng văn bản, nhắc thời hạn ` +
-            `khiếu nại 60 ngày kể từ ngày sao kê. Không quy kết ai gian lận.`,
+        action_draft_email: 'Soạn ghi chú vào khung chat',
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
-            'Công cụ này chỉ hỗ trợ rà soát tài chính. Kết quả chỉ để tham khảo. Nếu thấy giao dịch lạ, hãy liên hệ ' +
-            'hỗ trợ ngay. Ở Mỹ, thời hạn khiếu nại là 60 ngày kể từ ngày sao kê.',
+            '⚠️ Công cụ này chỉ hỗ trợ bạn rà soát tài chính. Kết quả để tham khảo, không phải kết luận chính ' +
+            'thức của Wealify và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ' +
+            'ngay — ở Mỹ thời hạn khiếu nại là 60 ngày kể từ ngày ngân hàng gửi sao kê.',
     },
 };
 
-const STATUS = {
-    posted: { en: 'Posted', vi: 'Đã ghi nhận' },
-    pending: { en: 'Pending', vi: 'Đang chờ' },
-    recurring: { en: 'Recurring', vi: 'Định kỳ' },
+// ─── Currency formatting — statement mixes VND/USD/EUR, each rendered in
+// its own real unit rather than converted with a fabricated FX rate. ────
+const CURRENCY_SYMBOLS = { USD: '$', EUR: '€' };
+const fmtCur = (n, currency) => {
+    const v = Number(n) || 0;
+    if (currency === 'VND') return `${Math.round(Math.abs(v)).toLocaleString('en-US')} VND`;
+    const sym = CURRENCY_SYMBOLS[currency] || (currency ? currency + ' ' : '$');
+    return `${sym}${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-// Mock review data. Swap for a fetch() against the backend when wiring live.
-// `alert: true` is what turns an amount red — it is not a default.
-const DETAIL_DATA = {
-    duplicate: {
-        titleKey: 'detail_duplicate',
-        items: [
-            {
-                merchant: 'Apple.com/bill',
-                amount: '-$9.99',
-                date: 'Oct 12',
-                alert: true,
-                details: { id: 'TXN-99123', name: 'Apple Services', time: '14:32 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'Apple.com/bill',
-                amount: '-$9.99',
-                date: 'Oct 12',
-                alert: true,
-                details: { id: 'TXN-99124', name: 'Apple Services', time: '14:33 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'Uber*Trip',
-                amount: '-$24.50',
-                date: 'Oct 10',
-                alert: true,
-                warning: { en: 'Matches a charge on Oct 9', vi: 'Trùng với giao dịch ngày 9 Thg 10' },
-                details: { id: 'TXN-98871', name: 'Uber Technologies', time: '09:14 EST', status: STATUS.posted },
-            },
-        ],
-    },
-    unrecognized: {
-        titleKey: 'detail_unrecognized',
-        items: [
-            {
-                merchant: 'BLINKIST*SUB',
-                amount: '-$89.99',
-                date: 'Oct 14',
-                alert: true,
-                warning: { en: 'No matching receipt email', vi: 'Không có email biên lai tương ứng' },
-                details: { id: 'TXN-99450', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'DIGITALOCEAN',
-                amount: '-$41.86',
-                date: 'Oct 13',
-                details: { id: 'TXN-99312', name: 'DigitalOcean LLC', time: '00:11 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'PAYPAL *STEAM',
-                amount: '-$59.99',
-                date: 'Oct 11',
-                details: { id: 'TXN-99205', name: 'Valve Corp. via PayPal', time: '21:48 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'SP GLOBALSTORE',
-                amount: '-$132.40',
-                date: 'Oct 08',
-                alert: true,
-                warning: { en: 'First time seeing this merchant', vi: 'Lần đầu xuất hiện đơn vị bán này' },
-                details: { id: 'TXN-98740', name: 'Global Store Ltd.', time: '11:06 EST', status: STATUS.pending },
-            },
-            {
-                merchant: 'AWS EMEA',
-                amount: '-$18.22',
-                date: 'Oct 05',
-                details: { id: 'TXN-98501', name: 'Amazon Web Services', time: '06:02 EST', status: STATUS.posted },
-            },
-        ],
-    },
-    // `reason` is what unlocks the "draft support email" action on an item.
-    audit: {
-        titleKey: 'detail_audit',
-        items: [
-            {
-                merchant: 'SP GLOBALSTORE',
-                amount: '-$132.40',
-                date: 'Oct 08',
-                alert: true,
-                warning: { en: 'Merchant never seen before', vi: 'Lần đầu xuất hiện đơn vị bán này' },
-                reason: {
-                    en: 'Unknown merchant, no receipt email, still pending after 6 days',
-                    vi: 'Không nhận diện được đơn vị bán, không có email biên lai, treo 6 ngày chưa xử lý',
-                },
-                details: { id: 'TXN-98740', name: 'Global Store Ltd.', time: '11:06 EST', status: STATUS.pending },
-            },
-            {
-                merchant: 'Apple.com/bill',
-                amount: '-$9.99',
-                date: 'Oct 12',
-                alert: true,
-                warning: { en: 'Charged twice within 61 seconds', vi: 'Bị thu hai lần cách nhau 61 giây' },
-                reason: {
-                    en: 'Identical amount billed twice on the same day (TXN-99123 and TXN-99124)',
-                    vi: 'Cùng số tiền bị thu hai lần trong cùng ngày (TXN-99123 và TXN-99124)',
-                },
-                details: { id: 'TXN-99124', name: 'Apple Services', time: '14:33 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'BLINKIST*SUB',
-                amount: '-$89.99',
-                date: 'Oct 14',
-                alert: true,
-                warning: { en: 'Renewed after cancellation request', vi: 'Vẫn gia hạn sau khi đã yêu cầu huỷ' },
-                reason: {
-                    en: 'Annual plan renewed although cancellation was requested on Sep 28',
-                    vi: 'Gói năm vẫn gia hạn dù đã yêu cầu huỷ ngày 28 Thg 9',
-                },
-                details: { id: 'TXN-99450', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'WEALIFY TOPUP',
-                amount: '-$50.05',
-                date: 'Oct 09',
-                alert: true,
-                warning: { en: 'Left the account, never reached the card', vi: 'Đã rời tài khoản nhưng chưa lên thẻ' },
-                reason: {
-                    en: 'Top-up debited from the bank account but missing from the card statement',
-                    vi: 'Tiền nạp đã trừ ở tài khoản ngân hàng nhưng không có trên sao kê thẻ',
-                },
-                details: { id: 'TXN-98655', name: 'Wealify Wallet', time: '16:41 EST', status: STATUS.pending },
-            },
-            {
-                merchant: 'Netflix Premium',
-                amount: '-$22.99',
-                date: 'Oct 07',
-                warning: { en: 'Price changed without notice', vi: 'Tăng giá không báo trước' },
-                reason: {
-                    en: 'Monthly price rose from $19.99 to $22.99 with no advance notice email',
-                    vi: 'Giá hàng tháng tăng từ $19.99 lên $22.99 mà không có email báo trước',
-                },
-                details: { id: 'TXN-98620', name: 'Netflix Inc.', time: '02:17 EST', status: STATUS.recurring },
-            },
-        ],
-    },
-    'price-hike': {
-        titleKey: 'detail_price_hike',
-        items: [
-            {
-                merchant: 'Netflix Premium',
-                amount: '-$22.99',
-                date: 'Oct 07',
-                alert: true,
-                warning: { en: 'Was $19.99 last month, up 15%', vi: 'Tháng trước là $19.99, tăng 15%' },
-                details: { id: 'TXN-98620', name: 'Netflix Inc.', time: '02:17 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Adobe Creative Cloud',
-                amount: '-$59.99',
-                date: 'Oct 03',
-                alert: true,
-                warning: { en: 'Was $54.99 last month, up 9.1%', vi: 'Tháng trước là $54.99, tăng 9,1%' },
-                details: { id: 'TXN-98390', name: 'Adobe Systems', time: '08:41 EST', status: STATUS.recurring },
-            },
-        ],
-    },
-    'active-subs': {
-        titleKey: 'detail_active_subs',
-        items: [
-            {
-                merchant: 'Netflix Premium',
-                amount: '-$22.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1001', name: 'Netflix Inc.', time: '02:17 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Adobe Creative Cloud',
-                amount: '-$59.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1002', name: 'Adobe Systems', time: '08:41 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Spotify Family',
-                amount: '-$16.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1003', name: 'Spotify AB', time: '19:23 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Canva Pro',
-                amount: '-$12.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1004', name: 'Canva Pty Ltd', time: '05:34 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'iCloud+ 2TB',
-                amount: '-$9.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1005', name: 'Apple Services', time: '14:32 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Blinkist Premium',
-                amount: '-$89.99',
-                date: { en: 'Yearly', vi: 'Hàng năm' },
-                details: { id: 'SUB-1006', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'DigitalOcean',
-                amount: '-$41.86',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1007', name: 'DigitalOcean LLC', time: '00:11 EST', status: STATUS.recurring },
-            },
-        ],
-    },
-    trial: {
-        titleKey: 'detail_trial',
-        items: [
-            {
-                merchant: 'Notion AI',
-                amount: '$0.00',
-                date: { en: 'Ends Oct 22', vi: 'Hết hạn 22 Thg 10' },
-                warning: {
-                    en: 'Converts to $10.00 a month after the trial',
-                    vi: 'Sẽ tự thu $10.00 mỗi tháng sau khi hết dùng thử',
-                },
-                details: { id: 'SUB-1008', name: 'Notion Labs Inc.', time: '10:03 EST', status: STATUS.pending },
-            },
-        ],
-    },
-    unused: {
-        titleKey: 'detail_unused',
-        items: [
-            {
-                merchant: 'Canva Pro',
-                amount: '-$12.99',
-                date: { en: 'Last used Aug 04', vi: 'Dùng lần cuối 04 Thg 8' },
-                details: { id: 'SUB-1004', name: 'Canva Pty Ltd', time: '05:34 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'Blinkist Premium',
-                amount: '-$89.99',
-                date: { en: 'Last used Jul 19', vi: 'Dùng lần cuối 19 Thg 7' },
-                details: { id: 'SUB-1006', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.recurring },
-            },
-            {
-                merchant: 'iCloud+ 2TB',
-                amount: '-$9.99',
-                date: { en: 'Last used Aug 01', vi: 'Dùng lần cuối 01 Thg 8' },
-                details: { id: 'SUB-1005', name: 'Apple Services', time: '14:32 EST', status: STATUS.recurring },
-            },
-        ],
-    },
+// ─── Tiny markdown renderer for chat bubbles ────────────────────────
+// /chat responses use **bold**, `code`, and "- " bullet lines — plain
+// textContent would show the raw asterisks/backticks, so this converts
+// the small subset of markdown chat.py actually emits into safe HTML
+// (escaping user/model text first, then re-introducing only these tags).
+function renderMarkdown(text) {
+    const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const paragraphs = text.split('\n\n');
+    return paragraphs
+        .map((para) => {
+            const lines = para.split('\n').filter((l) => l.trim() !== '');
+            if (lines.length === 0) return '';
+            const isList = lines.every((l) => /^[-•]\s/.test(l.trim()));
+            const inline = (s) =>
+                escape(s)
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/`(.+?)`/g, '<code>$1</code>')
+                    .replace(/_(.+?)_/g, '<em>$1</em>');
+            if (isList) {
+                const items = lines.map((l) => `<li>${inline(l.trim().replace(/^[-•]\s/, ''))}</li>`).join('');
+                return `<ul>${items}</ul>`;
+            }
+            return `<p>${lines.map(inline).join('<br>')}</p>`;
+        })
+        .join('');
+}
+
+// ─── Live data, fetched once per load/refresh ───────────────────────
+let allFindings = [];
+let walletData = null;
+
+async function apiGet(path) {
+    try {
+        const res = await fetch(`${API}${path}`);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+async function apiPost(path) {
+    try {
+        const res = await fetch(`${API}${path}`, { method: 'POST' });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+async function apiPostChat(message) {
+    try {
+        const res = await fetch(`${API}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+// A finding is bucketed into one or more Command Center flags by its real
+// type/label — nothing here is invented, it's the same taxonomy
+// finding_engine.py already assigns (R-01..R-15).
+const FLAG_FILTERS = {
+    duplicate: (f) => ['DUPLICATE_CHARGE', 'DUPLICATE_PAYIN', 'DOUBLE_FEE'].includes(f.type),
+    unrecognized: (f) => ['NO_MATCHING_EMAIL', 'UNKNOWN_MERCHANT', 'SUSPICIOUS_EMAIL'].includes(f.type),
+    audit: (f) => f.label === 'CAN_BAN_TU_XAC_NHAN',
+    'price-hike': (f) => f.type === 'SILENT_PRICE_INCREASE',
+    'active-subs': (f) => f.type === 'RECURRING_SUBSCRIPTION',
+    // No trial/unused-subscription detector exists server-side (out of
+    // spec scope) — always empty rather than inventing placeholder data.
+    trial: () => false,
+    unused: () => false,
 };
+
+const FLAG_TITLE_KEY = {
+    duplicate: 'flag_duplicate',
+    unrecognized: 'flag_unrecognized',
+    audit: 'flag_audit',
+    'price-hike': 'sub_price',
+    'active-subs': 'sub_active',
+    trial: 'sub_trial',
+    unused: 'sub_unused',
+};
+
+async function loadAll() {
+    const [findingsRes, wallet] = await Promise.all([
+        apiGet('/findings'),
+        apiGet('/dashboard/wallet'),
+    ]);
+    allFindings = (findingsRes && findingsRes.findings) || [];
+    walletData = wallet;
+
+    renderReconciliation();
+    renderCommandCenterCounts();
+    if (activeFlag) renderDetails(activeFlag, { instant: true });
+
+    const dot = document.querySelector('.dot');
+    const statusLabel = document.querySelector('.status-chip span[data-i18n]');
+    const ok = Boolean(findingsRes);
+    if (dot) dot.classList.toggle('is-offline', !ok);
+    if (statusLabel) statusLabel.textContent = ok ? t('status_online') : t('status_offline');
+}
+
+// ─── Left panel: reconciliation flow + Command Center counts ────────
+
+function renderReconciliation() {
+    const walletEl = document.querySelector('[data-flow="wallet"] .flow-value');
+    const transferredEl = document.querySelector('[data-flow="transferred"] .flow-value');
+    const cardEl = document.querySelector('[data-flow="card"] .flow-value');
+
+    // Cards can be in more than one currency (USD/EUR here) — stack each
+    // on its own line rather than picking one and hiding the rest, or
+    // joining them as if they were the same unit.
+    const stackCurrencies = (el, byCurrency, pick) => {
+        if (!el) return;
+        const entries = Object.entries(byCurrency || {}).filter(([, v]) => pick(v) !== 0 || Object.keys(byCurrency).length === 1);
+        if (!entries.length) {
+            el.textContent = '—';
+            return;
+        }
+        el.innerHTML = entries.map(([cur, v]) => `<span class="cur-line">${fmtCur(pick(v), cur)}</span>`).join('');
+    };
+
+    if (walletData) {
+        if (walletEl) walletEl.textContent = fmtCur(walletData.wallet_balance, walletData.currency || 'VND');
+        const byCurrency = walletData.card_totals_by_currency || {};
+        stackCurrencies(transferredEl, byCurrency, (v) => v.total_transferred_to_card);
+        stackCurrencies(cardEl, byCurrency, (v) => v.total_card_spending);
+    }
+
+    const mismatchFindings = allFindings.filter((f) =>
+        ['IN_TRANSIT_NOT_ON_CARD', 'WALLET_BALANCE_MISMATCH'].includes(f.type)
+    );
+    const noteEl = document.querySelector('.note');
+    if (!noteEl) return;
+
+    const titleEl = noteEl.querySelector('strong');
+    const subEl = noteEl.querySelector('.note-sub');
+    const iconEl = noteEl.querySelector('i');
+
+    if (mismatchFindings.length === 0) {
+        noteEl.classList.remove('note-caution');
+        noteEl.classList.add('note-ok');
+        if (iconEl) iconEl.className = 'ph ph-check-circle';
+        if (titleEl) titleEl.textContent = t('mismatch_ok');
+        if (subEl) subEl.textContent = t('mismatch_ok_sub');
+    } else {
+        noteEl.classList.add('note-caution');
+        noteEl.classList.remove('note-ok');
+        if (iconEl) iconEl.className = 'ph ph-warning-circle';
+        // Group by currency instead of summing amount_cents across
+        // findings that might not share a currency into one fabricated total.
+        const byCurrency = {};
+        for (const f of mismatchFindings) {
+            const cur = f.currency || 'USD';
+            byCurrency[cur] = (byCurrency[cur] || 0) + (f.amount_cents || 0);
+        }
+        const totalText = Object.entries(byCurrency)
+            .map(([cur, cents]) => fmtCur(cents / 100, cur))
+            .join(' · ');
+        const suffix = lang === 'vi' ? 'chưa khớp' : 'unaccounted for';
+        if (titleEl) titleEl.textContent = `${totalText} ${suffix}`;
+        if (subEl) subEl.textContent = findingTitle(mismatchFindings[0]);
+    }
+}
+
+function renderCommandCenterCounts() {
+    document.querySelectorAll('[data-flag]').forEach((el) => {
+        const flag = el.dataset.flag;
+        const count = allFindings.filter(FLAG_FILTERS[flag]).length;
+        const badge = el.querySelector('.badge, .pill');
+        if (badge) badge.textContent = String(count);
+        const sub = el.querySelector('.flag-sub');
+        if (sub) sub.textContent = t('count_items')(count);
+    });
+}
+
+// ─── Right panel: detail view, sourced directly from finding objects ─
+
+function findingTitle(f) {
+    return lang === 'vi' ? f.title_vi : f.title_en;
+}
+function findingExplanation(f) {
+    return lang === 'vi' ? f.explanation_vi : f.explanation_en;
+}
+function findingLabel(f) {
+    return lang === 'vi' ? f.label_vi : f.label_en;
+}
 
 const detailTitle = document.getElementById('detailTitle');
 const detailCount = document.getElementById('detailCount');
@@ -410,14 +360,12 @@ const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
 const langSwitch = document.getElementById('langSwitch');
 
-let lang = localStorage.getItem('wealify_lang') === 'vi' ? 'vi' : 'en';
+let lang = localStorage.getItem('wealify_lang') === 'en' ? 'en' : 'vi';
 let activeFlag = null;
 let openIndex = null;
 let loadTimer = null;
 
 const t = (key) => I18N[lang][key];
-// Data values are either a plain string or an { en, vi } pair
-const loc = (value) => (value && typeof value === 'object' ? value[lang] : value);
 
 function icon(name, extraClass) {
     const i = document.createElement('i');
@@ -426,17 +374,15 @@ function icon(name, extraClass) {
     return i;
 }
 
-// ─── Right panel rendering ─────────────────────────
-
-function buildMetaRow(list, labelKey, value) {
+function buildMetaRow(list, label, value) {
     const dt = document.createElement('dt');
-    dt.textContent = t(labelKey);
+    dt.textContent = label;
     const dd = document.createElement('dd');
     dd.textContent = value;
     list.append(dt, dd);
 }
 
-function buildDetailItem(item, index) {
+function buildDetailItem(f, index) {
     const row = document.createElement('article');
     row.className = 'detail-item';
     if (openIndex === index) row.classList.add('is-open');
@@ -453,27 +399,29 @@ function buildDetailItem(item, index) {
     const line = document.createElement('div');
     line.className = 'detail-row';
 
-    const merchant = document.createElement('span');
-    merchant.className = 'detail-merchant';
-    merchant.textContent = item.merchant;
+    const title = document.createElement('span');
+    title.className = 'detail-merchant';
+    title.textContent = findingTitle(f);
 
     const amount = document.createElement('span');
-    amount.className = 'detail-amount num' + (item.alert ? ' is-alert' : '');
-    amount.textContent = item.amount;
+    const isAlert = f.label === 'CAN_BAN_TU_XAC_NHAN';
+    amount.className = 'detail-amount num' + (isAlert ? ' is-alert' : '');
+    amount.textContent = fmtCur((f.amount_cents || 0) / 100, f.currency || 'USD');
 
-    line.append(merchant, amount);
+    line.append(title, amount);
 
     const date = document.createElement('div');
     date.className = 'detail-date';
-    date.textContent = loc(item.date);
+    date.textContent = f.occurred_at || '';
 
     main.append(line, date);
 
-    if (item.warning) {
+    const explanation = findingExplanation(f);
+    if (explanation) {
         const warn = document.createElement('div');
         warn.className = 'detail-warning';
         const label = document.createElement('span');
-        label.textContent = loc(item.warning);
+        label.textContent = explanation;
         warn.append(icon('warning-circle'), label);
         main.appendChild(warn);
     }
@@ -488,22 +436,28 @@ function buildDetailItem(item, index) {
 
     const meta = document.createElement('dl');
     meta.className = 'detail-meta';
-    buildMetaRow(meta, 'label_txn_id', item.details.id);
-    buildMetaRow(meta, 'label_merchant', item.details.name);
-    buildMetaRow(meta, 'label_time', item.details.time);
-    buildMetaRow(meta, 'label_status', loc(item.details.status));
-    if (item.reason) buildMetaRow(meta, 'label_reason', loc(item.reason));
+    buildMetaRow(meta, t('label_finding_id'), f.finding_id || '');
+    buildMetaRow(meta, t('label_status'), findingLabel(f));
+    if (f.dispute_deadline) {
+        buildMetaRow(meta, t('label_deadline'), `${f.dispute_deadline} (${f.days_left ?? '?'} ${t('label_days_left')})`);
+    }
+    if (typeof f.confidence === 'number') {
+        buildMetaRow(meta, t('label_confidence'), `${Math.round(f.confidence * 100)}%`);
+    }
+    if (Array.isArray(f.evidence_refs) && f.evidence_refs.length) {
+        buildMetaRow(meta, t('label_evidence'), f.evidence_refs.join(', '));
+    }
 
     inner.appendChild(meta);
 
-    if (item.reason) {
+    if (isAlert) {
         const action = document.createElement('button');
         action.type = 'button';
         action.className = 'detail-action';
         const label = document.createElement('span');
         label.textContent = t('action_draft_email');
         action.append(icon('envelope-simple'), label);
-        action.addEventListener('click', () => draftSupportEmail(item));
+        action.addEventListener('click', () => draftNote(f));
         inner.appendChild(action);
     }
 
@@ -548,23 +502,43 @@ function showSkeleton(count) {
     detailBody.replaceChildren(list);
 }
 
-function paintDetails(data) {
+function paintEmpty() {
+    const wrap = document.createElement('div');
+    wrap.className = 'empty-state';
+    const iconEl = icon('tray', 'empty-icon');
+    const title = document.createElement('p');
+    title.className = 'empty-title';
+    title.textContent = t('empty_none_title');
+    const sub = document.createElement('p');
+    sub.className = 'empty-sub';
+    sub.textContent = activeFlag === 'trial' || activeFlag === 'unused' ? t('not_tracked') : t('empty_none_sub');
+    wrap.append(iconEl, title, sub);
+    detailBody.replaceChildren(wrap);
+}
+
+function paintDetails(items) {
+    if (items.length === 0) {
+        paintEmpty();
+        return;
+    }
     const list = document.createElement('div');
     list.className = 'detail-list';
-    list.append(...data.items.map(buildDetailItem));
+    list.append(...items.map(buildDetailItem));
     detailBody.replaceChildren(list);
     detailBody.scrollTop = 0;
 }
 
 function renderDetails(flag, { instant = false } = {}) {
-    const data = DETAIL_DATA[flag];
-    if (!data) return;
+    const filter = FLAG_FILTERS[flag];
+    if (!filter) return;
 
     if (flag !== activeFlag) openIndex = null;
     activeFlag = flag;
 
-    detailTitle.textContent = t(data.titleKey);
-    detailCount.textContent = t('count_items')(data.items.length);
+    const items = allFindings.filter(filter);
+
+    detailTitle.textContent = t(FLAG_TITLE_KEY[flag]);
+    detailCount.textContent = t('count_items')(items.length);
 
     document.querySelectorAll('[data-flag]').forEach((el) => {
         el.classList.toggle('is-active', el.dataset.flag === flag);
@@ -573,12 +547,12 @@ function renderDetails(flag, { instant = false } = {}) {
     window.clearTimeout(loadTimer);
 
     if (instant) {
-        paintDetails(data);
+        paintDetails(items);
         return;
     }
 
-    showSkeleton(Math.min(data.items.length, 4));
-    loadTimer = window.setTimeout(() => paintDetails(data), 220);
+    showSkeleton(Math.min(items.length, 4) || 2);
+    loadTimer = window.setTimeout(() => paintDetails(items), 220);
 }
 
 // ─── Language switching ────────────────────────────
@@ -601,6 +575,8 @@ function applyLang(next) {
         btn.classList.toggle('is-active', btn.dataset.lang === lang);
     });
 
+    renderReconciliation();
+    renderCommandCenterCounts();
     if (activeFlag) renderDetails(activeFlag, { instant: true });
     else detailTitle.textContent = t('panel_detail');
 }
@@ -616,38 +592,60 @@ document.querySelectorAll('[data-flag]').forEach((el) => {
     el.addEventListener('click', () => renderDetails(el.dataset.flag));
 });
 
-// ─── Chat ──────────────────────────────────────────
+// ─── Chat — wired to POST /chat (real backend, no canned replies) ───
 
-function appendMessage(text, sender) {
+function appendMessage(html, sender) {
     const wrap = document.createElement('div');
     wrap.className = `msg msg-${sender}`;
 
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
-    avatar.textContent = sender === 'ai' ? 'AI' : 'TN';
+    avatar.textContent = sender === 'ai' ? 'AI' : 'You';
 
     const bubble = document.createElement('div');
     bubble.className = `bubble bubble-${sender}`;
-    bubble.textContent = text;
+    if (sender === 'ai') bubble.innerHTML = html;
+    else bubble.textContent = html;
 
     wrap.append(avatar, bubble);
     chatHistory.appendChild(wrap);
     chatHistory.scrollTop = chatHistory.scrollHeight;
+    return wrap;
 }
 
-function askAssistant(text) {
+async function askAssistant(text) {
     const question = text.trim();
     if (!question) return;
 
     appendMessage(question, 'user');
     chatInput.value = '';
 
-    window.setTimeout(() => appendMessage(t('ai_reply'), 'ai'), 450);
+    const thinking = appendMessage(`<span class="thinking"><span class="spinner-dot"></span> ${t('thinking')}</span>`, 'ai');
+
+    const res = await apiPostChat(question);
+    thinking.remove();
+
+    if (res && res.response) {
+        appendMessage(renderMarkdown(res.response), 'ai');
+    } else {
+        appendMessage(t('chat_error'), 'ai');
+    }
 }
 
-// Stages the prompt in the composer instead of sending it, so the user reviews it first.
-function draftSupportEmail(item) {
-    chatInput.value = t('prompt_draft_email')(item);
+// Stages a note about a finding in the chat composer instead of sending
+// anything itself — the user reviews/edits it, and only the existing
+// /chat pipeline (with its own confirm-before-send flow) can act on it.
+function draftNote(f) {
+    const deadlinePart = f.dispute_deadline
+        ? lang === 'vi'
+            ? ` Hạn khiếu nại: ${f.dispute_deadline} (còn ${f.days_left} ngày).`
+            : ` Dispute deadline: ${f.dispute_deadline} (${f.days_left} days left).`
+        : '';
+    const text =
+        lang === 'vi'
+            ? `Giải thích giúp mình khoản này: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`
+            : `Explain this to me: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`;
+    chatInput.value = text;
     chatInput.focus();
     chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
 }
@@ -662,7 +660,72 @@ document.getElementById('suggestionChips').addEventListener('click', (e) => {
     if (chip) askAssistant(chip.textContent);
 });
 
+// ─── Profile — real account holder, not a placeholder name ─────────
+
+async function loadProfile() {
+    const accounts = await apiGet('/dashboard/wealify-accounts');
+    const nameEl = document.querySelector('.profile-name');
+    const cardEl = document.querySelector('.profile-card');
+    const avatarEl = document.querySelector('.avatar');
+    if (!accounts || accounts.status !== 'live') return;
+
+    const fullName = accounts.user && accounts.user.full_name;
+    const firstVa = accounts.va_accounts && accounts.va_accounts[0];
+
+    if (fullName && nameEl) nameEl.textContent = fullName;
+    if (firstVa && cardEl) cardEl.textContent = firstVa.account_number || '';
+    if (fullName && avatarEl) {
+        const initials = fullName
+            .split(' ')
+            .map((p) => p[0])
+            .slice(-2)
+            .join('')
+            .toUpperCase();
+        avatarEl.textContent = initials;
+    }
+}
+
+// ─── Manual scheduled check — matches the same dedup logic the ─────
+// background loop runs automatically every SCHEDULED_CHECK_INTERVAL_SECONDS.
+
+document.getElementById('scheduledCheckBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('scheduledCheckBtn');
+    const label = btn.querySelector('span');
+    const originalText = label.textContent;
+    label.textContent = t('run_check_running');
+    btn.disabled = true;
+
+    const res = await apiPost('/scheduled-check');
+
+    btn.disabled = false;
+    label.textContent = originalText;
+
+    if (res && typeof res.new_flags === 'number') {
+        alert(t('run_check_done')(res.new_flags, res.already_reported));
+        await loadAll();
+    } else {
+        alert(t('run_check_failed'));
+    }
+});
+
+// ─── Export audit log ──────────────────────────────
+
+document.getElementById('exportAuditBtn').addEventListener('click', async () => {
+    const res = await apiGet('/audit-log/export');
+    if (res && res.status === 'exported') {
+        alert(`${t('export_done')} ${res.exported_to} (${res.total_flags})`);
+    } else {
+        alert(t('export_failed'));
+    }
+});
+
 // ─── Initial state ─────────────────────────────────
 
 applyLang(lang);
+loadAll();
+loadProfile();
 renderDetails('duplicate', { instant: true });
+
+// Keep Command Center counts fresh without a manual refresh — matches the
+// backend's own periodic re-scan (SCHEDULED_CHECK_INTERVAL_SECONDS).
+setInterval(loadAll, 60000);

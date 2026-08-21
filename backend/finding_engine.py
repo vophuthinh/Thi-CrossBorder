@@ -542,6 +542,7 @@ def _detect_wallet_mismatch(account_statement: list[dict], wallet: dict) -> list
                 f"Cause unresolved."
             ),
             amount_cents=int(delta * 100),
+            currency=wallet_currency,
             occurred_at=datetime.utcnow().strftime("%Y-%m-%d"),
             evidence_refs=[],
             evidence_sources=[

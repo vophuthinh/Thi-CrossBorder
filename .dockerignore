@@ -1,0 +1,12 @@
+.git
+.env
+.env.example
+backend/gmail_credentials.json
+backend/gmail_token.json
+backend/__pycache__
+backend/**/__pycache__
+backend/out
+backend/data/audit_log_export.json
+backend/data/audit_log_export.jsonl
+backend/benchmark_report.json
+backend/test_llm_benchmark.py

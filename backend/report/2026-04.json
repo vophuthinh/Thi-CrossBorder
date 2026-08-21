@@ -1,0 +1,160 @@
+{
+  "generated_at": "2026-08-21T17:04:10.482492+00:00",
+  "newest_txn_date_at_generation": "2026-08-20",
+  "report": {
+    "overview": {
+      "EUR": {
+        "Tổng tiền vào": 0.0,
+        "Tổng chi tiêu": 512.07,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 901.3,
+        "Tổng rút ra khác": 0.0,
+        "Thay đổi số dư ròng": -1413.37,
+        "Số giao dịch": 11
+      },
+      "USD": {
+        "Tổng tiền vào": 0.0,
+        "Tổng chi tiêu": 1673.92,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 5559.13,
+        "Tổng rút ra khác": 0.0,
+        "Thay đổi số dư ròng": -7233.05,
+        "Số giao dịch": 48
+      }
+    },
+    "monthly_breakdown": {
+      "EUR": {
+        "2026-04": {
+          "income": 0,
+          "spending": 512.0699999999999,
+          "fees": 0,
+          "transfers": 901.3000000000001
+        }
+      },
+      "USD": {
+        "2026-04": {
+          "income": 0,
+          "spending": 1673.9199999999998,
+          "fees": 0,
+          "transfers": 5559.13
+        }
+      }
+    },
+    "quarterly_breakdown": {
+      "EUR": {
+        "2026-Q2": {
+          "income": 0,
+          "spending": 512.07,
+          "fees": 0,
+          "transfers": 901.3,
+          "net": -1413.37
+        }
+      },
+      "USD": {
+        "2026-Q2": {
+          "income": 0,
+          "spending": 1673.92,
+          "fees": 0,
+          "transfers": 5559.13,
+          "net": -7233.05
+        }
+      }
+    },
+    "yearly_breakdown": {
+      "EUR": {
+        "2026": {
+          "income": 0,
+          "spending": 512.07,
+          "fees": 0,
+          "transfers": 901.3,
+          "net": -1413.37
+        }
+      },
+      "USD": {
+        "2026": {
+          "income": 0,
+          "spending": 1673.92,
+          "fees": 0,
+          "transfers": 5559.13,
+          "net": -7233.05
+        }
+      }
+    },
+    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "subscriptions": {
+      "Gói đang hoạt động": 5,
+      "Chi phí gói hàng tháng": 115.96,
+      "Chi phí gói hàng năm": 0,
+      "Dự báo tổng chi năm": 1391.52
+    },
+    "upcoming_charges": [
+      {
+        "service": "Subscription CANVA* PRO MONTHLY",
+        "amount": 12.99,
+        "next_date": "2026-08-20",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription OPENAI *CHATGPT SUBSCR",
+        "amount": 20.0,
+        "next_date": "2026-09-02",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription NETFLIX.COM",
+        "amount": 17.99,
+        "next_date": "2026-09-05",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription Spotify P0F2K",
+        "amount": 9.99,
+        "next_date": "2026-09-08",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription ADOBE *CREATIVE CLD",
+        "amount": 54.99,
+        "next_date": "2026-09-14",
+        "frequency": "monthly"
+      }
+    ],
+    "price_hike_alerts": [],
+    "top3_largest": {
+      "EUR": [
+        {
+          "date": "2026-04-24",
+          "description": "Shopee",
+          "amount": -207.92
+        },
+        {
+          "date": "2026-04-14",
+          "description": "Shopee",
+          "amount": -198.76
+        },
+        {
+          "date": "2026-04-30",
+          "description": "Namecheap",
+          "amount": -59.12
+        }
+      ],
+      "USD": [
+        {
+          "date": "2026-04-09",
+          "description": "Facebook Ads",
+          "amount": -425.39
+        },
+        {
+          "date": "2026-04-21",
+          "description": "Shopee",
+          "amount": -200.1
+        },
+        {
+          "date": "2026-04-25",
+          "description": "Shopee",
+          "amount": -137.44
+        }
+      ]
+    }
+  }
+}

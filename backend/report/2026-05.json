@@ -1,0 +1,160 @@
+{
+  "generated_at": "2026-08-21T17:04:10.483131+00:00",
+  "newest_txn_date_at_generation": "2026-08-20",
+  "report": {
+    "overview": {
+      "USD": {
+        "Tổng tiền vào": 23.5,
+        "Tổng chi tiêu": 2086.31,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 926.41,
+        "Tổng rút ra khác": 0.0,
+        "Thay đổi số dư ròng": -2989.22,
+        "Số giao dịch": 29
+      },
+      "EUR": {
+        "Tổng tiền vào": 0.0,
+        "Tổng chi tiêu": 44.8,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 354.04,
+        "Tổng rút ra khác": 0.0,
+        "Thay đổi số dư ròng": -398.84,
+        "Số giao dịch": 5
+      }
+    },
+    "monthly_breakdown": {
+      "USD": {
+        "2026-05": {
+          "income": 23.5,
+          "spending": 2086.3100000000004,
+          "fees": 0,
+          "transfers": 926.4100000000001
+        }
+      },
+      "EUR": {
+        "2026-05": {
+          "income": 0,
+          "spending": 44.8,
+          "fees": 0,
+          "transfers": 354.04
+        }
+      }
+    },
+    "quarterly_breakdown": {
+      "USD": {
+        "2026-Q2": {
+          "income": 23.5,
+          "spending": 2086.31,
+          "fees": 0,
+          "transfers": 926.41,
+          "net": -2989.22
+        }
+      },
+      "EUR": {
+        "2026-Q2": {
+          "income": 0,
+          "spending": 44.8,
+          "fees": 0,
+          "transfers": 354.04,
+          "net": -398.84
+        }
+      }
+    },
+    "yearly_breakdown": {
+      "USD": {
+        "2026": {
+          "income": 23.5,
+          "spending": 2086.31,
+          "fees": 0,
+          "transfers": 926.41,
+          "net": -2989.22
+        }
+      },
+      "EUR": {
+        "2026": {
+          "income": 0,
+          "spending": 44.8,
+          "fees": 0,
+          "transfers": 354.04,
+          "net": -398.84
+        }
+      }
+    },
+    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "subscriptions": {
+      "Gói đang hoạt động": 5,
+      "Chi phí gói hàng tháng": 115.96,
+      "Chi phí gói hàng năm": 0,
+      "Dự báo tổng chi năm": 1391.52
+    },
+    "upcoming_charges": [
+      {
+        "service": "Subscription CANVA* PRO MONTHLY",
+        "amount": 12.99,
+        "next_date": "2026-08-20",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription OPENAI *CHATGPT SUBSCR",
+        "amount": 20.0,
+        "next_date": "2026-09-02",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription NETFLIX.COM",
+        "amount": 17.99,
+        "next_date": "2026-09-05",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription Spotify P0F2K",
+        "amount": 9.99,
+        "next_date": "2026-09-08",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription ADOBE *CREATIVE CLD",
+        "amount": 54.99,
+        "next_date": "2026-09-14",
+        "frequency": "monthly"
+      }
+    ],
+    "price_hike_alerts": [],
+    "top3_largest": {
+      "USD": [
+        {
+          "date": "2026-05-09",
+          "description": "Booking.com",
+          "amount": -398.98
+        },
+        {
+          "date": "2026-05-21",
+          "description": "Facebook Ads",
+          "amount": -375.77
+        },
+        {
+          "date": "2026-05-27",
+          "description": "Facebook Ads",
+          "amount": -290.85
+        }
+      ],
+      "EUR": [
+        {
+          "date": "2026-05-18",
+          "description": "The Coffee House",
+          "amount": -35.55
+        },
+        {
+          "date": "2026-05-11",
+          "description": "Grab",
+          "amount": -8.8
+        },
+        {
+          "date": "2026-05-18",
+          "description": "FX fee for SQ *THE COFFEE HOUSE",
+          "amount": -0.36
+        }
+      ]
+    }
+  }
+}

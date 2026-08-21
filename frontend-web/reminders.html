@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Wealify Scout — Cấu hình nhắc hạn</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/static/styles.css" />
+        <style>
+            .settings-page {
+                max-width: 640px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .settings-card {
+                background: var(--surface);
+                border: 1px solid var(--line);
+                border-radius: var(--r-lg);
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .settings-card h2 {
+                font-size: 15px;
+                font-weight: 600;
+                margin-bottom: 6px;
+            }
+            .settings-card p {
+                font-size: 12.5px;
+                color: var(--muted);
+                margin-bottom: 16px;
+                line-height: 1.5;
+            }
+            .field-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 14px;
+            }
+            .field-row label {
+                font-size: 13px;
+                color: var(--ink-soft);
+            }
+            .field-row input {
+                width: 100px;
+                padding: 8px 10px;
+                border: 1px solid var(--line);
+                border-radius: var(--r-sm);
+                font-size: 13px;
+                text-align: right;
+            }
+            .save-btn {
+                width: 100%;
+                padding: 10px;
+                background: var(--ink);
+                color: #fff;
+                border: none;
+                border-radius: var(--r-sm);
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            .save-btn:active {
+                transform: scale(0.98);
+            }
+            .status-msg {
+                font-size: 12px;
+                margin-top: 10px;
+                text-align: center;
+            }
+            .back-link {
+                display: inline-block;
+                margin-bottom: 20px;
+                font-size: 12.5px;
+                color: var(--muted);
+                text-decoration: none;
+            }
+            .reminder-list {
+                margin-top: 10px;
+            }
+            .reminder-item {
+                padding: 10px 0;
+                border-top: 1px solid var(--line);
+                font-size: 12.5px;
+            }
+            .reminder-item:first-child {
+                border-top: none;
+            }
+        </style>
+    </head>
+    <body>
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-mark">W</div>
+                <div>
+                    <div class="brand-name">Wealify Scout</div>
+                    <div class="brand-sub">Cấu hình nhắc hạn</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="settings-page">
+            <a class="back-link" href="/">← Về Trung tâm điều khiển</a>
+
+            <div class="settings-card">
+                <h2>Ngưỡng nhắc hạn (Nhiệm vụ 7)</h2>
+                <p>
+                    Hệ thống sẽ nhắc bạn khi: (1) email báo nhận tiền nhưng Wealify chưa xác nhận được sau
+                    khoảng thời gian này, hoặc (2) giao dịch trên Wealify vẫn ở trạng thái "đang xử lý" quá lâu.
+                </p>
+
+                <div class="field-row">
+                    <label for="inboundHours">Email báo nhận tiền — chưa xác nhận sau (giờ)</label>
+                    <input id="inboundHours" type="number" min="1" step="1" />
+                </div>
+
+                <div class="field-row">
+                    <label for="processingHours">Giao dịch "đang xử lý" quá hạn sau (giờ)</label>
+                    <input id="processingHours" type="number" min="1" step="1" />
+                </div>
+
+                <button class="save-btn" id="saveBtn">Lưu cấu hình</button>
+                <div class="status-msg" id="statusMsg"></div>
+            </div>
+
+            <div class="settings-card">
+                <h2>Khoản đang cần nhắc <span id="reminderCount"></span></h2>
+                <div class="reminder-list" id="reminderList">Đang tải...</div>
+            </div>
+        </div>
+
+        <script>
+            const API = 'http://localhost:8000';
+
+            async function loadConfig() {
+                const res = await fetch(`${API}/settings/reminder-config`);
+                const cfg = await res.json();
+                document.getElementById('inboundHours').value = cfg.inbound_email_hours;
+                document.getElementById('processingHours').value = cfg.processing_status_hours;
+            }
+
+            async function loadReminders() {
+                const res = await fetch(`${API}/dashboard/reminders`);
+                const data = await res.json();
+                document.getElementById('reminderCount').textContent = `(${data.total})`;
+
+                const list = document.getElementById('reminderList');
+                const items = [
+                    ...data.stale_processing_transactions.map((r) => ({
+                        title: `${r.merchant} — $${Math.abs(r.amount).toFixed(2)} (${r.date})`,
+                        detail: r.reason,
+                    })),
+                    ...data.stale_unverified_inbound_emails.map((r) => ({
+                        title: r.email_subject || r.email_ref || '(no subject)',
+                        detail: r.detail,
+                    })),
+                ];
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="reminder-item">Không có khoản nào cần nhắc.</div>';
+                    return;
+                }
+                list.innerHTML = items
+                    .map(
+                        (it) =>
+                            `<div class="reminder-item"><strong>${it.title}</strong><br>${it.detail}</div>`
+                    )
+                    .join('');
+            }
+
+            document.getElementById('saveBtn').addEventListener('click', async () => {
+                const inbound_email_hours = parseFloat(document.getElementById('inboundHours').value);
+                const processing_status_hours = parseFloat(document.getElementById('processingHours').value);
+                const statusEl = document.getElementById('statusMsg');
+
+                try {
+                    const res = await fetch(`${API}/settings/reminder-config`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ inbound_email_hours, processing_status_hours }),
+                    });
+                    if (!res.ok) throw new Error('failed');
+                    statusEl.textContent = '✅ Đã lưu.';
+                    await loadReminders();
+                } catch {
+                    statusEl.textContent = '❌ Lưu thất bại — kiểm tra backend.';
+                }
+            });
+
+            loadConfig();
+            loadReminders();
+        </script>
+    </body>
+</html>

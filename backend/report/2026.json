@@ -1,0 +1,260 @@
+{
+  "generated_at": "2026-08-21T17:04:10.485633+00:00",
+  "newest_txn_date_at_generation": "2026-08-20",
+  "report": {
+    "overview": {
+      "USD": {
+        "Tổng tiền vào": 111.5,
+        "Tổng chi tiêu": 12667.06,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 14514.96,
+        "Tổng rút ra khác": 250.0,
+        "Thay đổi số dư ròng": -27320.52,
+        "Số giao dịch": 218
+      },
+      "EUR": {
+        "Tổng tiền vào": 0.0,
+        "Tổng chi tiêu": 1421.39,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 1971.06,
+        "Tổng rút ra khác": 0.0,
+        "Thay đổi số dư ròng": -3392.45,
+        "Số giao dịch": 50
+      }
+    },
+    "monthly_breakdown": {
+      "USD": {
+        "2026-08": {
+          "income": 0,
+          "spending": 978.0300000000002,
+          "fees": 0,
+          "transfers": 500.0
+        },
+        "2026-07": {
+          "income": 0,
+          "spending": 2680.76,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-06": {
+          "income": 88.0,
+          "spending": 2441.31,
+          "fees": 0,
+          "transfers": 300.0
+        },
+        "2026-05": {
+          "income": 23.5,
+          "spending": 2086.3100000000004,
+          "fees": 0,
+          "transfers": 926.4100000000001
+        },
+        "2026-04": {
+          "income": 0,
+          "spending": 1673.9199999999998,
+          "fees": 0,
+          "transfers": 5559.13
+        },
+        "2026-03": {
+          "income": 0,
+          "spending": 1745.1600000000003,
+          "fees": 0,
+          "transfers": 3836.3000000000006
+        },
+        "2026-02": {
+          "income": 0,
+          "spending": 1061.57,
+          "fees": 0,
+          "transfers": 3393.1200000000003
+        }
+      },
+      "EUR": {
+        "2026-08": {
+          "income": 0,
+          "spending": 58.12,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-07": {
+          "income": 0,
+          "spending": 607.97,
+          "fees": 0,
+          "transfers": 300.0
+        },
+        "2026-06": {
+          "income": 0,
+          "spending": 134.30999999999997,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-05": {
+          "income": 0,
+          "spending": 44.8,
+          "fees": 0,
+          "transfers": 354.04
+        },
+        "2026-04": {
+          "income": 0,
+          "spending": 512.0699999999999,
+          "fees": 0,
+          "transfers": 901.3000000000001
+        },
+        "2026-03": {
+          "income": 0,
+          "spending": 64.12,
+          "fees": 0,
+          "transfers": 241.91
+        },
+        "2026-02": {
+          "income": 0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 173.81
+        }
+      }
+    },
+    "quarterly_breakdown": {
+      "USD": {
+        "2026-Q1": {
+          "income": 0,
+          "spending": 2806.73,
+          "fees": 0,
+          "transfers": 7229.42,
+          "net": -10036.15
+        },
+        "2026-Q2": {
+          "income": 111.5,
+          "spending": 6201.54,
+          "fees": 0,
+          "transfers": 6785.54,
+          "net": -12875.58
+        },
+        "2026-Q3": {
+          "income": 0,
+          "spending": 3658.79,
+          "fees": 0,
+          "transfers": 500.0,
+          "net": -4158.79
+        }
+      },
+      "EUR": {
+        "2026-Q1": {
+          "income": 0,
+          "spending": 64.12,
+          "fees": 0,
+          "transfers": 415.72,
+          "net": -479.84
+        },
+        "2026-Q2": {
+          "income": 0,
+          "spending": 691.18,
+          "fees": 0,
+          "transfers": 1255.34,
+          "net": -1946.52
+        },
+        "2026-Q3": {
+          "income": 0,
+          "spending": 666.09,
+          "fees": 0,
+          "transfers": 300.0,
+          "net": -966.09
+        }
+      }
+    },
+    "yearly_breakdown": {
+      "USD": {
+        "2026": {
+          "income": 111.5,
+          "spending": 12667.06,
+          "fees": 0,
+          "transfers": 14514.96,
+          "net": -27070.52
+        }
+      },
+      "EUR": {
+        "2026": {
+          "income": 0,
+          "spending": 1421.39,
+          "fees": 0,
+          "transfers": 1971.06,
+          "net": -3392.45
+        }
+      }
+    },
+    "income_note": "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở tab Tài khoản Wealify.",
+    "subscriptions": {
+      "Gói đang hoạt động": 5,
+      "Chi phí gói hàng tháng": 115.96,
+      "Chi phí gói hàng năm": 0,
+      "Dự báo tổng chi năm": 1391.52
+    },
+    "upcoming_charges": [
+      {
+        "service": "Subscription CANVA* PRO MONTHLY",
+        "amount": 12.99,
+        "next_date": "2026-08-20",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription OPENAI *CHATGPT SUBSCR",
+        "amount": 20.0,
+        "next_date": "2026-09-02",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription NETFLIX.COM",
+        "amount": 17.99,
+        "next_date": "2026-09-05",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription Spotify P0F2K",
+        "amount": 9.99,
+        "next_date": "2026-09-08",
+        "frequency": "monthly"
+      },
+      {
+        "service": "Subscription ADOBE *CREATIVE CLD",
+        "amount": 54.99,
+        "next_date": "2026-09-14",
+        "frequency": "monthly"
+      }
+    ],
+    "price_hike_alerts": [],
+    "top3_largest": {
+      "USD": [
+        {
+          "date": "2026-02-23",
+          "description": "Booking.com",
+          "amount": -596.0
+        },
+        {
+          "date": "2026-07-01",
+          "description": "Booking.com",
+          "amount": -588.8
+        },
+        {
+          "date": "2026-06-24",
+          "description": "Booking.com",
+          "amount": -585.37
+        }
+      ],
+      "EUR": [
+        {
+          "date": "2026-07-11",
+          "description": "AliExpress",
+          "amount": -237.21
+        },
+        {
+          "date": "2026-07-05",
+          "description": "Booking.com",
+          "amount": -220.34
+        },
+        {
+          "date": "2026-04-24",
+          "description": "Shopee",
+          "amount": -207.92
+        }
+      ]
+    }
+  }
+}
