@@ -365,13 +365,6 @@ def get_audit_log():
     }
 
 
-@app.get("/audit-log/export")
-def export_audit_log():
-    """Export audit log to file and return path."""
-    path = audit_log.export_flags()
-    return {"exported_to": path, "total_entries": len(audit_log.get_all_flags())}
-
-
 @app.post("/reset")
 def reset_session():
     """Reset chat session (for demo purposes)."""

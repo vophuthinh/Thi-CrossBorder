@@ -87,8 +87,6 @@ python main.py
 4. Tab **🎯 Findings** → danh sách finding chuẩn hoá (PDF schema)
 5. Tab **💬 Chat AI** → hỏi chi tiết (thử cả câu bẫy để xem guardrail từ chối)
 
-> Ghi chú: thư mục `frontend/` (Streamlit) là bản dashboard cũ, không còn được `main.py` sử dụng — bản chính thức là `frontend-web/` (phục vụ trực tiếp qua FastAPI ở bước 2).
-
 ## 📊 Demo Features
 
 | Feature | Mô tả |
@@ -154,7 +152,6 @@ hackathon/
 │   ├── index.html
 │   ├── app.js
 │   └── styles.css
-├── frontend/                       # (Cũ) bản Streamlit, không còn dùng trong main.py
 ├── .env.example
 ├── .gitignore
 └── README.md
