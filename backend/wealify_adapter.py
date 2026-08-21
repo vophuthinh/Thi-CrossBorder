@@ -112,6 +112,7 @@ def adapt_va_to_account_statement(
             "merchant_code": _guess_merchant_code(remark, card_name),
             "card_last4": f"****{card_last4}" if card_last4 else "",
             "dispute_deadline": _calc_dispute_deadline(txn_date),
+                "_record_at": created_at or txn_date,
             "_source": "wealify_vc",
             "_currency": currency,
         })
@@ -168,6 +169,7 @@ def adapt_vc_to_card_statement(
                 "card_last4": f"****{card_last4}" if card_last4 else "",
                 "status": status.lower(),
                 "reference": txn.get("transaction_id", ""),
+                "_record_at": created_at or _parse_date(created_at),
                 "_source": "wealify_vc",
             })
 

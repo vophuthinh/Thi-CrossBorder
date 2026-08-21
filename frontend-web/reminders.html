@@ -108,8 +108,8 @@
             <div class="settings-card">
                 <h2>Ngưỡng nhắc hạn (Nhiệm vụ 7)</h2>
                 <p>
-                    Hệ thống sẽ nhắc bạn khi: (1) email báo nhận tiền nhưng Wealify chưa xác nhận được sau
-                    khoảng thời gian này, hoặc (2) giao dịch trên Wealify vẫn ở trạng thái "đang xử lý" quá lâu.
+                    Hệ thống sẽ nhắc bạn khi: (1) email báo nhận tiền nhưng Wealify chưa xác nhận được sau khoảng thời
+                    gian này, hoặc (2) giao dịch trên Wealify vẫn ở trạng thái "đang xử lý" quá lâu.
                 </p>
 
                 <div class="field-row">
@@ -133,7 +133,7 @@
         </div>
 
         <script>
-            const API = 'http://localhost:8000';
+            const API = '';
 
             async function loadConfig() {
                 const res = await fetch(`${API}/settings/reminder-config`);
@@ -163,12 +163,17 @@
                     list.innerHTML = '<div class="reminder-item">Không có khoản nào cần nhắc.</div>';
                     return;
                 }
-                list.innerHTML = items
-                    .map(
-                        (it) =>
-                            `<div class="reminder-item"><strong>${it.title}</strong><br>${it.detail}</div>`
-                    )
-                    .join('');
+                list.replaceChildren(
+                    ...items.map((it) => {
+                        const item = document.createElement('div');
+                        item.className = 'reminder-item';
+                        const title = document.createElement('strong');
+                        title.textContent = it.title;
+                        item.append(title, document.createElement('br'));
+                        item.append(document.createTextNode(it.detail));
+                        return item;
+                    }),
+                );
             }
 
             document.getElementById('saveBtn').addEventListener('click', async () => {

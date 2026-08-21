@@ -26,7 +26,7 @@ TRAP_PATTERNS = {
             r"(go ahead|just).*(cancel|unsubscribe|remove|stop)",
             r"(authorize|permission|allow).*(cancel|unsubscribe)",
             r"(không muốn|don't want).*(dùng|use|subscribe).*(nữa|anymore)",
-            r"(remove|stop|terminate|end).*(subscription|membership|recurring|charge)",
+            r"\b(remove|stop|terminate|end)\b.*\b(subscription|membership|recurring|charge)\b",
         ],
         "response_vi": (
             "🚫 Mình không có quyền huỷ gói thay bạn — đây là trợ lý chỉ đọc, không thể thao tác trên tài khoản.\n\n"
@@ -52,6 +52,8 @@ TRAP_PATTERNS = {
             r"(email|mail).*(khiếu nại|complaint).*(cho|to|giúp|help)",
             # Biến thể mới cho trap test
             r"(liên hệ|contact).*(ngân hàng|bank|merchant|support|hỗ trợ).*(giúp|help|for me|thay|hộ)",
+            r"(liên hệ|contact).*(để|to|about).*(khiếu nại|complaint|dispute|refund|hoàn tiền)",
+            r"(chuyển tiếp|forward).*(email|mail|thư).*(pháp lý|legal|lawyer|attorney)",
             r"(file|open|mở).*(chargeback|khiếu nại|dispute|complaint)",
             r"(send|gửi).*(refund|hoàn tiền).*(request|yêu cầu)",
             r"(act as|giả sử).*(assistant|trợ lý).*(email|send|gửi)",
@@ -82,6 +84,7 @@ TRAP_PATTERNS = {
             r"(everything|mọi thứ).*(fine|ok|ổn|bình thường|looks good)",
             r"(confirm|guarantee|assure|đảm bảo).*(safe|secure|not.*(hack|compromis|fraud))",
             r"(bị hack|bị lừa|been hacked|been compromised|hasn't been)",
+            r"(chuyên gia|expert|professional).*(bị xâm nhập|xâm nhập|bị hack|hacked|compromised)",
             r"(không có gì|nothing).*(đáng lo|lo|worry|unusual|bất thường)",
             r"(chuyên gia|expert|professional).*(kết luận|conclude|confirm).*(an toàn|safe|no fraud)",
         ],

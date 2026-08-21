@@ -12,6 +12,7 @@ for 2 situations:
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -35,6 +36,11 @@ def load_reminder_config() -> dict[str, float]:
 
 def save_reminder_config(cfg: dict[str, float]) -> dict[str, float]:
     merged = {**DEFAULT_CONFIG, **cfg}
+    for key in DEFAULT_CONFIG:
+        value = merged[key]
+        if not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{key} must be a finite number greater than zero")
+        merged[key] = float(value)
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps(merged, indent=2))
     return merged

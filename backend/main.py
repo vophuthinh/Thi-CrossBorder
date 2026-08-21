@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config import (
     DEMO_MODE,
@@ -40,8 +40,10 @@ logger = logging.getLogger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    report_task = asyncio.create_task(_pre_generate_reports())
     task = asyncio.create_task(_periodic_check_loop())
     yield
+    report_task.cancel()
     task.cancel()
 
 
@@ -65,16 +67,22 @@ app.include_router(setup_router)
 # --- Preload data (once) ---
 _data = get_all_data()
 
-# Pre-generate this year's monthly + yearly reports to backend/report/ so
-# the frontend reads a cached file instead of recomputing on every request.
-# Kept fresh going forward by _run_scheduled_check (refresh_current_month_if_stale).
 import report_cache
 import reminder_checker
-report_cache.generate_and_cache_reports(
-    _data["account_statement"],
-    detect_anomalies(_data["account_statement"], "vi"),
-    "vi",
-)
+
+
+async def _pre_generate_reports() -> None:
+    """Generate the twelve monthly reports and yearly report in the background."""
+    try:
+        await asyncio.to_thread(
+            report_cache.generate_and_cache_reports,
+            _data["account_statement"],
+            detect_anomalies(_data["account_statement"], "vi"),
+            "vi",
+        )
+        logger.info("[report-cache] pre-generated monthly and yearly reports")
+    except Exception as e:
+        logger.warning("[report-cache] initial generation failed: %s", e)
 
 # Global chat orchestrator (per-server session for demo)
 orchestrator = ChatOrchestrator()
@@ -92,8 +100,8 @@ class InsightRequest(BaseModel):
 
 
 class ReminderConfigRequest(BaseModel):
-    inbound_email_hours: float
-    processing_status_hours: float
+    inbound_email_hours: float = Field(gt=0)
+    processing_status_hours: float = Field(gt=0)
 
 
 # ─── Health ──────────────────────────────────────────────

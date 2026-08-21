@@ -5,7 +5,7 @@
    POST /chat, all fetched live from the running FastAPI backend.
    ═══════════════════════════════════════════════════════ */
 
-const API = 'http://localhost:8000';
+const API = '';
 
 // ─── i18n dictionary (UI chrome text only — live data is rendered
 // directly from bilingual fields the backend already provides, e.g.
@@ -248,10 +248,7 @@ const FLAG_TITLE_KEY = {
 };
 
 async function loadAll() {
-    const [findingsRes, wallet] = await Promise.all([
-        apiGet('/findings'),
-        apiGet('/dashboard/wallet'),
-    ]);
+    const [findingsRes, wallet] = await Promise.all([apiGet('/findings'), apiGet('/dashboard/wallet')]);
     allFindings = (findingsRes && findingsRes.findings) || [];
     walletData = wallet;
 
@@ -278,7 +275,9 @@ function renderReconciliation() {
     // joining them as if they were the same unit.
     const stackCurrencies = (el, byCurrency, pick) => {
         if (!el) return;
-        const entries = Object.entries(byCurrency || {}).filter(([, v]) => pick(v) !== 0 || Object.keys(byCurrency).length === 1);
+        const entries = Object.entries(byCurrency || {}).filter(
+            ([, v]) => pick(v) !== 0 || Object.keys(byCurrency).length === 1,
+        );
         if (!entries.length) {
             el.textContent = '—';
             return;
@@ -294,7 +293,7 @@ function renderReconciliation() {
     }
 
     const mismatchFindings = allFindings.filter((f) =>
-        ['IN_TRANSIT_NOT_ON_CARD', 'WALLET_BALANCE_MISMATCH'].includes(f.type)
+        ['IN_TRANSIT_NOT_ON_CARD', 'WALLET_BALANCE_MISMATCH'].includes(f.type),
     );
     const noteEl = document.querySelector('.note');
     if (!noteEl) return;
@@ -439,7 +438,11 @@ function buildDetailItem(f, index) {
     buildMetaRow(meta, t('label_finding_id'), f.finding_id || '');
     buildMetaRow(meta, t('label_status'), findingLabel(f));
     if (f.dispute_deadline) {
-        buildMetaRow(meta, t('label_deadline'), `${f.dispute_deadline} (${f.days_left ?? '?'} ${t('label_days_left')})`);
+        buildMetaRow(
+            meta,
+            t('label_deadline'),
+            `${f.dispute_deadline} (${f.days_left ?? '?'} ${t('label_days_left')})`,
+        );
     }
     if (typeof f.confidence === 'number') {
         buildMetaRow(meta, t('label_confidence'), `${Math.round(f.confidence * 100)}%`);
@@ -620,7 +623,10 @@ async function askAssistant(text) {
     appendMessage(question, 'user');
     chatInput.value = '';
 
-    const thinking = appendMessage(`<span class="thinking"><span class="spinner-dot"></span> ${t('thinking')}</span>`, 'ai');
+    const thinking = appendMessage(
+        `<span class="thinking"><span class="spinner-dot"></span> ${t('thinking')}</span>`,
+        'ai',
+    );
 
     const res = await apiPostChat(question);
     thinking.remove();

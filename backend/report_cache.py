@@ -4,9 +4,9 @@ a fast on-disk file instead of recomputing analyze_statement/generate_report
 on every request. This is a cache of that same pipeline's output, not a
 second source of truth — so it can never disagree with /dashboard/report.
 
-Only the current month is ever regenerated after the initial run (past
-months are closed, future months have no data yet), and only when a
-transaction newer than the cache's own generation time has appeared.
+All twelve monthly files are generated so the frontend has a stable report
+index, including empty future months. After the initial run, only the current
+month and yearly aggregate are regenerated when a newer record appears.
 """
 from __future__ import annotations
 
@@ -26,9 +26,19 @@ def _report_path(key: str) -> Path:
     return REPORT_DIR / f"{key}.json"
 
 
-def _newest_transaction_date(account_statement: list[dict]) -> str:
-    dates = [t.get("date", "") for t in account_statement if t.get("date")]
-    return max(dates) if dates else ""
+def _newest_record_at(account_statement: list[dict]) -> str:
+    """Return the newest source-record marker available in the statement."""
+    markers = []
+    for transaction in account_statement:
+        marker = (
+            transaction.get("_record_at")
+            or transaction.get("created_at")
+            or transaction.get("timestamp")
+            or transaction.get("date", "")
+        )
+        if marker:
+            markers.append(str(marker))
+    return max(markers) if markers else ""
 
 
 def _build_report(transactions: list[dict], anomalies: dict, lang: str) -> dict:
@@ -43,6 +53,8 @@ def _write_report(key: str, report: dict, newest_txn_date: str) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "newest_record_at_generation": newest_txn_date,
+        # Keep the old key for readers of reports generated before this change.
         "newest_txn_date_at_generation": newest_txn_date,
         "report": report,
     }
@@ -52,19 +64,18 @@ def _write_report(key: str, report: dict, newest_txn_date: str) -> None:
 def generate_and_cache_reports(
     account_statement: list[dict], anomalies: dict, lang: str = "vi"
 ) -> None:
-    """Generate one file per month of the current year up to the current
-    month, plus one yearly aggregate file."""
+    """Generate one file for each month of the current year plus the year."""
     now = datetime.now(timezone.utc)
-    newest_txn_date = _newest_transaction_date(account_statement)
+    newest_record_at = _newest_record_at(account_statement)
 
-    for month in range(1, now.month + 1):
+    for month in range(1, 13):
         month_prefix = f"{now.year}-{month:02d}"
         month_txns = [t for t in account_statement if t.get("date", "").startswith(month_prefix)]
         report = _build_report(month_txns, anomalies, lang)
-        _write_report(_month_key(now.year, month), report, newest_txn_date)
+        _write_report(_month_key(now.year, month), report, newest_record_at)
 
     year_report = _build_report(account_statement, anomalies, lang)
-    _write_report(str(now.year), year_report, newest_txn_date)
+    _write_report(str(now.year), year_report, newest_record_at)
 
 
 def refresh_current_month_if_stale(
@@ -76,23 +87,27 @@ def refresh_current_month_if_stale(
     now = datetime.now(timezone.utc)
     month_key = _month_key(now.year, now.month)
     path = _report_path(month_key)
-    newest_txn_date = _newest_transaction_date(account_statement)
+    newest_record_at = _newest_record_at(account_statement)
 
     if path.exists():
         try:
             cached = json.loads(path.read_text())
         except (json.JSONDecodeError, OSError):
             cached = {}
-        if cached.get("newest_txn_date_at_generation", "") >= newest_txn_date:
+        cached_record_at = cached.get(
+            "newest_record_at_generation",
+            cached.get("newest_txn_date_at_generation", ""),
+        )
+        if cached_record_at >= newest_record_at:
             return False  # already up to date, nothing newer has appeared
 
     month_prefix = f"{now.year}-{now.month:02d}"
     month_txns = [t for t in account_statement if t.get("date", "").startswith(month_prefix)]
     report = _build_report(month_txns, anomalies, lang)
-    _write_report(month_key, report, newest_txn_date)
+    _write_report(month_key, report, newest_record_at)
 
     year_report = _build_report(account_statement, anomalies, lang)
-    _write_report(str(now.year), year_report, newest_txn_date)
+    _write_report(str(now.year), year_report, newest_record_at)
     return True
 
 
