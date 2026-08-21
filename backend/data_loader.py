@@ -190,7 +190,7 @@ def get_all_data() -> dict[str, Any]:
             adapted = adapt_all(raw_data)
 
             # Merge emails (from Gmail API or local files)
-            adapted["emails"] = load_emails()
+            adapted["emails"] = _classify_emails_safe(load_emails())
 
             print("[data_loader] ✅ Loaded LIVE data from Wealify API")
             return adapted
@@ -205,6 +205,26 @@ def get_all_data() -> dict[str, Any]:
         "account_statement": load_account_statement(),
         "card_statement": load_card_statement(),
         "wallet_balance": load_wallet_balance(),
-        "emails": load_emails(),
+        "emails": _classify_emails_safe(load_emails()),
     }
+
+
+def _classify_emails_safe(emails: list[dict[str, str]]) -> list[dict[str, str]]:
+    """
+    LLM-classify emails as transactional vs promotional (one batched call)
+    so email_matcher.py can exclude promo emails from matching — a Shopee
+    ad shouldn't be picked as the receipt for a real Shopee charge just
+    because it mentions "Shopee". Runs on every data load (startup, /reset,
+    each periodic scheduled check), so it re-classifies unchanged emails
+    repeatedly — acceptable for now, but a real cost/latency cost if
+    SCHEDULED_CHECK_INTERVAL_SECONDS is set low; caching by email content
+    would be the next improvement, not done here to keep this change small.
+    """
+    try:
+        from agents.email_classifier import classify_emails
+
+        return classify_emails(emails)
+    except Exception as e:
+        print(f"[data_loader] ⚠️ Email classification failed ({e}), matching will run unfiltered")
+        return emails
 

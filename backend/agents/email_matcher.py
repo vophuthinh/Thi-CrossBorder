@@ -44,6 +44,13 @@ def _find_email_match(txn: dict[str, Any], emails: list[dict[str, str]]) -> dict
     merchant_keywords = _extract_merchant_keywords(description)
 
     for email in emails:
+        # Promotional emails (marketing/ads) are excluded from the candidate
+        # pool up front — a Shopee promo mentioning "Shopee" shouldn't be
+        # picked as the receipt for a real Shopee charge just because the
+        # merchant keyword matches. See agents/email_classifier.py.
+        if email.get("is_promotional"):
+            continue
+
         email_body = email.get("body", "").lower()
         email_subject = email.get("subject", "").lower()
         email_from = email.get("from", "").lower()

@@ -39,3 +39,4 @@ backend/gmail_token.json
 backend/out/*.json
 backend/data/audit_log_export.json
 backend/data/audit_log_export.jsonl
+backend/data/email_classification_cache.json

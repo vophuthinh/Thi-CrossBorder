@@ -222,6 +222,7 @@ def call_llm_json(
     system: str = "You are a helpful financial analyst. Always respond with valid JSON.",
     max_tokens: int = 2000,
     temperature: float = 0.3,
+    timeout: float = 25.0,
     provider: str | None = None,
 ) -> dict:
     """
@@ -233,6 +234,7 @@ def call_llm_json(
         system=system + "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no code fences, no explanation outside JSON.",
         max_tokens=max_tokens,
         temperature=temperature,
+        timeout=timeout,
         provider=provider,
     )
 
