@@ -643,6 +643,11 @@ class ChatOrchestrator:
 
     def _handle_scheduled_check(self, message: str, lang: str) -> dict[str, Any]:
         """Run a full scheduled check: all agents, compile results, don't re-report."""
+        # Refresh from source and drop cached analysis so newly-appeared
+        # transactions actually get picked up, not just re-analyzed stale data.
+        self.data = get_all_data()
+        self._cache = {}
+
         analysis = self._get_statement_analysis(lang)
         anomalies = self._get_anomalies(lang)
         recon = self._get_reconciliation(lang)

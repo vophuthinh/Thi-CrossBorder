@@ -4,6 +4,10 @@ Dashboard-first API + AI Chatbot
 """
 from __future__ import annotations
 
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,7 +16,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from config import DEMO_MODE, DISCLAIMER_VI, DISCLAIMER_EN, BYTEPLUS_API_KEY
+from config import (
+    DEMO_MODE,
+    DISCLAIMER_VI,
+    DISCLAIMER_EN,
+    BYTEPLUS_API_KEY,
+    SCHEDULED_CHECK_INTERVAL_SECONDS,
+)
 from chat import ChatOrchestrator
 from audit_log import audit_log
 from data_loader import get_all_data
@@ -24,10 +34,21 @@ from agents.report_generator import generate_report
 from agents.risk_scorer import calculate_risk_score
 from finding_engine import generate_all_findings
 
+logger = logging.getLogger("main")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_periodic_check_loop())
+    yield
+    task.cancel()
+
+
 app = FastAPI(
     title="Wealify Smart Finance",
     description="AI-powered Dashboard for expense management & transaction safety",
     version="3.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -196,14 +217,18 @@ def dashboard_wallet():
     return _data["wallet_balance"]
 
 
-@app.post("/scheduled-check")
-def scheduled_check():
+def _run_scheduled_check() -> dict:
     """
-    Run full scheduled check: all agents scan, log new flags,
-    skip already-reported items (anti-duplicate).
+    Refresh data from source (mock or live Wealify, per USE_LIVE_WEALIFY),
+    re-scan with all agents, and log only genuinely new flags — audit_log's
+    dedup skips anything already reported. This is the one place that
+    re-fetches data, so both the manual endpoint and the background loop
+    can actually see transactions that appeared since the last check.
     Meets WLF-01 requirement: 'chạy định kỳ không báo trùng'.
+    Never sends email on its own — self-notify still requires confirmation.
     """
-    from agents.risk_scorer import calculate_risk_score
+    global _data
+    _data = get_all_data()
 
     anomalies = detect_anomalies(_data["account_statement"], "vi")
     recon = reconcile_three_sources(
@@ -266,8 +291,28 @@ def scheduled_check():
         "total_issues": total_issues,
         "new_flags": new_flags,
         "already_reported": total_issues - new_flags,
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
     }
+
+
+async def _periodic_check_loop():
+    """Background task: run the scheduled check every SCHEDULED_CHECK_INTERVAL_SECONDS."""
+    while True:
+        await asyncio.sleep(SCHEDULED_CHECK_INTERVAL_SECONDS)
+        try:
+            result = await asyncio.to_thread(_run_scheduled_check)
+            logger.info(
+                "[periodic-check] %d new flags (%d already reported)",
+                result["new_flags"], result["already_reported"],
+            )
+        except Exception as e:
+            logger.warning("[periodic-check] failed: %s", e)
+
+
+@app.post("/scheduled-check")
+def scheduled_check():
+    """Manually trigger the same check the background loop runs periodically."""
+    return _run_scheduled_check()
 
 
 # ─── AI Insight endpoint ────────────────────────────────

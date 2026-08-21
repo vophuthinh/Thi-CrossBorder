@@ -47,6 +47,11 @@ DISPUTE_DEADLINE_DAYS = 60
 SUPPORTED_LANGUAGES = ["vi", "en"]
 USER_EMAIL = os.getenv("USER_EMAIL", "user@demo-wealify.com")
 
+# --- Periodic monitoring ---
+# How often the background job re-fetches data and re-scans for new
+# findings (audit_log's dedup keeps it from re-flagging the same item).
+SCHEDULED_CHECK_INTERVAL_SECONDS = int(os.getenv("SCHEDULED_CHECK_INTERVAL_SECONDS", "300"))
+
 # --- Outbound email (self-notify only — never third parties) ---
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))

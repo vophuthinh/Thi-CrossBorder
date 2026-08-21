@@ -175,7 +175,7 @@ hackathon/
 | GET | `/dashboard/wealify-transactions` | (Tuỳ chọn) Giao dịch thẻ live từ Wealify API |
 | POST | `/ai/insight` | AI Insight (BytePlus Seed 2.0) |
 | POST | `/chat` | Chat AI |
-| POST | `/scheduled-check` | Chạy rà soát định kỳ, chống báo trùng |
+| POST | `/scheduled-check` | Gọi tay 1 lần cơ chế rà soát định kỳ (xem mục dưới) |
 | GET | `/audit-log` | Xem nhật ký cảnh báo |
 | GET | `/audit-log/export` | Xuất nhật ký ra file JSON/JSONL |
 | POST | `/reset` | Reset phiên demo (xoá dữ liệu/nhật ký) |
@@ -187,7 +187,8 @@ hackathon/
 - **Mandatory Disclaimer**: Luôn hiển thị, không ẩn được
 - **Read-Only**: Chỉ đọc & phân tích, KHÔNG thực hiện hành động
 - **Data Masking**: Che số thẻ, số tài khoản
-- **Audit Log**: Ghi nhận mọi cảnh báo
+- **Audit Log**: Ghi nhận mọi cảnh báo, không báo trùng khoản đã báo
+- **Giám sát định kỳ tự động**: cứ mỗi `SCHEDULED_CHECK_INTERVAL_SECONDS` giây (mặc định 300s), server tự nạp lại dữ liệu (mock hoặc live Wealify tuỳ `USE_LIVE_WEALIFY`) và rà soát lại — chỉ ghi log khoản mới, **không tự gửi email** (self-notify vẫn cần xác nhận). Có thể gọi tay qua `POST /scheduled-check` để test ngay không cần chờ.
 
 ## ⚠️ Known Limitations
 

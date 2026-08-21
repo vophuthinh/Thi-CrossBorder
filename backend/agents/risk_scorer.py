@@ -25,9 +25,12 @@ def calculate_risk_score(
     scores = {}
 
     # --- Anomaly score (max 30) ---
+    # Weights sized so a busy-but-not-catastrophic statement (a handful of
+    # unclear merchant names) doesn't already max the category — leaves
+    # headroom for the score to actually distinguish severity.
     unknown = len(anomaly_results.get("unknown_merchants", []))
     duplicates = len(anomaly_results.get("duplicate_charges", []))
-    anomaly_raw = min(unknown * 10 + duplicates * 15, 30)
+    anomaly_raw = min(unknown * 2 + duplicates * 3, 30)
     scores["anomalies"] = {
         "score": anomaly_raw,
         "max": 30,
@@ -37,7 +40,7 @@ def calculate_risk_score(
 
     # --- Discrepancy score (max 25) ---
     disc_count = reconciliation.get("total_discrepancies", 0)
-    disc_raw = min(disc_count * 8, 25)
+    disc_raw = min(disc_count * 3, 25)
     scores["discrepancies"] = {
         "score": disc_raw,
         "max": 25,
@@ -46,13 +49,16 @@ def calculate_risk_score(
     }
 
     # --- Suspicious email score (max 25) ---
+    # "No matching email" maps to the "Chưa đủ dữ liệu" (insufficient data)
+    # label, not a confirmed risk — so it should nudge the score, not drive
+    # it. A confirmed suspicious/lookalike email is the real signal here.
     suspicious_count = sum(
         1 for m in email_matches if m.get("match_status") == "suspicious_email"
     )
     no_email_count = sum(
         1 for m in email_matches if m.get("match_status") == "no_email"
     )
-    email_raw = min(suspicious_count * 15 + no_email_count * 3, 25)
+    email_raw = min(round(suspicious_count * 15 + no_email_count * 0.5), 25)
     scores["suspicious_emails"] = {
         "score": email_raw,
         "max": 25,
@@ -62,7 +68,7 @@ def calculate_risk_score(
 
     # --- Price hike score (max 20) ---
     hike_count = len(anomaly_results.get("price_hikes", []))
-    hike_raw = min(hike_count * 10, 20)
+    hike_raw = min(hike_count * 8, 20)
     scores["price_hikes"] = {
         "score": hike_raw,
         "max": 20,
@@ -99,4 +105,3 @@ def calculate_risk_score(
         "color": color,
         "breakdown": scores,
     }
-""" Desctiption: Risk scorer agent that computes a 0-100 financial risk score """
