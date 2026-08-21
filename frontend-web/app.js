@@ -23,6 +23,8 @@ const I18N = {
         flag_duplicate_sub: '3 transactions',
         flag_unrecognized: 'Unrecognized',
         flag_unrecognized_sub: '5 transactions',
+        flag_audit: 'Audit required',
+        flag_audit_sub: '5 transactions',
 
         block_radar: 'Subscription radar',
         sub_price: 'Price increased',
@@ -48,6 +50,7 @@ const I18N = {
         empty_sub: 'Pick a flag in the Command Center to inspect the underlying transactions.',
         detail_duplicate: 'Duplicate charges',
         detail_unrecognized: 'Unrecognized',
+        detail_audit: 'Audit required',
         detail_price_hike: 'Price increased',
         detail_active_subs: 'Active subscriptions',
         detail_trial: 'Trials ending soon',
@@ -56,7 +59,19 @@ const I18N = {
         label_merchant: 'Merchant',
         label_time: 'Time',
         label_status: 'Status',
+        label_reason: 'Reason',
         count_items: (n) => `${n} item${n === 1 ? '' : 's'}`,
+        action_draft_email: 'Draft support email',
+        // Single line on purpose: a text input strips newlines.
+        prompt_draft_email: (item) =>
+            `Draft a support email asking Wealify to review this transaction — ` +
+            `merchant: ${item.details.name} (${item.merchant}); ` +
+            `amount: ${item.amount}; ` +
+            `date: ${loc(item.date)}; ` +
+            `transaction ID: ${item.details.id}; ` +
+            `reason for review: ${item.reason.en}. ` +
+            `Keep it factual and polite, ask for a written response, and mention that the US dispute window is ` +
+            `60 days from the statement date. Do not accuse anyone of fraud.`,
 
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
@@ -77,11 +92,13 @@ const I18N = {
         alert_mismatch: 'Chưa khớp $50.05',
         alert_mismatch_sub: 'Đã rời tài khoản nhưng chưa lên thẻ',
 
-        block_urgent: 'Cảnh báo khẩn',
+        block_urgent: 'Cảnh báo giao dịch bất thường',
         flag_duplicate: 'Giao dịch trùng lặp',
         flag_duplicate_sub: '3 giao dịch',
-        flag_unrecognized: 'Chưa nhận diện',
+        flag_unrecognized: 'Chưa có email biên lai',
         flag_unrecognized_sub: '5 giao dịch',
+        flag_audit: 'Cần kiểm tra thủ công',
+        flag_audit_sub: '5 giao dịch',
 
         block_radar: 'Radar gói đăng ký',
         sub_price: 'Gói tăng giá',
@@ -107,6 +124,7 @@ const I18N = {
         empty_sub: 'Chọn một cảnh báo ở Trung tâm điều khiển để xem chi tiết giao dịch.',
         detail_duplicate: 'Giao dịch trùng lặp',
         detail_unrecognized: 'Chưa nhận diện',
+        detail_audit: 'Cần kiểm tra thủ công',
         detail_price_hike: 'Gói tăng giá',
         detail_active_subs: 'Gói đang hoạt động',
         detail_trial: 'Bản dùng thử sắp hết hạn',
@@ -115,7 +133,19 @@ const I18N = {
         label_merchant: 'Đơn vị bán',
         label_time: 'Thời gian',
         label_status: 'Trạng thái',
+        label_reason: 'Lý do',
         count_items: (n) => `${n} mục`,
+        action_draft_email: 'Soạn email hỗ trợ',
+        // Một dòng duy nhất vì ô input sẽ bỏ ký tự xuống dòng.
+        prompt_draft_email: (item) =>
+            `Soạn mẫu email gửi bộ phận hỗ trợ Wealify để yêu cầu kiểm tra giao dịch này — ` +
+            `đơn vị bán: ${item.details.name} (${item.merchant}); ` +
+            `số tiền: ${item.amount}; ` +
+            `ngày: ${loc(item.date)}; ` +
+            `mã giao dịch: ${item.details.id}; ` +
+            `lý do cần kiểm tra: ${item.reason.vi}. ` +
+            `Viết tiếng Việt, giọng lịch sự và bám sát dữ kiện, đề nghị phản hồi bằng văn bản, nhắc thời hạn ` +
+            `khiếu nại 60 ngày kể từ ngày sao kê. Không quy kết ai gian lận.`,
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
@@ -196,6 +226,71 @@ const DETAIL_DATA = {
                 amount: '-$18.22',
                 date: 'Oct 05',
                 details: { id: 'TXN-98501', name: 'Amazon Web Services', time: '06:02 EST', status: STATUS.posted },
+            },
+        ],
+    },
+    // `reason` is what unlocks the "draft support email" action on an item.
+    audit: {
+        titleKey: 'detail_audit',
+        items: [
+            {
+                merchant: 'SP GLOBALSTORE',
+                amount: '-$132.40',
+                date: 'Oct 08',
+                alert: true,
+                warning: { en: 'Merchant never seen before', vi: 'Lần đầu xuất hiện đơn vị bán này' },
+                reason: {
+                    en: 'Unknown merchant, no receipt email, still pending after 6 days',
+                    vi: 'Không nhận diện được đơn vị bán, không có email biên lai, treo 6 ngày chưa xử lý',
+                },
+                details: { id: 'TXN-98740', name: 'Global Store Ltd.', time: '11:06 EST', status: STATUS.pending },
+            },
+            {
+                merchant: 'Apple.com/bill',
+                amount: '-$9.99',
+                date: 'Oct 12',
+                alert: true,
+                warning: { en: 'Charged twice within 61 seconds', vi: 'Bị thu hai lần cách nhau 61 giây' },
+                reason: {
+                    en: 'Identical amount billed twice on the same day (TXN-99123 and TXN-99124)',
+                    vi: 'Cùng số tiền bị thu hai lần trong cùng ngày (TXN-99123 và TXN-99124)',
+                },
+                details: { id: 'TXN-99124', name: 'Apple Services', time: '14:33 EST', status: STATUS.posted },
+            },
+            {
+                merchant: 'BLINKIST*SUB',
+                amount: '-$89.99',
+                date: 'Oct 14',
+                alert: true,
+                warning: { en: 'Renewed after cancellation request', vi: 'Vẫn gia hạn sau khi đã yêu cầu huỷ' },
+                reason: {
+                    en: 'Annual plan renewed although cancellation was requested on Sep 28',
+                    vi: 'Gói năm vẫn gia hạn dù đã yêu cầu huỷ ngày 28 Thg 9',
+                },
+                details: { id: 'TXN-99450', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.posted },
+            },
+            {
+                merchant: 'WEALIFY TOPUP',
+                amount: '-$50.05',
+                date: 'Oct 09',
+                alert: true,
+                warning: { en: 'Left the account, never reached the card', vi: 'Đã rời tài khoản nhưng chưa lên thẻ' },
+                reason: {
+                    en: 'Top-up debited from the bank account but missing from the card statement',
+                    vi: 'Tiền nạp đã trừ ở tài khoản ngân hàng nhưng không có trên sao kê thẻ',
+                },
+                details: { id: 'TXN-98655', name: 'Wealify Wallet', time: '16:41 EST', status: STATUS.pending },
+            },
+            {
+                merchant: 'Netflix Premium',
+                amount: '-$22.99',
+                date: 'Oct 07',
+                warning: { en: 'Price changed without notice', vi: 'Tăng giá không báo trước' },
+                reason: {
+                    en: 'Monthly price rose from $19.99 to $22.99 with no advance notice email',
+                    vi: 'Giá hàng tháng tăng từ $19.99 lên $22.99 mà không có email báo trước',
+                },
+                details: { id: 'TXN-98620', name: 'Netflix Inc.', time: '02:17 EST', status: STATUS.recurring },
             },
         ],
     },
@@ -397,8 +492,21 @@ function buildDetailItem(item, index) {
     buildMetaRow(meta, 'label_merchant', item.details.name);
     buildMetaRow(meta, 'label_time', item.details.time);
     buildMetaRow(meta, 'label_status', loc(item.details.status));
+    if (item.reason) buildMetaRow(meta, 'label_reason', loc(item.reason));
 
     inner.appendChild(meta);
+
+    if (item.reason) {
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'detail-action';
+        const label = document.createElement('span');
+        label.textContent = t('action_draft_email');
+        action.append(icon('envelope-simple'), label);
+        action.addEventListener('click', () => draftSupportEmail(item));
+        inner.appendChild(action);
+    }
+
     extra.appendChild(inner);
     row.append(head, extra);
 
@@ -535,6 +643,13 @@ function askAssistant(text) {
     chatInput.value = '';
 
     window.setTimeout(() => appendMessage(t('ai_reply'), 'ai'), 450);
+}
+
+// Stages the prompt in the composer instead of sending it, so the user reviews it first.
+function draftSupportEmail(item) {
+    chatInput.value = t('prompt_draft_email')(item);
+    chatInput.focus();
+    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
 }
 
 chatForm.addEventListener('submit', (e) => {

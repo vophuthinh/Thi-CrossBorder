@@ -449,6 +449,11 @@ ol {
     color: var(--muted);
 }
 
+.flag-icon-caution {
+    background: var(--caution-bg);
+    color: var(--caution-fg);
+}
+
 .flag-text {
     flex: 1 1 auto;
     display: flex;
@@ -483,6 +488,11 @@ ol {
 .badge-muted {
     background: #f1f2f4;
     color: var(--muted);
+}
+
+.badge-caution {
+    background: var(--caution-bg);
+    color: var(--caution-fg);
 }
 
 /* Subscription radar — hairline rows, no boxes */
@@ -824,6 +834,12 @@ ol {
 
 .detail-extra-inner {
     overflow: hidden;
+    visibility: hidden;
+    transition: visibility var(--dur) var(--ease);
+}
+
+.detail-item.is-open .detail-extra-inner {
+    visibility: visible;
 }
 
 .detail-meta {
@@ -844,6 +860,38 @@ ol {
     text-align: right;
     font-variant-numeric: tabular-nums;
     word-break: break-word;
+}
+
+.detail-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 2px 14px;
+    padding: 7px 11px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition:
+        background var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+
+.detail-action i {
+    font-size: 14px;
+}
+
+.detail-action:hover {
+    background: var(--canvas);
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.detail-action:active {
+    transform: scale(0.98);
 }
 
 /* Skeleton loader — matches the row shape */
