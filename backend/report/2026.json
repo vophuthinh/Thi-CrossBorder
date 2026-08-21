@@ -1,17 +1,26 @@
 {
-  "generated_at": "2026-08-21T17:46:21.727392+00:00",
+  "generated_at": "2026-08-21T18:48:00.303725+00:00",
   "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
   "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
-        "Tổng tiền vào": 111.5,
+        "Tổng tiền vào": 86283.46,
         "Tổng chi tiêu": 12667.06,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 14514.96,
-        "Tổng rút ra khác": 250.0,
-        "Thay đổi số dư ròng": -27320.52,
-        "Số giao dịch": 218
+        "Tổng rút ra khác": 75892.68,
+        "Thay đổi số dư ròng": -16791.24,
+        "Số giao dịch": 324
+      },
+      "VND": {
+        "Tổng tiền vào": 4191547000.0,
+        "Tổng chi tiêu": 0.0,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 0.0,
+        "Tổng rút ra khác": 3917111000.0,
+        "Thay đổi số dư ròng": 274436000.0,
+        "Số giao dịch": 94
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
@@ -26,46 +35,90 @@
     "monthly_breakdown": {
       "USD": {
         "2026-08": {
-          "income": 0,
+          "income": 7776.360000000001,
           "spending": 978.0300000000002,
           "fees": 0,
           "transfers": 500.0
         },
         "2026-07": {
-          "income": 0,
+          "income": 12317.15,
           "spending": 2680.76,
           "fees": 0,
           "transfers": 0
         },
         "2026-06": {
-          "income": 88.0,
+          "income": 11785.230000000001,
           "spending": 2441.31,
           "fees": 0,
           "transfers": 300.0
         },
         "2026-05": {
-          "income": 23.5,
+          "income": 9625.92,
           "spending": 2086.3100000000004,
           "fees": 0,
           "transfers": 926.4100000000001
         },
         "2026-04": {
-          "income": 0,
+          "income": 21517.860000000004,
           "spending": 1673.9199999999998,
           "fees": 0,
           "transfers": 5559.13
         },
         "2026-03": {
-          "income": 0,
+          "income": 17755.11,
           "spending": 1745.1600000000003,
           "fees": 0,
           "transfers": 3836.3000000000006
         },
         "2026-02": {
-          "income": 0,
+          "income": 5505.83,
           "spending": 1061.57,
           "fees": 0,
           "transfers": 3393.1200000000003
+        }
+      },
+      "VND": {
+        "2026-08": {
+          "income": 751111000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-07": {
+          "income": 868800000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-06": {
+          "income": 451304000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-05": {
+          "income": 368642000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-04": {
+          "income": 359912000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-03": {
+          "income": 978224000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
+        },
+        "2026-02": {
+          "income": 413554000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
         }
       },
       "EUR": {
@@ -116,25 +169,48 @@
     "quarterly_breakdown": {
       "USD": {
         "2026-Q1": {
-          "income": 0,
+          "income": 23260.94,
           "spending": 2806.73,
           "fees": 0,
           "transfers": 7229.42,
-          "net": -10036.15
+          "net": 13224.79
         },
         "2026-Q2": {
-          "income": 111.5,
+          "income": 42929.01,
           "spending": 6201.54,
           "fees": 0,
           "transfers": 6785.54,
-          "net": -12875.58
+          "net": 29941.93
         },
         "2026-Q3": {
-          "income": 0,
+          "income": 20093.51,
           "spending": 3658.79,
           "fees": 0,
           "transfers": 500.0,
-          "net": -4158.79
+          "net": 15934.72
+        }
+      },
+      "VND": {
+        "2026-Q1": {
+          "income": 1391778000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 1391778000.0
+        },
+        "2026-Q2": {
+          "income": 1179858000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 1179858000.0
+        },
+        "2026-Q3": {
+          "income": 1619911000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 1619911000.0
         }
       },
       "EUR": {
@@ -164,11 +240,20 @@
     "yearly_breakdown": {
       "USD": {
         "2026": {
-          "income": 111.5,
+          "income": 86283.46,
           "spending": 12667.06,
           "fees": 0,
           "transfers": 14514.96,
-          "net": -27070.52
+          "net": 59101.44
+        }
+      },
+      "VND": {
+        "2026": {
+          "income": 4191547000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 4191547000.0
         }
       },
       "EUR": {

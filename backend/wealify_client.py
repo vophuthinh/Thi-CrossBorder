@@ -84,24 +84,39 @@ class WealifyClient:
 
     # ─── Virtual Accounts (VA) ───────────────────────────
 
-    def get_va_list(self, page: int = 1, limit: int = 100) -> list[dict[str, Any]]:
+    def get_va_list(self, limit: int = 100) -> list[dict[str, Any]]:
         """
-        Get list of Virtual Accounts.
-        Endpoint: GET /v2/virtual-accounts?page=1&limit=100&wallet_type=VA
+        Get list of Virtual Accounts, across all pages.
+        Endpoint: GET /v2/virtual-accounts
         """
+        all_items = []
+        page = 1
         try:
-            resp = requests.get(
-                f"{self.api_url}/v2/virtual-accounts",
-                headers=self._headers(),
-                params={"page": page, "limit": limit, "wallet_type": "VA"},
-                timeout=self._timeout,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("data", {}).get("items", [])
+            while True:
+                resp = requests.get(
+                    f"{self.api_url}/v2/virtual-accounts",
+                    headers=self._headers(),
+                    params={"page": page, "limit": limit, "wallet_type": "VA"},
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                data = resp.json().get("data", {})
+                items = data.get("items", [])
+                
+                if not items:
+                    break
+                    
+                all_items.extend(items)
+                
+                next_page = data.get("next_page")
+                if not next_page:
+                    break
+                page = next_page
+                
+            return all_items
         except Exception as e:
             logger.warning("Failed to fetch VA list: %s", e)
-            return []
+            return all_items
 
     def get_va_list_v1(self, page: int = 1, limit: int = 100) -> list[dict[str, Any]]:
         """
@@ -143,30 +158,41 @@ class WealifyClient:
 
     # ─── Virtual Cards (VC) ──────────────────────────────
 
-    def get_vc_list(self, page: int = 1, limit: int = 50) -> list[dict[str, Any]]:
+    def get_vc_list(self, limit: int = 50) -> list[dict[str, Any]]:
         """
-        Get list of Virtual Cards with embedded transactions.
-        Endpoint: GET {vc_api_url}/v1/cards?page=1&limit=50
-
-        The API returns a raw "cvv" field per card — stripped immediately here.
-        Per WLF-01 rule A.2, the CVV must never be stored or displayed anywhere.
+        Get list of Virtual Cards with embedded transactions, across all pages.
+        Endpoint: GET {vc_api_url}/v1/cards
         """
+        all_items = []
+        page = 1
         try:
-            resp = requests.get(
-                f"{self.vc_api_url}/v1/cards",
-                headers=self._headers(),
-                params={"page": page, "limit": limit},
-                timeout=self._timeout,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            items = data.get("data", {}).get("items", [])
-            for card in items:
-                card.pop("cvv", None)
-            return items
+            while True:
+                resp = requests.get(
+                    f"{self.vc_api_url}/v1/cards",
+                    headers=self._headers(),
+                    params={"page": page, "limit": limit},
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                data = resp.json().get("data", {})
+                items = data.get("items", [])
+                
+                if not items:
+                    break
+                    
+                for card in items:
+                    card.pop("cvv", None)
+                all_items.extend(items)
+                
+                next_page = data.get("next_page")
+                if not next_page:
+                    break
+                page = next_page
+                
+            return all_items
         except Exception as e:
             logger.warning("Failed to fetch VC list: %s", e)
-            return []
+            return all_items
 
     def get_vc_transactions(self) -> list[dict[str, Any]]:
         """
@@ -185,6 +211,39 @@ class WealifyClient:
                 txn["_card_id"] = card.get("id", "")
                 all_txns.append(txn)
         return all_txns
+
+    def get_va_transactions(self, limit: int = 100) -> list[dict[str, Any]]:
+        """
+        Get all VA transactions (deposits/withdrawals) with pagination.
+        Endpoint: GET /v2/transactions/va
+        """
+        all_items = []
+        page = 1
+        try:
+            while True:
+                resp = requests.get(
+                    f"{self.api_url}/v2/transactions/va",
+                    headers=self._headers(),
+                    params={"page": page, "limit": limit},
+                    timeout=self._timeout,
+                )
+                resp.raise_for_status()
+                data = resp.json().get("data", {})
+                items = data.get("items", [])
+                if not items:
+                    break
+                all_items.extend(items)
+                
+                # Check for next page
+                next_page = data.get("next_page")
+                if not next_page:
+                    break
+                page = next_page
+                
+            return all_items
+        except Exception as e:
+            logger.warning("Failed to fetch VA transactions: %s", e)
+            return all_items
 
     # ─── User Info ───────────────────────────────────────
 
@@ -211,6 +270,7 @@ class WealifyClient:
         """
         va_accounts = self.get_va_list()
         va_accounts_v1 = self.get_va_list_v1()
+        va_transactions = self.get_va_transactions()
         wallets = self.get_wallets_balance()
         vc_cards = self.get_vc_list(limit=100)
         vc_transactions = self.get_vc_transactions()
@@ -219,6 +279,7 @@ class WealifyClient:
         return {
             "va_accounts": va_accounts,
             "va_accounts_v1": va_accounts_v1,
+            "va_transactions": va_transactions,
             "wallets": wallets,
             "vc_cards": vc_cards,
             "vc_transactions": vc_transactions,

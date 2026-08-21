@@ -17,6 +17,7 @@ logger = logging.getLogger("wealify_adapter")
 
 
 def adapt_va_to_account_statement(
+    va_transactions: list[dict],
     vc_transactions: list[dict],
     wallets: list[dict],
 ) -> list[dict[str, Any]]:
@@ -38,22 +39,50 @@ def adapt_va_to_account_statement(
             running_balance = float(w.get("balance", 0))
             break
 
-    # NOTE: va_accounts[].total_received is a LIFETIME cumulative figure
-    # (all money ever received into that VA, since account creation), not a
-    # single dated transaction. An earlier version synthesized one "payin"
-    # transaction per VA account using this whole lifetime total, dated at
-    # account creation — that made "Tổng tiền vào" in the monthly/quarterly/
-    # yearly report show billions of VND for a single day, which doesn't
-    # match Wealify's real dashboard (verified against a live screenshot:
-    # real "Số dư khả dụng" / "nạp vào trong tháng" are both far smaller and
-    # come from per-transaction data this API doesn't expose — the VA
-    # transactions list endpoint, GET /v2/virtual-accounts/transactions,
-    # always returns data: null). Rather than fabricate dated payin events
-    # from a lifetime total, VA income is intentionally left out of the
-    # transaction-level statement here; the true lifetime total_received
-    # per account is still shown, correctly labeled, at
-    # /dashboard/wealify-accounts, and the current VND balance (which does
-    # match the live site) is shown at /dashboard/wallet.
+    # NOTE: va_accounts[].total_received is a LIFETIME cumulative figure,
+    # so we no longer use it. We now have real per-transaction data from
+    # GET /v2/transactions/va. We will add those real payins/withdrawals below.
+
+    # Build transactions from VA deposit/withdrawal events
+    for txn in va_transactions:
+        status = txn.get("transaction_status", "APPROVED")
+        if status not in ("APPROVED", "SUCCESS"):
+            continue
+            
+        amount = float(txn.get("amount", 0))
+        direction = txn.get("direction", "IN")
+        if direction == "OUT":
+            amount = -abs(amount)
+        elif direction == "IN":
+            amount = abs(amount)
+            
+        txn_type = txn.get("transaction_type", "TOP_UP")
+        created_at = txn.get("created_at", "")
+        txn_date = _parse_date(created_at)
+        remark = txn.get("note", "")
+        txn_ref = txn.get("transaction_id", "")
+        currency = txn.get("currency_symbol", "VND")
+        
+        va_info = txn.get("virtual_account") or {}
+        card_name = va_info.get("card_holder", "VA")
+        
+        description = remark or f"{txn_type} ({card_name})"
+        mapped_type = "payin" if direction == "IN" else "withdrawal"
+        
+        transactions.append({
+            "date": txn_date,
+            "reference": txn_ref,
+            "description": description,
+            "type": mapped_type,
+            "amount": amount,
+            "balance": 0,
+            "merchant_code": _guess_merchant_code(remark, card_name),
+            "card_last4": "",
+            "dispute_deadline": _calc_dispute_deadline(txn_date),
+            "_record_at": created_at or txn_date,
+            "_source": "wealify_va",
+            "_currency": currency,
+        })
 
     # Build transactions from VC card spending
     for txn in vc_transactions:
@@ -321,12 +350,13 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
     Output: same shape as data_loader.get_all_data()
     """
     va_accounts = wealify_data.get("va_accounts", [])
+    va_transactions = wealify_data.get("va_transactions", [])
     vc_cards = wealify_data.get("vc_cards", [])
     vc_transactions = wealify_data.get("vc_transactions", [])
     wallets = wealify_data.get("wallets", [])
 
     account_statement = adapt_va_to_account_statement(
-        vc_transactions, wallets
+        va_transactions, vc_transactions, wallets
     )
     card_statement = adapt_vc_to_card_statement(vc_cards, vc_transactions)
     wallet_balance = adapt_to_wallet_balance(wallets, vc_cards, va_accounts, vc_transactions)

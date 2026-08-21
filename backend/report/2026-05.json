@@ -1,17 +1,26 @@
 {
-  "generated_at": "2026-08-21T17:46:21.542771+00:00",
+  "generated_at": "2026-08-21T18:48:00.051202+00:00",
   "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
   "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
-        "Tổng tiền vào": 23.5,
+        "Tổng tiền vào": 9625.92,
         "Tổng chi tiêu": 2086.31,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 926.41,
-        "Tổng rút ra khác": 0.0,
-        "Thay đổi số dư ròng": -2989.22,
-        "Số giao dịch": 29
+        "Tổng rút ra khác": 12148.71,
+        "Thay đổi số dư ròng": -5535.51,
+        "Số giao dịch": 43
+      },
+      "VND": {
+        "Tổng tiền vào": 368642000.0,
+        "Tổng chi tiêu": 0.0,
+        "Tổng phí": 0.0,
+        "Tổng chuyển sang thẻ": 0.0,
+        "Tổng rút ra khác": 404930000.0,
+        "Thay đổi số dư ròng": -36288000.0,
+        "Số giao dịch": 9
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
@@ -26,10 +35,18 @@
     "monthly_breakdown": {
       "USD": {
         "2026-05": {
-          "income": 23.5,
+          "income": 9625.92,
           "spending": 2086.3100000000004,
           "fees": 0,
           "transfers": 926.4100000000001
+        }
+      },
+      "VND": {
+        "2026-05": {
+          "income": 368642000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0
         }
       },
       "EUR": {
@@ -44,11 +61,20 @@
     "quarterly_breakdown": {
       "USD": {
         "2026-Q2": {
-          "income": 23.5,
+          "income": 9625.92,
           "spending": 2086.31,
           "fees": 0,
           "transfers": 926.41,
-          "net": -2989.22
+          "net": 6613.2
+        }
+      },
+      "VND": {
+        "2026-Q2": {
+          "income": 368642000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 368642000.0
         }
       },
       "EUR": {
@@ -64,11 +90,20 @@
     "yearly_breakdown": {
       "USD": {
         "2026": {
-          "income": 23.5,
+          "income": 9625.92,
           "spending": 2086.31,
           "fees": 0,
           "transfers": 926.41,
-          "net": -2989.22
+          "net": 6613.2
+        }
+      },
+      "VND": {
+        "2026": {
+          "income": 368642000.0,
+          "spending": 0,
+          "fees": 0,
+          "transfers": 0,
+          "net": 368642000.0
         }
       },
       "EUR": {
