@@ -46,9 +46,6 @@ def adapt_va_to_account_statement(
     # Build transactions from VA deposit/withdrawal events
     for txn in va_transactions:
         status = txn.get("transaction_status", "APPROVED")
-        if status not in ("APPROVED", "SUCCESS"):
-            continue
-            
         amount = float(txn.get("amount", 0))
         direction = txn.get("direction", "IN")
         if direction == "OUT":
