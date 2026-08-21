@@ -3,198 +3,870 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Wealify Scout — Cấu hình nhắc hạn</title>
+        <title>Wealez — Nhắc hạn</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111827'/%3E%3Ctext x='16' y='22' font-family='Inter,Helvetica,sans-serif' font-size='16' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E"
+        />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
             rel="stylesheet"
         />
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
         <link rel="stylesheet" href="/static/styles.css" />
+
         <style>
-            .settings-page {
-                max-width: 640px;
-                margin: 40px auto;
-                padding: 0 20px;
+            /* ─── Settings workspace ────────────────────────────
+               Same hairline + surface treatment as the right-panel
+               detail view — settings is "another panel surface" of
+               the same product, not a separate admin page.            */
+
+            .settings {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: grid;
+                grid-template-columns: minmax(320px, 1fr) minmax(0, 1.4fr);
+                gap: 1px;
+                background: var(--line);
             }
-            .settings-card {
-                background: var(--surface);
-                border: 1px solid var(--line);
-                border-radius: var(--r-lg);
-                padding: 24px;
-                margin-bottom: 20px;
+
+            .settings-pane {
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+                background: var(--canvas);
             }
-            .settings-card h2 {
-                font-size: 15px;
-                font-weight: 600;
-                margin-bottom: 6px;
+
+            .settings-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                padding: 26px;
             }
-            .settings-card p {
+
+            /* Lead paragraph in the config pane — explains what these
+               thresholds actually trigger, so the user can tune them
+               without guessing. Kept outside any card so the two
+               "rail nodes" feel like part of the same flow.            */
+            .settings-intro {
                 font-size: 12.5px;
-                color: var(--muted);
-                margin-bottom: 16px;
-                line-height: 1.5;
+                color: var(--ink-soft);
+                line-height: 1.55;
+                margin-bottom: 18px;
+                max-width: 52ch;
             }
-            .field-row {
+
+            /* The two threshold settings ride the same .flow rail the
+               left panel uses for wallet→card reconciliation — visually
+               they're nodes on a pipeline, not fields in a form.       */
+            .settings-flow {
+                margin-top: 4px;
+            }
+
+            .settings-flow .flow-node {
+                align-items: center;
+                padding: 12px 0;
+            }
+
+            .settings-flow .flow-label {
+                font-size: 13px;
+                color: var(--ink);
+                font-weight: 500;
+                line-height: 1.4;
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            .settings-flow .flow-sub {
+                display: block;
+                font-size: 11.5px;
+                font-weight: 400;
+                color: var(--muted);
+                margin-top: 1px;
+            }
+
+            /* Number input — same chrome as .chat-input but with a
+               right-aligned numeric field. The +/- stepper is hidden
+               so the field reads as a deliberate value, not a generic
+               number box.                                                */
+            .stepper {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .stepper input {
+                width: 84px;
+                padding: 8px 10px;
+                border: 1px solid var(--line-2);
+                border-radius: var(--r-sm);
+                background: var(--surface);
+                font-family: inherit;
+                font-size: 13px;
+                font-weight: 500;
+                font-variant-numeric: tabular-nums;
+                color: var(--ink);
+                text-align: right;
+                outline: 0;
+                transition:
+                    border-color var(--dur) var(--ease),
+                    box-shadow var(--dur) var(--ease);
+            }
+
+            .stepper input:focus {
+                border-color: var(--ink);
+                box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
+            }
+
+            .stepper input.is-dirty {
+                border-color: var(--caution-fg);
+                background: var(--caution-bg);
+            }
+
+            .stepper-unit {
+                font-size: 12px;
+                color: var(--muted);
+                min-width: 28px;
+            }
+
+            /* Save row — muted by default, only becomes a real action
+               when something has actually changed. Mirrors the rest of
+               the UI: ink button, same hover/active treatment.        */
+            .save-row {
+                margin-top: 22px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 gap: 12px;
-                margin-bottom: 14px;
             }
-            .field-row label {
-                font-size: 13px;
-                color: var(--ink-soft);
+
+            .save-hint {
+                font-size: 11.5px;
+                color: var(--muted);
             }
-            .field-row input {
-                width: 100px;
-                padding: 8px 10px;
-                border: 1px solid var(--line);
-                border-radius: var(--r-sm);
-                font-size: 13px;
-                text-align: right;
-            }
+
             .save-btn {
-                width: 100%;
-                padding: 10px;
+                padding: 9px 18px;
                 background: var(--ink);
                 color: #fff;
-                border: none;
+                border: 0;
                 border-radius: var(--r-sm);
+                font-family: inherit;
                 font-size: 13px;
                 font-weight: 600;
                 cursor: pointer;
+                transition:
+                    background var(--dur) var(--ease),
+                    transform var(--dur) var(--ease),
+                    opacity var(--dur) var(--ease);
             }
+
+            .save-btn:hover {
+                background: var(--ink-soft);
+            }
+
             .save-btn:active {
-                transform: scale(0.98);
+                transform: scale(0.97);
             }
-            .status-msg {
-                font-size: 12px;
-                margin-top: 10px;
-                text-align: center;
-            }
-            .back-link {
-                display: inline-block;
-                margin-bottom: 20px;
-                font-size: 12.5px;
+
+            /* Idle state — the user hasn't touched anything yet, so the
+               primary action should look quiet, not like the next thing
+               they MUST do.                                           */
+            .save-btn.is-idle {
+                background: var(--line-2);
                 color: var(--muted);
-                text-decoration: none;
+                cursor: default;
             }
+
+            .save-btn.is-idle:hover {
+                background: var(--line-2);
+            }
+
+            .save-btn.is-idle:active {
+                transform: none;
+            }
+
+            /* Reminder list — same hairline row treatment as the right
+               panel's .detail-list. Each row carries its own category
+               icon, age pill, and reason so the user can scan
+               "what + how stale + why" in one glance.                  */
+
             .reminder-list {
-                margin-top: 10px;
-            }
-            .reminder-item {
-                padding: 10px 0;
                 border-top: 1px solid var(--line);
-                font-size: 12.5px;
+                background: var(--surface);
             }
-            .reminder-item:first-child {
-                border-top: none;
+
+            .reminder-row {
+                display: grid;
+                grid-template-columns: 30px 1fr auto;
+                gap: 12px;
+                align-items: center;
+                padding: 14px;
+                border-bottom: 1px solid var(--line);
+                animation: rise 420ms var(--ease) both;
+                animation-delay: calc(var(--i, 0) * 35ms);
+            }
+
+            .reminder-icon {
+                width: 30px;
+                height: 30px;
+                flex: 0 0 30px;
+                border-radius: var(--r-md);
+                display: grid;
+                place-items: center;
+                font-size: 15px;
+            }
+
+            .reminder-icon.is-processing {
+                background: var(--caution-bg);
+                color: var(--caution-fg);
+            }
+
+            .reminder-icon.is-inbound {
+                background: var(--red-bg);
+                color: var(--red-fg);
+            }
+
+            .reminder-main {
+                min-width: 0;
+            }
+
+            .reminder-title {
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--ink);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .reminder-reason {
+                font-size: 11.5px;
+                color: var(--muted);
+                line-height: 1.5;
+                margin-top: 2px;
+                overflow-wrap: anywhere;
+            }
+
+            .reminder-side {
+                flex: 0 0 auto;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .reminder-meta {
+                font-size: 11.5px;
+                color: var(--muted);
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+
+            /* Skeleton placeholder for the initial load — keeps the
+               same row shape so layout doesn't shift when real data
+               arrives.                                                */
+
+            .skeleton {
+                padding: 22px 4px;
+            }
+
+            .skeleton-bar {
+                height: 9px;
+                border-radius: 3px;
+                background: var(--line);
+                animation: pulse 1.4s ease-in-out infinite;
+                margin: 8px 0;
+            }
+
+            .skeleton-bar.w-50 {
+                width: 50%;
+            }
+
+            .skeleton-bar.w-70 {
+                width: 70%;
+            }
+
+            .skeleton-bar.w-30 {
+                width: 30%;
+            }
+
+            /* Subtitle on the right pane — clarifies what "needs a
+               reminder" actually means (data is the live output of
+               the two thresholds the user just configured).           */
+
+            .reminder-note {
+                margin-top: 14px;
+                padding: 11px 13px;
+                background: var(--green-bg);
+                color: var(--green-fg);
+                border-radius: var(--r-md);
+                font-size: 12.5px;
+                line-height: 1.45;
+            }
+
+            .reminder-note strong {
+                font-weight: 600;
+            }
+
+            .reminder-note i {
+                font-size: 15px;
+                line-height: 1.3;
+                margin-right: 7px;
+                vertical-align: -2px;
+            }
+
+            /* Narrow viewports — collapse the two panes into one stack
+               so each gets its own scroll region instead of forcing
+               horizontal squeeze.                                    */
+            @media (max-width: 1100px) {
+                .settings {
+                    grid-template-columns: 1fr;
+                    overflow-y: auto;
+                }
+                .settings-pane {
+                    overflow: visible;
+                }
+                .settings-body {
+                    overflow: visible;
+                }
             }
         </style>
     </head>
     <body>
+        <!-- ═══ Top Navbar ═══ -->
         <header class="navbar">
             <div class="brand">
                 <div class="brand-mark">W</div>
                 <div>
-                    <div class="brand-name">Wealify Scout</div>
-                    <div class="brand-sub">Cấu hình nhắc hạn</div>
+                    <div class="brand-name">Wealez</div>
+                    <div class="brand-sub" data-i18n="brand_sub">Rà soát tài chính bằng AI</div>
+                </div>
+            </div>
+
+            <div class="nav-right">
+                <a class="icon-btn" href="/" data-i18n-title="nav_back_title" title="Về Trung tâm điều khiển">
+                    <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                    <span data-i18n="nav_back">Trung tâm</span>
+                </a>
+
+                <button
+                    class="icon-btn"
+                    id="refreshBtn"
+                    type="button"
+                    data-i18n-title="nav_refresh_title"
+                    title="Tải lại"
+                >
+                    <i class="ph ph-arrows-clockwise" aria-hidden="true"></i>
+                    <span data-i18n="nav_refresh">Tải lại</span>
+                </button>
+
+                <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
+                    <button class="lang-btn" type="button" data-lang="en">EN</button>
+                    <button class="lang-btn is-active" type="button" data-lang="vi">VI</button>
+                </div>
+
+                <div class="profile">
+                    <div class="profile-meta">
+                        <div class="profile-name">—</div>
+                        <div class="profile-card num">—</div>
+                    </div>
+                    <div class="avatar">—</div>
                 </div>
             </div>
         </header>
 
-        <div class="settings-page">
-            <a class="back-link" href="/">← Về Trung tâm điều khiển</a>
-
-            <div class="settings-card">
-                <h2>Ngưỡng nhắc hạn (Nhiệm vụ 7)</h2>
-                <p>
-                    Hệ thống sẽ nhắc bạn khi: (1) email báo nhận tiền nhưng Wealify chưa xác nhận được sau khoảng thời
-                    gian này, hoặc (2) giao dịch trên Wealify vẫn ở trạng thái "đang xử lý" quá lâu.
-                </p>
-
-                <div class="field-row">
-                    <label for="inboundHours">Email báo nhận tiền — chưa xác nhận sau (giờ)</label>
-                    <input id="inboundHours" type="number" min="1" step="1" />
+        <!-- ═══ Two-pane settings workspace ═══ -->
+        <main class="settings">
+            <!-- ─── Left: threshold configuration ─── -->
+            <section class="settings-pane">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel_config">Cấu hình ngưỡng</h2>
+                    <span class="panel-hint" data-i18n="panel_config_hint">Nhiệm vụ 7</span>
                 </div>
 
-                <div class="field-row">
-                    <label for="processingHours">Giao dịch "đang xử lý" quá hạn sau (giờ)</label>
-                    <input id="processingHours" type="number" min="1" step="1" />
+                <div class="settings-body">
+                    <p class="settings-intro" data-i18n="config_intro">
+                        Hệ thống sẽ nhắc khi: (1) email báo nhận tiền nhưng Wealez chưa xác nhận được sau khoảng thời
+                        gian này, hoặc (2) giao dịch trên Wealez vẫn ở trạng thái "đang xử lý" quá lâu.
+                    </p>
+
+                    <ol class="flow settings-flow">
+                        <li class="flow-node">
+                            <span class="flow-label">
+                                <span data-i18n="cfg_inbound_label">Email báo nhận tiền chưa xác nhận</span>
+                                <span class="flow-sub" data-i18n="cfg_inbound_sub">
+                                    Tính từ thời điểm email được nhận.
+                                </span>
+                            </span>
+                            <span class="stepper">
+                                <input
+                                    id="inboundHours"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputmode="numeric"
+                                    data-i18n-title="cfg_inbound_title"
+                                    title="Số giờ chờ trước khi nhắc"
+                                />
+                                <span class="stepper-unit" data-i18n="unit_hours">giờ</span>
+                            </span>
+                        </li>
+
+                        <li class="flow-node">
+                            <span class="flow-label">
+                                <span data-i18n="cfg_processing_label">Giao dịch "đang xử lý" quá hạn</span>
+                                <span class="flow-sub" data-i18n="cfg_processing_sub">
+                                    Tính từ ngày giao dịch trên sao kê.
+                                </span>
+                            </span>
+                            <span class="stepper">
+                                <input
+                                    id="processingHours"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputmode="numeric"
+                                    data-i18n-title="cfg_processing_title"
+                                    title="Số giờ chờ trước khi nhắc"
+                                />
+                                <span class="stepper-unit" data-i18n="unit_hours">giờ</span>
+                            </span>
+                        </li>
+                    </ol>
+
+                    <div class="save-row">
+                        <span class="save-hint" id="saveHint" data-i18n="save_hint_idle">Chưa có thay đổi</span>
+                        <button class="save-btn is-idle" id="saveBtn" type="button" disabled>
+                            <span data-i18n="save_btn">Lưu cấu hình</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ─── Right: live reminder list ─── -->
+            <section class="settings-pane">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel_reminders">Khoản đang cần nhắc</h2>
+                    <span class="panel-hint num" id="reminderCount">—</span>
                 </div>
 
-                <button class="save-btn" id="saveBtn">Lưu cấu hình</button>
-                <div class="status-msg" id="statusMsg"></div>
-            </div>
+                <div class="settings-body" id="reminderPane">
+                    <div class="skeleton" id="reminderSkeleton">
+                        <div class="skeleton-bar w-50"></div>
+                        <div class="skeleton-bar w-70"></div>
+                        <div class="skeleton-bar w-30"></div>
+                        <div class="skeleton-bar w-70"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
 
-            <div class="settings-card">
-                <h2>Khoản đang cần nhắc <span id="reminderCount"></span></h2>
-                <div class="reminder-list" id="reminderList">Đang tải...</div>
-            </div>
-        </div>
+        <!-- ═══ Bottom Disclaimer Banner ═══ -->
+        <footer class="disclaimer">
+            <span class="disclaimer-chip" data-i18n="disclaimer_label">Lưu ý</span>
+            <span data-i18n="disclaimer_text">
+                Trang này chỉ cấu hình ngưỡng nhắc — không thay đổi dữ liệu giao dịch hay email của bạn. Mọi nhắc hạn
+                đều dựa trên dữ liệu thật từ Wealez và hộp thư đã kết nối.
+            </span>
+        </footer>
 
         <script>
+            /* ═══════════════════════════════════════════════════
+               Wealez — reminder settings page
+               Self-contained: shared toast + i18n patterns inlined so
+               this page doesn't depend on app.js (which is wired to
+               the index workspace).                                 */
+
             const API = '';
 
-            async function loadConfig() {
-                const res = await fetch(`${API}/settings/reminder-config`);
-                const cfg = await res.json();
-                document.getElementById('inboundHours').value = cfg.inbound_email_hours;
-                document.getElementById('processingHours').value = cfg.processing_status_hours;
+            // ─── i18n (page-scoped) ──────────────────────────────
+            const I18N = {
+                en: {
+                    brand_sub: 'AI financial review',
+                    nav_back: 'Dashboard',
+                    nav_back_title: 'Back to Dashboard',
+                    nav_refresh: 'Refresh',
+                    nav_refresh_title: 'Reload data',
+
+                    panel_config: 'Reminder thresholds',
+                    panel_config_hint: 'Task 7',
+                    config_intro:
+                        'You\'ll be reminded when: (1) a money-received email has not been verified on Wealez past this window, or (2) a Wealez transaction has stayed in "processing" longer than this.',
+
+                    cfg_inbound_label: 'Inbound email — unverified past',
+                    cfg_inbound_sub: 'Counted from when the email arrived.',
+                    cfg_processing_label: '"Processing" transaction — overdue past',
+                    cfg_processing_sub: 'Counted from the statement date.',
+                    unit_hours: 'h',
+
+                    save_btn: 'Save configuration',
+                    save_hint_idle: 'No changes yet',
+                    save_hint_dirty: 'Unsaved changes',
+
+                    panel_reminders: 'Needs your attention',
+                    reminder_count_one: '1 item',
+                    reminder_count_other: (n) => `${n} items`,
+                    reminder_empty_title: 'All clear',
+                    reminder_empty_sub: 'No transaction or inbound email has crossed your configured thresholds.',
+
+                    reminder_processing_title: (merchant, amount, date) =>
+                        `${merchant} — $${amount.toFixed(2)} (${date})`,
+                    reminder_inbound_title: (subject, ref) => subject || ref || '(no subject)',
+                    reminder_age_h: (h) => `${h}h old`,
+
+                    load_failed: 'Could not load configuration — is the backend running?',
+                    reminders_failed: 'Could not load reminder list — try refreshing.',
+                    save_success: 'Configuration saved.',
+                    save_failed: 'Save failed — is the backend running?',
+                    restored_existing: 'Showing values currently in effect.',
+
+                    disclaimer_label: 'Note',
+                    disclaimer_text:
+                        'This page only tunes reminder thresholds — it does not change your transaction or email data. Every reminder is derived from real Wealez and inbox data.',
+                },
+                vi: {
+                    brand_sub: 'Rà soát tài chính bằng AI',
+                    nav_back: 'Trung tâm',
+                    nav_back_title: 'Về Trung tâm điều khiển',
+                    nav_refresh: 'Tải lại',
+                    nav_refresh_title: 'Tải lại dữ liệu',
+
+                    panel_config: 'Cấu hình ngưỡng',
+                    panel_config_hint: 'Nhiệm vụ 7',
+                    config_intro:
+                        'Hệ thống sẽ nhắc khi: (1) email báo nhận tiền nhưng Wealez chưa xác nhận được sau khoảng thời gian này, hoặc (2) giao dịch trên Wealez vẫn ở trạng thái "đang xử lý" quá lâu.',
+
+                    cfg_inbound_label: 'Email báo nhận tiền chưa xác nhận sau',
+                    cfg_inbound_sub: 'Tính từ thời điểm email được nhận.',
+                    cfg_processing_label: 'Giao dịch "đang xử lý" quá hạn sau',
+                    cfg_processing_sub: 'Tính từ ngày giao dịch trên sao kê.',
+                    unit_hours: 'giờ',
+
+                    save_btn: 'Lưu cấu hình',
+                    save_hint_idle: 'Chưa có thay đổi',
+                    save_hint_dirty: 'Có thay đổi chưa lưu',
+
+                    panel_reminders: 'Khoản đang cần nhắc',
+                    reminder_count_one: '1 mục',
+                    reminder_count_other: (n) => `${n} mục`,
+                    reminder_empty_title: 'Mọi thứ đều ổn',
+                    reminder_empty_sub: 'Chưa có giao dịch hay email nào vượt ngưỡng đã cài đặt.',
+
+                    reminder_processing_title: (merchant, amount, date) =>
+                        `${merchant} — $${amount.toFixed(2)} (${date})`,
+                    reminder_inbound_title: (subject, ref) => subject || ref || '(không có tiêu đề)',
+                    reminder_age_h: (h) => `đã ${h} giờ`,
+
+                    load_failed: 'Không tải được cấu hình — kiểm tra backend có đang chạy không.',
+                    reminders_failed: 'Không tải được danh sách nhắc — thử tải lại.',
+                    save_success: 'Đã lưu cấu hình.',
+                    save_failed: 'Lưu thất bại — kiểm tra backend có đang chạy không.',
+                    restored_existing: 'Đang hiển thị giá trị hiện đang có hiệu lực.',
+
+                    disclaimer_label: 'Lưu ý',
+                    disclaimer_text:
+                        'Trang này chỉ cấu hình ngưỡng nhắc — không thay đổi dữ liệu giao dịch hay email của bạn. Mọi nhắc hạn đều dựa trên dữ liệu thật từ Wealez và hộp thư đã kết nối.',
+                },
+            };
+
+            let lang = localStorage.getItem('wealify_lang') === 'en' ? 'en' : 'vi';
+            // `t` returns the i18n value as-is. If it's a function, the
+            // caller decides whether to invoke it (so curried uses like
+            // `t('count_other')(n)` work — eager invocation here used to
+            // silently turn that into `t()(n)` and throw).
+            const t = (key) => I18N[lang][key];
+
+            // ─── Toast (re-implemented from app.js, same tokens) ──
+            const TOAST_DEFAULT_MS = 4000;
+            const TOAST_MAX_VISIBLE = 4;
+            const TOAST_ICON = {
+                info: 'info',
+                success: 'check-circle',
+                warning: 'warning-circle',
+                danger: 'x-circle',
+            };
+
+            function getToastStack() {
+                let stack = document.getElementById('toastStack');
+                if (!stack) {
+                    stack = document.createElement('div');
+                    stack.id = 'toastStack';
+                    stack.className = 'toast-stack';
+                    stack.setAttribute('role', 'status');
+                    stack.setAttribute('aria-live', 'polite');
+                    document.body.appendChild(stack);
+                }
+                return stack;
             }
 
-            async function loadReminders() {
-                const res = await fetch(`${API}/dashboard/reminders`);
-                const data = await res.json();
-                document.getElementById('reminderCount').textContent = `(${data.total})`;
+            function showToast(message, type = 'info', duration = TOAST_DEFAULT_MS) {
+                const stack = getToastStack();
+                while (stack.children.length >= TOAST_MAX_VISIBLE) {
+                    stack.firstElementChild && stack.firstElementChild.remove();
+                }
 
-                const list = document.getElementById('reminderList');
-                const items = [
-                    ...data.stale_processing_transactions.map((r) => ({
-                        title: `${r.merchant} — $${Math.abs(r.amount).toFixed(2)} (${r.date})`,
-                        detail: r.reason,
-                    })),
-                    ...data.stale_unverified_inbound_emails.map((r) => ({
-                        title: r.email_subject || r.email_ref || '(no subject)',
-                        detail: r.detail,
-                    })),
-                ];
+                const toast = document.createElement('div');
+                toast.className = `toast is-${type}`;
+                toast.setAttribute('role', type === 'danger' || type === 'warning' ? 'alert' : 'status');
 
-                if (items.length === 0) {
-                    list.innerHTML = '<div class="reminder-item">Không có khoản nào cần nhắc.</div>';
+                const iconEl = document.createElement('i');
+                iconEl.className = `ph ph-${TOAST_ICON[type] || TOAST_ICON.info}`;
+                iconEl.setAttribute('aria-hidden', 'true');
+
+                const body = document.createElement('div');
+                body.className = 'toast-body';
+                body.textContent = String(message);
+
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'toast-close';
+                closeBtn.setAttribute('aria-label', t('toast_close') || 'Đóng');
+                const closeIcon = document.createElement('i');
+                closeIcon.className = 'ph ph-x';
+                closeIcon.setAttribute('aria-hidden', 'true');
+                closeBtn.appendChild(closeIcon);
+
+                toast.append(iconEl, body, closeBtn);
+                stack.appendChild(toast);
+
+                let timer = null;
+                const dismiss = () => {
+                    if (toast.classList.contains('is-leaving')) return;
+                    toast.classList.add('is-leaving');
+                    window.clearTimeout(timer);
+                    window.setTimeout(() => toast.remove(), 240);
+                };
+                closeBtn.addEventListener('click', dismiss);
+                timer = window.setTimeout(dismiss, duration);
+            }
+
+            // ─── Apply language to all data-i18n nodes ────────────
+            function applyLang(next) {
+                lang = next;
+                localStorage.setItem('wealify_lang', lang);
+                document.documentElement.lang = lang;
+
+                document.querySelectorAll('[data-i18n]').forEach((el) => {
+                    const value = I18N[lang][el.dataset.i18n];
+                    if (typeof value === 'string') el.textContent = value;
+                });
+
+                document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+                    const value = I18N[lang][el.dataset.i18nTitle];
+                    if (typeof value === 'string') el.title = value;
+                });
+
+                document.querySelectorAll('.lang-btn').forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.dataset.lang === lang);
+                });
+
+                refreshSaveHint();
+            }
+
+            // ─── Save-button state: idle vs. dirty ────────────────
+            const saveBtn = document.getElementById('saveBtn');
+            const saveHint = document.getElementById('saveHint');
+            const inboundInput = document.getElementById('inboundHours');
+            const processingInput = document.getElementById('processingHours');
+
+            let savedInbound = null;
+            let savedProcessing = null;
+
+            function isDirty() {
+                return inboundInput.value !== String(savedInbound) || processingInput.value !== String(savedProcessing);
+            }
+
+            function refreshSaveState() {
+                const dirty = isDirty();
+                saveBtn.classList.toggle('is-idle', !dirty);
+                saveBtn.disabled = !dirty;
+                inboundInput.classList.toggle('is-dirty', inboundInput.value !== String(savedInbound));
+                processingInput.classList.toggle('is-dirty', processingInput.value !== String(savedProcessing));
+                refreshSaveHint();
+            }
+
+            function refreshSaveHint() {
+                saveHint.textContent = isDirty() ? t('save_hint_dirty') : t('save_hint_idle');
+            }
+
+            inboundInput.addEventListener('input', refreshSaveState);
+            processingInput.addEventListener('input', refreshSaveState);
+
+            // ─── Load + save config ───────────────────────────────
+            async function loadConfig() {
+                try {
+                    const res = await fetch(`${API}/settings/reminder-config`);
+                    if (!res.ok) throw new Error('http ' + res.status);
+                    const cfg = await res.json();
+                    savedInbound = cfg.inbound_email_hours;
+                    savedProcessing = cfg.processing_status_hours;
+                    inboundInput.value = savedInbound;
+                    processingInput.value = savedProcessing;
+                    refreshSaveState();
+                } catch {
+                    showToast(t('load_failed'), 'warning');
+                }
+            }
+
+            saveBtn.addEventListener('click', async () => {
+                if (saveBtn.disabled) return;
+                const inbound = parseFloat(inboundInput.value);
+                const processing = parseFloat(processingInput.value);
+
+                if (!Number.isFinite(inbound) || inbound <= 0 || !Number.isFinite(processing) || processing <= 0) {
+                    showToast(t('save_failed'), 'warning');
                     return;
                 }
-                list.replaceChildren(
-                    ...items.map((it) => {
-                        const item = document.createElement('div');
-                        item.className = 'reminder-item';
-                        const title = document.createElement('strong');
-                        title.textContent = it.title;
-                        item.append(title, document.createElement('br'));
-                        item.append(document.createTextNode(it.detail));
-                        return item;
-                    }),
-                );
-            }
 
-            document.getElementById('saveBtn').addEventListener('click', async () => {
-                const inbound_email_hours = parseFloat(document.getElementById('inboundHours').value);
-                const processing_status_hours = parseFloat(document.getElementById('processingHours').value);
-                const statusEl = document.getElementById('statusMsg');
-
+                saveBtn.disabled = true;
                 try {
                     const res = await fetch(`${API}/settings/reminder-config`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ inbound_email_hours, processing_status_hours }),
+                        body: JSON.stringify({
+                            inbound_email_hours: inbound,
+                            processing_status_hours: processing,
+                        }),
                     });
-                    if (!res.ok) throw new Error('failed');
-                    statusEl.textContent = '✅ Đã lưu.';
+                    if (!res.ok) throw new Error('http ' + res.status);
+                    savedInbound = inbound;
+                    savedProcessing = processing;
+                    refreshSaveState();
+                    showToast(t('save_success'), 'success');
                     await loadReminders();
                 } catch {
-                    statusEl.textContent = '❌ Lưu thất bại — kiểm tra backend.';
+                    saveBtn.disabled = false;
+                    showToast(t('save_failed'), 'danger');
                 }
             });
 
+            // ─── Render reminder list ─────────────────────────────
+            function renderEmpty() {
+                const pane = document.getElementById('reminderPane');
+                pane.innerHTML = '';
+
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+
+                const icon = document.createElement('i');
+                icon.className = 'ph ph-check-circle empty-icon';
+                icon.setAttribute('aria-hidden', 'true');
+
+                const title = document.createElement('p');
+                title.className = 'empty-title';
+                title.textContent = t('reminder_empty_title');
+
+                const sub = document.createElement('p');
+                sub.className = 'empty-sub';
+                sub.textContent = t('reminder_empty_sub');
+
+                empty.append(icon, title, sub);
+                pane.appendChild(empty);
+
+                document.getElementById('reminderCount').textContent = '';
+            }
+
+            function renderReminderRow(item, index) {
+                const row = document.createElement('div');
+                row.className = 'reminder-row';
+                row.style.setProperty('--i', String(index));
+
+                const iconBox = document.createElement('span');
+                iconBox.className = 'reminder-icon ' + (item.kind === 'inbound' ? 'is-inbound' : 'is-processing');
+                const iconI = document.createElement('i');
+                iconI.className = item.kind === 'inbound' ? 'ph ph-envelope-simple-open' : 'ph ph-clock-countdown';
+                iconI.setAttribute('aria-hidden', 'true');
+                iconBox.appendChild(iconI);
+
+                const main = document.createElement('div');
+                main.className = 'reminder-main';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'reminder-title';
+                titleEl.textContent = item.title;
+
+                const reason = document.createElement('div');
+                reason.className = 'reminder-reason';
+                reason.textContent = item.detail || '';
+
+                main.append(titleEl, reason);
+
+                const side = document.createElement('div');
+                side.className = 'reminder-side';
+
+                if (typeof item.age_hours === 'number' && item.age_hours > 0) {
+                    const age = document.createElement('span');
+                    age.className = 'reminder-meta';
+                    age.textContent = t('reminder_age_h')(item.age_hours);
+                    side.appendChild(age);
+                }
+
+                row.append(iconBox, main, side);
+                return row;
+            }
+
+            async function loadReminders() {
+                try {
+                    const res = await fetch(`${API}/dashboard/reminders`);
+                    if (!res.ok) throw new Error('http ' + res.status);
+                    const data = await res.json();
+
+                    const countEl = document.getElementById('reminderCount');
+                    countEl.textContent =
+                        data.total === 1 ? t('reminder_count_one') : t('reminder_count_other')(data.total);
+
+                    if (data.total === 0) {
+                        renderEmpty();
+                        return;
+                    }
+
+                    const items = [
+                        ...(data.stale_processing_transactions || []).map((r) => ({
+                            kind: 'processing',
+                            title: t('reminder_processing_title')(
+                                r.merchant || '',
+                                Math.abs(r.amount || 0),
+                                r.date || '',
+                            ),
+                            detail: r.reason || '',
+                            age_hours: r.age_hours,
+                        })),
+                        ...(data.stale_unverified_inbound_emails || []).map((r) => ({
+                            kind: 'inbound',
+                            title: t('reminder_inbound_title')(r.email_subject || '', r.email_ref || ''),
+                            detail: r.detail || r.reason || '',
+                            age_hours: r.age_hours,
+                        })),
+                    ];
+
+                    const pane = document.getElementById('reminderPane');
+                    pane.innerHTML = '';
+                    const list = document.createElement('div');
+                    list.className = 'reminder-list';
+                    items.forEach((it, idx) => list.appendChild(renderReminderRow(it, idx)));
+                    pane.appendChild(list);
+                } catch {
+                    showToast(t('reminders_failed'), 'warning');
+                }
+            }
+
+            // ─── Refresh button (re-fetches both endpoints) ───────
+            document.getElementById('refreshBtn').addEventListener('click', async () => {
+                await Promise.all([loadConfig(), loadReminders()]);
+            });
+
+            // ─── Lang switch wiring ───────────────────────────────
+            const langSwitch = document.getElementById('langSwitch');
+            langSwitch.addEventListener('click', (e) => {
+                const btn = e.target.closest('.lang-btn');
+                if (btn && btn.dataset.lang !== lang) applyLang(btn.dataset.lang);
+            });
+
+            // ─── Initial paint ───────────────────────────────────
+            applyLang(lang);
             loadConfig();
             loadReminders();
         </script>
