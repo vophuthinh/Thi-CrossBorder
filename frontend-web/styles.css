@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   Wealify Scout — design tokens & components
+   Wealez — design tokens & components
    Language: premium utilitarian minimalism, trust-first.
    One accent family, hairline structure, ultra-flat surfaces.
    ═══════════════════════════════════════════════════════ */
@@ -310,6 +310,54 @@ ol {
     padding: 16px 22px;
     border-bottom: 1px solid var(--line);
     background: var(--surface);
+}
+
+/* Right-panel head: stack [back?] [title] ........ [count?]. When the
+   back button is hidden (list view) it just collapses out and the
+   title + count sit at opposite ends, identical to the previous layout. */
+.panel-right .panel-head {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.panel-right .panel-hint {
+    margin-left: auto;
+}
+
+/* Back button — icon-only, square. Hidden by default via the [hidden]
+   attribute; the right-panel head shows it whenever a single-item
+   detail view is open. */
+.panel-back {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 14px;
+    transition:
+        background var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        color var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+
+.panel-back:hover {
+    background: var(--canvas);
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.panel-back:active {
+    transform: scale(0.96);
+}
+
+.panel-back[hidden] {
+    display: none;
 }
 
 .panel-title {
@@ -879,12 +927,6 @@ ol {
     margin-top: 3px;
     font-size: 13px;
     color: var(--muted-2);
-    transition: transform var(--dur) var(--ease);
-}
-
-.detail-item.is-open .detail-chevron {
-    transform: rotate(180deg);
-    color: var(--ink);
 }
 
 .detail-row {
@@ -931,25 +973,130 @@ ol {
     line-height: 1.4;
 }
 
-/* Accordion: 0fr → 1fr keeps the transition smooth without fixed heights */
-.detail-extra {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--dur) var(--ease);
+/* ─── Single-item detail page (right panel, full body) ───────────
+   Replaces the old inline accordion: clicking a list row swaps the
+   whole body for a single article that fills the panel — title, meta,
+   action buttons — so the user can read it without scrolling past the
+   other rows. */
+
+.detail-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    animation: rise 280ms var(--ease) both;
 }
 
-.detail-item.is-open .detail-extra {
-    grid-template-rows: 1fr;
+.detail-page-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
 }
 
-.detail-extra-inner {
-    overflow: hidden;
-    visibility: hidden;
-    transition: visibility var(--dur) var(--ease);
+.detail-page-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+    text-wrap: pretty;
+    word-break: break-word;
 }
 
-.detail-item.is-open .detail-extra-inner {
-    visibility: visible;
+.detail-page-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Stack variant for items where the second line is multiline (email
+   subject, sub renewal/pending info) — each piece sits on its own row. */
+.detail-page-sub-stack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.detail-page-amount {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+}
+
+.detail-page-amount.is-alert {
+    color: var(--red-fg);
+}
+
+.detail-page-date {
+    font-size: 12px;
+    color: var(--muted);
+    text-wrap: pretty;
+}
+
+.detail-page-subject {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.detail-page-ref {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.detail-page-warning {
+    margin-top: 0;
+    padding: 10px 13px;
+    background: var(--caution-bg);
+    border-radius: var(--r-md);
+}
+
+.detail-page-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.detail-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* Wide deadline display — replaces the compact inline deadline-pill
+   when the email is opened in its detail view, so the 60-day countdown
+   has room to breathe next to the explanation text. */
+.deadline-block {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--caution-bg);
+    color: var(--caution-fg);
+    font-variant-numeric: tabular-nums;
+    align-self: flex-start;
+}
+
+.deadline-block i {
+    font-size: 16px;
+}
+
+.deadline-block.is-urgent {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.deadline-block.is-clear {
+    background: var(--green-bg);
+    color: var(--green-fg);
 }
 
 .detail-meta {
@@ -976,7 +1123,6 @@ ol {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin: 0 2px 14px;
     padding: 7px 11px;
     border: 1px solid var(--line-2);
     border-radius: var(--r-sm);
@@ -1130,6 +1276,22 @@ ol {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+}
+
+.email-row-main:hover {
+    color: var(--ink);
+}
+
+.email-row-main:active {
+    transform: scale(0.99);
 }
 
 .email-row-from {
@@ -1378,6 +1540,117 @@ ol {
     }
 }
 
+/* ─── Chat-context chip ─────────────────────────────────
+   Appears in the chat footer whenever the user is inspecting an item
+   in the right panel's detail view — mirrors what data the LLM will
+   receive with the next chat message, and gives a × to dismiss the
+   context without leaving the detail view. */
+
+.chat-context-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 7px 10px 7px 12px;
+    background: var(--caution-bg);
+    border: 1px solid var(--caution-fg);
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--caution-fg);
+    line-height: 1.35;
+    max-width: 100%;
+    overflow: hidden;
+    animation: rise 240ms var(--ease) both;
+}
+
+.chat-context-chip[hidden] {
+    display: none;
+}
+
+.chat-context-chip-icon {
+    flex: 0 0 auto;
+    font-size: 13px;
+}
+
+.chat-context-chip-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-context-chip-clear {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+    cursor: pointer;
+    transition:
+        opacity var(--dur) var(--ease),
+        background var(--dur) var(--ease);
+}
+
+.chat-context-chip-clear i {
+    font-size: 13px;
+}
+
+.chat-context-chip-clear:hover {
+    opacity: 1;
+    background: rgba(149, 100, 0, 0.12);
+}
+
+.chat-context-chip-clear:active {
+    transform: scale(0.92);
+}
+
+/* ─── Detail-page "Ask AI about this" CTA ─────────────
+   Full-width button at the bottom of every single-item detail view.
+   Visually distinct from the item-management actions above it (which
+   use the hairline .detail-action look) — this one is filled so the
+   user can spot it as the recommended next step after reading. */
+
+.detail-page-ask-ai {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 4px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ink);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+
+.detail-page-ask-ai i {
+    font-size: 16px;
+}
+
+.detail-page-ask-ai:hover {
+    background: var(--ink-soft);
+}
+
+.detail-page-ask-ai:active {
+    transform: scale(0.985);
+}
+
 /* ─── Active-subs 60/40 split (right panel) ───────────
    Top pane gets the larger share — that's the working list the user reads
    first; the bottom "pending cancellation" pane is a smaller queue the
@@ -1420,6 +1693,23 @@ ol {
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+}
+
+.sub-row-head:hover .sub-row-name {
+    color: var(--ink);
+}
+
+.sub-row-head:active {
+    transform: scale(0.99);
 }
 
 /* Active marker — small green dot prefixed to the subscription name in

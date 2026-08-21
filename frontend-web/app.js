@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   Wealify Scout — UI interactivity (vanilla JS)
+   Wealez — UI interactivity (vanilla JS)
    Wired to the real backend (no mock data) — every number here comes from
    GET /findings, /dashboard/wallet, /dashboard/wealify-accounts, and
    POST /chat, all fetched live from the running FastAPI backend.
@@ -25,7 +25,7 @@ const I18N = {
         run_check_done: (n, already) => `Done! ${n} new flags, ${already} already reported.`,
         run_check_failed: 'Check failed — the backend may be restarting.',
         block_reconciliation: 'Reconciliation',
-        flow_wallet: 'Wealify wallet',
+        flow_wallet: 'Wealez wallet',
         flow_transferred: 'Transferred to card',
         flow_card: 'Card spending',
         mismatch_ok: 'No transfer-to-card mismatch found',
@@ -59,6 +59,7 @@ const I18N = {
         chat_error: 'Connection error — the backend may be restarting. Try again in a moment.',
 
         panel_detail: 'Detail view',
+        back: 'Back',
         empty_title: 'Nothing selected',
         empty_sub: 'Pick a flag in the Command Center to inspect the underlying transactions.',
         empty_none_title: 'Nothing to show',
@@ -81,6 +82,13 @@ const I18N = {
         email_deadline_urgent: (days) => `${days}d left`,
         email_deadline_clear: (days) => `${days}d left`,
 
+        context_kind_finding: 'Finding',
+        context_kind_email_audit: 'Email',
+        context_kind_subscription: 'Subscription',
+        context_chip_dismiss: 'Dismiss context',
+        detail_ask_ai: 'Ask AI about this',
+        context_chip_prefix: (kind, title) => `Asking about ${kind}: ${title}`,
+
         sub_active_top: 'Currently active',
         sub_active_bottom: 'Pending cancellation',
         sub_action_stop_renewal: 'Stop renewal',
@@ -100,7 +108,7 @@ const I18N = {
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
             '⚠️ This tool only assists you in reviewing your finances. Results are for reference only, not ' +
-            'official Wealify conclusions, and do not replace your own verification. If you notice suspicious ' +
+            'official Wealez conclusions, and do not replace your own verification. If you notice suspicious ' +
             'transactions, contact support immediately — in the US, the dispute deadline is 60 days from the ' +
             'statement date.',
     },
@@ -119,7 +127,7 @@ const I18N = {
         run_check_done: (n, already) => `Hoàn tất! ${n} cảnh báo mới, ${already} đã báo trước.`,
         run_check_failed: 'Rà soát thất bại — backend có thể đang khởi động lại.',
         block_reconciliation: 'Đối soát',
-        flow_wallet: 'Ví Wealify',
+        flow_wallet: 'Ví Wealez',
         flow_transferred: 'Đã chuyển sang thẻ',
         flow_card: 'Chi tiêu trên thẻ',
         mismatch_ok: 'Không phát hiện lệch chuyển tiền sang thẻ',
@@ -153,6 +161,7 @@ const I18N = {
         chat_error: 'Lỗi kết nối — backend có thể đang khởi động lại. Thử lại sau giây lát.',
 
         panel_detail: 'Chi tiết',
+        back: 'Quay lại',
         empty_title: 'Chưa chọn mục nào',
         empty_sub: 'Chọn một cảnh báo ở Trung tâm điều khiển để xem chi tiết giao dịch.',
         empty_none_title: 'Không có mục nào',
@@ -175,6 +184,13 @@ const I18N = {
         email_deadline_urgent: (days) => `còn ${days} ngày`,
         email_deadline_clear: (days) => `còn ${days} ngày`,
 
+        context_kind_finding: 'Khoản giao dịch',
+        context_kind_email_audit: 'Email',
+        context_kind_subscription: 'Gói đăng ký',
+        context_chip_dismiss: 'Bỏ ngữ cảnh',
+        detail_ask_ai: 'Hỏi AI về item này',
+        context_chip_prefix: (kind, title) => `Đang hỏi về ${kind}: ${title}`,
+
         sub_active_top: 'Đang hoạt động',
         sub_active_bottom: 'Đang chờ hủy',
         sub_action_stop_renewal: 'Muốn dừng gia hạn',
@@ -194,7 +210,7 @@ const I18N = {
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
             '⚠️ Công cụ này chỉ hỗ trợ bạn rà soát tài chính. Kết quả để tham khảo, không phải kết luận chính ' +
-            'thức của Wealify và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ' +
+            'thức của Wealez và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ' +
             'ngay — ở Mỹ thời hạn khiếu nại là 60 ngày kể từ ngày ngân hàng gửi sao kê.',
     },
 };
@@ -261,12 +277,14 @@ async function apiPost(path) {
     }
 }
 
-async function apiPostChat(message) {
+async function apiPostChat(message, context = null) {
     try {
+        const body = { message };
+        if (context) body.context = context;
         const res = await fetch(`${API}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify(body),
         });
         if (!res.ok) return null;
         return await res.json();
@@ -453,7 +471,7 @@ function renderReconciliation() {
 }
 
 function renderCommandCenterCounts() {
-    document.querySelectorAll('[data-flag]').forEach((el) => {
+    flagEls.forEach((el) => {
         const flag = el.dataset.flag;
         let count;
         if (flag === 'email-audit') count = emailAuditItems.length;
@@ -481,6 +499,14 @@ function findingLabel(f) {
 const detailTitle = document.getElementById('detailTitle');
 const detailCount = document.getElementById('detailCount');
 const detailBody = document.getElementById('detailBody');
+const detailBackBtn = document.getElementById('detailBackBtn');
+const chatContextChip = document.getElementById('chatContextChip');
+const chatContextChipText = document.getElementById('chatContextChipText');
+const chatContextChipClear = document.getElementById('chatContextChipClear');
+// Cached at module load — the set of flag cards in the left panel never
+// changes after page load, so re-running querySelectorAll on every
+// renderDetails (and every language switch) is wasted work.
+const flagEls = document.querySelectorAll('[data-flag]');
 const chatHistory = document.getElementById('chatHistory');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
@@ -488,7 +514,21 @@ const langSwitch = document.getElementById('langSwitch');
 
 let lang = localStorage.getItem('wealify_lang') === 'en' ? 'en' : 'vi';
 let activeFlag = null;
-let openIndex = null;
+// Index of the item currently opened in the detail view, scoped to the
+// items list rendered for `activeFlag`. null = show the list of items
+// for the active flag (the previous accordion behaviour let users peek
+// inside one row inline; we now replace the list entirely with that
+// item's detail until the user clicks Back).
+let openItem = null;
+// Snapshot of the item the user is currently inspecting in the detail
+// view + its kind ('finding' | 'email-audit' | 'subscription'). Used to
+// attach the item's full data to every chat message so the LLM can
+// answer questions about the specific transaction / email / subscription
+// without the user having to spell out the details. Mirrored visually
+// in the chat-context-chip in the chat footer; clicking the chip's ×
+// button (or the Back button in the right panel) clears it.
+let currentDetailItem = null;
+let currentDetailKind = null;
 let loadTimer = null;
 
 const t = (key) => I18N[lang][key];
@@ -573,16 +613,78 @@ function buildMetaRow(list, label, value) {
     list.append(dt, dd);
 }
 
+// Pastel warning block — shared by finding-detail and email-detail
+// pages; the optional `stack` class turns it into a wider card on the
+// detail view vs the inline list-row variant.
+function buildExplanationWarning(text, { stack = false } = {}) {
+    const warn = document.createElement('div');
+    warn.className = 'detail-warning' + (stack ? ' detail-page-warning' : '');
+    const label = document.createElement('span');
+    label.textContent = text;
+    warn.append(icon('warning-circle'), label);
+    return warn;
+}
+
+// Buckets a "days until deadline" value into one of three visual tiers
+// so the compact email-row pill and the wide email-detail block agree
+// on what counts as urgent vs clear vs normal.
+function computeDeadlineUrgency(days) {
+    if (days <= 0) return 'urgent';
+    if (days <= 14) return 'urgent';
+    if (days > 30) return 'clear';
+    return 'normal';
+}
+
+// Renders a deadline badge in either the compact list-row shape or the
+// wide detail-page shape — both sites used to spell the urgency math
+// and class names inline.
+function buildDeadlineBadge(days, { tag = 'span', baseClass = 'deadline-pill' } = {}) {
+    const urgency = computeDeadlineUrgency(days);
+    const elNode = document.createElement(tag);
+    elNode.className = baseClass + (urgency === 'urgent' ? ' is-urgent' : urgency === 'clear' ? ' is-clear' : '');
+    elNode.append(icon('hourglass-medium'), document.createTextNode(t('email_deadline_urgent')(days)));
+    return elNode;
+}
+
+// ─── Chat context chip ──────────────────────────────────────────────
+// Visual mirror of currentDetailItem / currentDetailKind. When the user
+// is in a detail view the chip appears above the chat input so they
+// always know the next message will carry the item's data to the LLM.
+// The × button clears the context (right panel keeps showing the item)
+// without forcing the user to leave the detail view first.
+
+const KIND_LABEL_KEY = {
+    finding: 'context_kind_finding',
+    'email-audit': 'context_kind_email_audit',
+    subscription: 'context_kind_subscription',
+};
+function kindLabelKey(kind) {
+    return KIND_LABEL_KEY[kind] || null;
+}
+
+function renderChatContextChip() {
+    if (currentDetailItem && currentDetailKind) {
+        const key = kindLabelKey(currentDetailKind);
+        const kindLabel = key ? t(key) : currentDetailKind;
+        const title = detailTitleFor(currentDetailItem);
+        chatContextChipText.textContent = t('context_chip_prefix')(kindLabel, title);
+        chatContextChip.hidden = false;
+    } else {
+        chatContextChip.hidden = true;
+        chatContextChipText.textContent = '';
+    }
+}
+
 function buildDetailItem(f, index) {
+    // List-row summary — click opens the full detail view for this item
+    // (replaces the old inline accordion expand).
     const row = document.createElement('article');
     row.className = 'detail-item';
-    if (openIndex === index) row.classList.add('is-open');
     row.style.setProperty('--i', String(index));
 
     const head = document.createElement('button');
     head.type = 'button';
     head.className = 'detail-head';
-    head.setAttribute('aria-expanded', String(openIndex === index));
 
     const main = document.createElement('div');
     main.className = 'detail-main';
@@ -617,13 +719,19 @@ function buildDetailItem(f, index) {
         main.appendChild(warn);
     }
 
-    head.append(main, icon('caret-down', 'detail-chevron'));
+    head.append(main, icon('caret-right', 'detail-chevron'));
 
-    const extra = document.createElement('div');
-    extra.className = 'detail-extra';
+    row.appendChild(head);
+    head.addEventListener('click', () => openItemFromList(index));
 
-    const inner = document.createElement('div');
-    inner.className = 'detail-extra-inner';
+    return row;
+}
+
+// Builds the meta block (ID/status/deadline/confidence/evidence) and
+// the optional draft-note action. Reused both by the (now-removed) inline
+// accordion and by paintFindingDetail below.
+function buildFindingMeta(f) {
+    const isAlert = f.label === 'CAN_BAN_TU_XAC_NHAN';
 
     const meta = document.createElement('dl');
     meta.className = 'detail-meta';
@@ -643,7 +751,8 @@ function buildDetailItem(f, index) {
         buildMetaRow(meta, t('label_evidence'), f.evidence_refs.join(', '));
     }
 
-    inner.appendChild(meta);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'detail-page-body';
 
     if (isAlert) {
         const action = document.createElement('button');
@@ -653,30 +762,62 @@ function buildDetailItem(f, index) {
         label.textContent = t('action_draft_email');
         action.append(icon('envelope-simple'), label);
         action.addEventListener('click', () => draftNote(f));
-        inner.appendChild(action);
+        wrapper.append(action);
     }
 
-    extra.appendChild(inner);
-    row.append(head, extra);
-
-    head.addEventListener('click', () => toggleItem(row, index));
-
-    return row;
+    wrapper.prepend(meta);
+    return wrapper;
 }
 
-function toggleItem(row, index) {
-    const willOpen = openIndex !== index;
-    openIndex = willOpen ? index : null;
+// Full-page detail for a single finding — fills the entire right panel
+// body. Same content the old accordion .detail-extra showed, but as the
+// only thing on screen so the user can read it without scrolling past
+// every other row in the list.
+function paintFindingDetail(f) {
+    const page = document.createElement('article');
+    page.className = 'detail-page';
 
-    detailBody.querySelectorAll('.detail-item').forEach((el) => {
-        el.classList.remove('is-open');
-        el.querySelector('.detail-head').setAttribute('aria-expanded', 'false');
-    });
+    const head = document.createElement('header');
+    head.className = 'detail-page-head';
 
-    if (willOpen) {
-        row.classList.add('is-open');
-        row.querySelector('.detail-head').setAttribute('aria-expanded', 'true');
+    const title = document.createElement('h3');
+    title.className = 'detail-page-title';
+    title.textContent = findingTitle(f);
+
+    const sub = document.createElement('div');
+    sub.className = 'detail-page-sub';
+
+    const isAlert = f.label === 'CAN_BAN_TU_XAC_NHAN';
+    const amount = document.createElement('span');
+    amount.className = 'detail-page-amount num' + (isAlert ? ' is-alert' : '');
+    amount.textContent = fmtCur((f.amount_cents || 0) / 100, f.currency || 'USD');
+    sub.appendChild(amount);
+
+    if (f.occurred_at) {
+        const date = document.createElement('span');
+        date.className = 'detail-page-date';
+        date.textContent = f.occurred_at;
+        sub.appendChild(date);
     }
+
+    head.append(title, sub);
+    page.appendChild(head);
+
+    const explanation = findingExplanation(f);
+    if (explanation) {
+        page.appendChild(buildExplanationWarning(explanation, { stack: true }));
+    }
+
+    page.appendChild(buildFindingMeta(f));
+    page.appendChild(buildAskAiButton(f, 'finding'));
+
+    detailBody.replaceChildren(page);
+    detailBody.scrollTop = 0;
+}
+
+function openItemFromList(index) {
+    openItem = index;
+    renderDetails(activeFlag, { instant: true });
 }
 
 function showSkeleton(count) {
@@ -734,12 +875,16 @@ function daysUntilDeadline(emailDate) {
     return Math.round((deadline.getTime() - today.getTime()) / msPerDay);
 }
 
-function buildEmailRow(item, index) {
+function buildEmailRow(item, flatIndex) {
+    // `flatIndex` is the position in the unified emailAuditItems array
+    // (the list the right panel would render as a flat list), not the
+    // position within this pane — keeps openItem stable across both panes.
     const row = document.createElement('div');
     row.className = 'email-row';
-    row.style.setProperty('--i', String(index));
+    row.style.setProperty('--i', String(flatIndex));
 
-    const main = document.createElement('div');
+    const main = document.createElement('button');
+    main.type = 'button';
     main.className = 'email-row-main';
 
     const from = document.createElement('div');
@@ -754,24 +899,23 @@ function buildEmailRow(item, index) {
     sub.textContent = [subj, ref].filter(Boolean).join(' · ') || findingExplanation(item);
     main.appendChild(sub);
 
+    main.addEventListener('click', () => openItemFromList(flatIndex));
+
     const side = document.createElement('div');
     side.className = 'email-row-side';
 
     if (item.email_group === 'in_wlist_no_tx') {
         const days = daysUntilDeadline(item.email_date);
         if (days !== null) {
-            const pill = document.createElement('span');
-            const isOverdue = days <= 0;
-            const isUrgent = !isOverdue && days <= 14;
-            pill.className = 'deadline-pill' + (isOverdue || isUrgent ? ' is-urgent' : days > 30 ? ' is-clear' : '');
-            pill.append(icon('hourglass-medium'), document.createTextNode(t('email_deadline_urgent')(days)));
-            side.appendChild(pill);
+            side.appendChild(buildDeadlineBadge(days));
         }
 
         const complaint = document.createElement('button');
         complaint.type = 'button';
         complaint.className = 'email-action';
         complaint.append(icon('envelope-simple'), document.createTextNode(t('email_action_draft_complaint')));
+        // The action button is inside .email-row-side (separate from
+        // .email-row-main) so clicking it never bubbles to "open detail".
         complaint.addEventListener('click', () => draftComplaintEmail(item));
         side.appendChild(complaint);
     } else {
@@ -787,7 +931,7 @@ function buildEmailRow(item, index) {
     return row;
 }
 
-function buildEmailPane(titleKey, items) {
+function buildEmailPane(titleKey, paneItems, itemsRef) {
     const pane = document.createElement('section');
     pane.className = 'detail-pane';
 
@@ -798,19 +942,25 @@ function buildEmailPane(titleKey, items) {
     title.textContent = t(titleKey);
     const count = document.createElement('span');
     count.className = 'detail-pane-count num';
-    count.textContent = String(items.length);
+    count.textContent = String(paneItems.length);
     head.append(title, count);
     pane.appendChild(head);
 
     const body = document.createElement('div');
     body.className = 'detail-pane-body';
-    if (items.length === 0) {
+    if (paneItems.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'email-pane-empty';
         empty.textContent = t('email_pane_empty');
         body.appendChild(empty);
     } else {
-        items.forEach((it, i) => body.appendChild(buildEmailRow(it, i)));
+        // O(1) lookup map built once per pane-render — the old
+        // `emailAuditItems.indexOf(it)` was O(m) per row, making a
+        // 60-item list render 1800 comparisons on every paint.
+        const flatIndexByItem = new Map(itemsRef.map((it, i) => [it, i]));
+        paneItems.forEach((it) => {
+            body.appendChild(buildEmailRow(it, flatIndexByItem.get(it)));
+        });
     }
     pane.appendChild(body);
 
@@ -826,8 +976,88 @@ function paintEmailAuditDetails(items) {
     split.className = 'detail-split';
     const top = items.filter((it) => it.email_group === 'not_in_wlist');
     const bottom = items.filter((it) => it.email_group === 'in_wlist_no_tx');
-    split.append(buildEmailPane('email_pane_not_in_wlist', top), buildEmailPane('email_pane_in_wlist_no_tx', bottom));
+    split.append(
+        buildEmailPane('email_pane_not_in_wlist', top, items),
+        buildEmailPane('email_pane_in_wlist_no_tx', bottom, items),
+    );
     detailBody.replaceChildren(split);
+}
+
+// Full-page detail for one email-audit item — replaces the list of two
+// panes with a single article showing everything we know about the
+// sender, subject, full date, Ref, explanation, deadline, and the same
+// action button that used to live in the compact row.
+function paintEmailDetail(item) {
+    const page = document.createElement('article');
+    page.className = 'detail-page';
+
+    const head = document.createElement('header');
+    head.className = 'detail-page-head';
+
+    const title = document.createElement('h3');
+    title.className = 'detail-page-title';
+    title.textContent = item.email_from || item.email_ref || findingTitle(item);
+    head.appendChild(title);
+
+    const sub = document.createElement('div');
+    sub.className = 'detail-page-sub detail-page-sub-stack';
+
+    const subject = document.createElement('div');
+    subject.className = 'detail-page-subject';
+    subject.textContent = item.email_subject || findingExplanation(item) || '';
+    sub.appendChild(subject);
+
+    if (item.email_ref) {
+        const ref = document.createElement('div');
+        ref.className = 'detail-page-ref';
+        ref.textContent = `Ref ${item.email_ref}`;
+        sub.appendChild(ref);
+    }
+
+    if (item.email_date) {
+        const date = document.createElement('div');
+        date.className = 'detail-page-date';
+        date.textContent = item.email_date;
+        sub.appendChild(date);
+    }
+
+    head.appendChild(sub);
+    page.appendChild(head);
+
+    const explanation = findingExplanation(item);
+    if (explanation) {
+        page.appendChild(buildExplanationWarning(explanation, { stack: true }));
+    }
+
+    if (item.email_group === 'in_wlist_no_tx') {
+        const days = daysUntilDeadline(item.email_date);
+        if (days !== null) {
+            page.appendChild(buildDeadlineBadge(days, { tag: 'div', baseClass: 'deadline-block' }));
+        }
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'detail-page-actions';
+    if (item.email_group === 'in_wlist_no_tx') {
+        const complaint = document.createElement('button');
+        complaint.type = 'button';
+        complaint.className = 'detail-action';
+        complaint.append(icon('envelope-simple'), document.createTextNode(t('email_action_draft_complaint')));
+        complaint.addEventListener('click', () => draftComplaintEmail(item));
+        actions.appendChild(complaint);
+    } else {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'detail-action';
+        addBtn.append(icon('plus-circle'), document.createTextNode(t('email_action_add_wlist')));
+        addBtn.addEventListener('click', () => addSenderToWhitelist(item, addBtn));
+        actions.appendChild(addBtn);
+    }
+    page.appendChild(actions);
+    page.appendChild(buildAskAiButton(item, 'email-audit'));
+
+    detailBody.replaceChildren(page);
+    detailBody.scrollTop = 0;
 }
 
 // Adds the sender's domain to the user's whitelist via the Setup Wizard's
@@ -874,8 +1104,8 @@ function draftComplaintEmail(item) {
     const senderPart = item.email_from ? ` từ ${item.email_from}` : '';
     const text =
         lang === 'vi'
-            ? `Giúp tôi soạn một email cho đội hỗ trợ: tôi có một giao dịch như email này${refPart}${senderPart} nhưng bên Wealify chưa có giao dịch tương ứng — đề nghị đội support hỗ trợ làm rõ.${deadlinePart}`
-            : `Please draft a complaint email to support: I have a transaction receipt in this email${refPart}${senderPart} but no matching transaction on the Wealify side — please investigate.${deadlinePart}`;
+            ? `Giúp tôi soạn một email cho đội hỗ trợ: tôi có một giao dịch như email này${refPart}${senderPart} nhưng bên Wealez chưa có giao dịch tương ứng — đề nghị đội support hỗ trợ làm rõ.${deadlinePart}`
+            : `Please draft a complaint email to support: I have a transaction receipt in this email${refPart}${senderPart} but no matching transaction on the Wealez side — please investigate.${deadlinePart}`;
     chatInput.value = `${subject}\n\n${text}`;
     chatInput.focus();
     chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
@@ -992,7 +1222,10 @@ function daysPending(isoTimestamp) {
     return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)));
 }
 
-function buildSubRow(sub, kind, index) {
+function buildSubRow(sub, kind, flatIndex) {
+    // `flatIndex` is the position of `sub` in the unified MOCK_ACTIVE_SUBS
+    // list — kept stable so openItem can be re-resolved when the user
+    // returns from the detail view.
     const row = document.createElement('div');
     row.className = 'sub-row';
     if (kind === 'top') {
@@ -1002,10 +1235,14 @@ function buildSubRow(sub, kind, index) {
         const days = daysPending(sub.cancelled_at);
         if (days > SUB_OVERDUE_DAYS) row.classList.add('is-overdue');
     }
-    row.style.setProperty('--i', String(index));
+    row.style.setProperty('--i', String(flatIndex));
 
     // Top line: subscription name (wraps freely) + price on the right.
-    const head = document.createElement('div');
+    // The whole head is a button so clicking anywhere on it (name or
+    // price) opens the detail view — the action buttons below are
+    // siblings, not nested, so they never bubble up to open detail.
+    const head = document.createElement('button');
+    head.type = 'button';
     head.className = 'sub-row-head';
 
     const name = document.createElement('span');
@@ -1018,6 +1255,7 @@ function buildSubRow(sub, kind, index) {
     amount.textContent = fmtCur((sub.amount_cents || 0) / 100, sub.currency || 'USD');
     head.appendChild(amount);
 
+    head.addEventListener('click', () => openItemFromList(flatIndex));
     row.appendChild(head);
 
     // Middle: meta (cycle · renewal date · pending days).
@@ -1074,7 +1312,7 @@ function buildSubRow(sub, kind, index) {
     return row;
 }
 
-function buildSubPane(titleKey, items, kind) {
+function buildSubPane(titleKey, items, kind, itemsRef) {
     const pane = document.createElement('section');
     pane.className = 'detail-pane';
 
@@ -1097,11 +1335,101 @@ function buildSubPane(titleKey, items, kind) {
         empty.textContent = t(kind === 'top' ? 'sub_empty_top' : 'sub_empty_bottom');
         body.appendChild(empty);
     } else {
-        items.forEach((it, i) => body.appendChild(buildSubRow(it, kind, i)));
+        // O(1) lookup map built once per pane-render. MOCK_ACTIVE_SUBS
+        // is the canonical list of subscriptions (split into top/bottom
+        // panes below by cancellation status), so the flat index is the
+        // same as this row's position in it.
+        const flatIndexById = new Map(itemsRef.map((s, i) => [s.id, i]));
+        items.forEach((it) => {
+            body.appendChild(buildSubRow(it, kind, flatIndexById.get(it.id)));
+        });
     }
     pane.appendChild(body);
 
     return pane;
+}
+
+// Full-page detail for one subscription — replaces the 60/40 split panes
+// with a single article showing the name, full price, cycle, renewal
+// date, pending days (if applicable), and the same action buttons that
+// used to live at the bottom of the row.
+function paintSubDetail(sub) {
+    const pending = loadPendingCancellations();
+    const kind = pending[sub.id] ? 'bottom' : 'top';
+    const cancelledAt = pending[sub.id];
+    const days = cancelledAt ? daysPending(cancelledAt) : 0;
+
+    const page = document.createElement('article');
+    page.className = 'detail-page';
+
+    const head = document.createElement('header');
+    head.className = 'detail-page-head';
+
+    const title = document.createElement('h3');
+    title.className = 'detail-page-title';
+    title.textContent = sub.name;
+    head.appendChild(title);
+
+    const sub_ = document.createElement('div');
+    sub_.className = 'detail-page-sub detail-page-sub-stack';
+
+    const amount = document.createElement('div');
+    amount.className = 'detail-page-amount num';
+    amount.textContent = fmtCur((sub.amount_cents || 0) / 100, sub.currency || 'USD');
+    sub_.appendChild(amount);
+
+    const metaParts = [];
+    if (sub.cycle) metaParts.push(sub.cycle.charAt(0).toUpperCase() + sub.cycle.slice(1));
+    if (sub.renewal_date) metaParts.push(`renews ${sub.renewal_date}`);
+    if (kind === 'bottom') metaParts.push(t('sub_pending_sub')(days));
+    if (metaParts.length) {
+        const meta = document.createElement('div');
+        meta.className = 'detail-page-date';
+        meta.textContent = metaParts.join(' · ');
+        sub_.appendChild(meta);
+    }
+
+    head.appendChild(sub_);
+    page.appendChild(head);
+
+    if (kind === 'bottom' && days > SUB_OVERDUE_DAYS) {
+        const overdue = document.createElement('div');
+        overdue.className = 'deadline-block is-urgent';
+        overdue.append(icon('warning-circle'), document.createTextNode(t('sub_overdue_label')));
+        overdue.title = t('sub_overdue_sub')(days);
+        page.appendChild(overdue);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'detail-page-actions';
+
+    if (kind === 'top') {
+        const stopBtn = document.createElement('button');
+        stopBtn.type = 'button';
+        stopBtn.className = 'detail-action';
+        stopBtn.append(icon('prohibit'), document.createTextNode(t('sub_action_stop_renewal')));
+        stopBtn.addEventListener('click', () => moveSubToPending(sub, stopBtn));
+        actions.appendChild(stopBtn);
+    } else {
+        const restoreBtn = document.createElement('button');
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'detail-action';
+        restoreBtn.append(icon('arrow-counter-clockwise'), document.createTextNode(t('sub_action_restore')));
+        restoreBtn.addEventListener('click', () => restoreSub(sub, restoreBtn));
+        actions.appendChild(restoreBtn);
+
+        const doneBtn = document.createElement('button');
+        doneBtn.type = 'button';
+        doneBtn.className = 'detail-action';
+        doneBtn.append(icon('check-circle'), document.createTextNode(t('sub_action_confirmed_cancelled')));
+        doneBtn.addEventListener('click', () => confirmCancelled(sub, doneBtn));
+        actions.appendChild(doneBtn);
+    }
+    page.appendChild(actions);
+    page.appendChild(buildAskAiButton(sub, 'subscription'));
+
+    detailBody.replaceChildren(page);
+    detailBody.scrollTop = 0;
 }
 
 function paintActiveSubsDetails() {
@@ -1115,8 +1443,8 @@ function paintActiveSubsDetails() {
     const split = document.createElement('div');
     split.className = 'detail-split-60-40';
     split.append(
-        buildSubPane('sub_active_top', active, 'top'),
-        buildSubPane('sub_active_bottom', pendingList, 'bottom'),
+        buildSubPane('sub_active_top', active, 'top', MOCK_ACTIVE_SUBS),
+        buildSubPane('sub_active_bottom', pendingList, 'bottom', MOCK_ACTIVE_SUBS),
     );
     detailBody.replaceChildren(split);
 }
@@ -1153,7 +1481,10 @@ function renderDetails(flag, { instant = false } = {}) {
     const isActiveSubs = flag === 'active-subs';
     if (!isEmailAudit && !isActiveSubs && !FLAG_FILTERS[flag]) return;
 
-    if (flag !== activeFlag) openIndex = null;
+    // Switching flags always drops back to the list view — the openItem
+    // belongs to the previous flag's items list and would otherwise
+    // land on the wrong row (or no row at all) under the new flag.
+    if (flag !== activeFlag) openItem = null;
     activeFlag = flag;
 
     const items = isEmailAudit
@@ -1162,14 +1493,45 @@ function renderDetails(flag, { instant = false } = {}) {
           ? MOCK_ACTIVE_SUBS
           : allFindings.filter(FLAG_FILTERS[flag]);
 
-    detailTitle.textContent = t(isEmailAudit ? 'flag_email_audit' : FLAG_TITLE_KEY[flag]);
-    detailCount.textContent = t('count_items')(items.length);
+    const inDetail = openItem !== null && openItem >= 0 && openItem < items.length;
 
-    document.querySelectorAll('[data-flag]').forEach((el) => {
+    // Mirror the detail view into the chat-context state so the next
+    // message the user sends from the chat composer carries the item's
+    // full data as context for the LLM. Cleared on flag switch / Back.
+    if (inDetail) {
+        currentDetailItem = items[openItem];
+        currentDetailKind = isEmailAudit ? 'email-audit' : isActiveSubs ? 'subscription' : 'finding';
+    } else {
+        currentDetailItem = null;
+        currentDetailKind = null;
+    }
+    renderChatContextChip();
+    // Hide the back button + count and show the item title when the
+    // user is inside a single-item detail view; the count only makes
+    // sense for the list view it now replaces.
+    detailBackBtn.hidden = !inDetail;
+    detailCount.hidden = inDetail;
+    detailTitle.textContent = inDetail
+        ? detailTitleFor(items[openItem])
+        : t(isEmailAudit ? 'flag_email_audit' : FLAG_TITLE_KEY[flag]);
+    if (!inDetail) detailCount.textContent = t('count_items')(items.length);
+
+    flagEls.forEach((el) => {
         el.classList.toggle('is-active', el.dataset.flag === flag);
     });
 
     window.clearTimeout(loadTimer);
+
+    // Detail-view branch — render exactly one item filling the body, no
+    // skeleton loader (same reason as the email-audit list view: no
+    // network flash to soften, the data is already in memory).
+    if (inDetail) {
+        const item = items[openItem];
+        if (isEmailAudit) paintEmailDetail(item);
+        else if (isActiveSubs) paintSubDetail(item);
+        else paintFindingDetail(item);
+        return;
+    }
 
     if (isEmailAudit) {
         // The email-audit view never uses the skeleton loader — the two
@@ -1197,6 +1559,14 @@ function renderDetails(flag, { instant = false } = {}) {
     loadTimer = window.setTimeout(() => paintDetails(items), 220);
 }
 
+// Title for the panel-head when the right side is showing a single
+// item. Falls back to a generic label if the item has no obvious name.
+function detailTitleFor(item) {
+    if (activeFlag === 'email-audit') return item.email_from || item.email_ref || findingTitle(item);
+    if (activeFlag === 'active-subs') return item.name || findingTitle(item);
+    return findingTitle(item);
+}
+
 // ─── Language switching ────────────────────────────
 
 function applyLang(next) {
@@ -1213,6 +1583,11 @@ function applyLang(next) {
         el.placeholder = I18N[lang][el.dataset.i18nPlaceholder];
     });
 
+    document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+        const value = I18N[lang][el.dataset.i18nAriaLabel];
+        if (typeof value === 'string') el.setAttribute('aria-label', value);
+    });
+
     langSwitch.querySelectorAll('.lang-btn').forEach((btn) => {
         btn.classList.toggle('is-active', btn.dataset.lang === lang);
     });
@@ -1221,6 +1596,7 @@ function applyLang(next) {
     renderCommandCenterCounts();
     if (activeFlag) renderDetails(activeFlag, { instant: true });
     else detailTitle.textContent = t('panel_detail');
+    renderChatContextChip();
 }
 
 langSwitch.addEventListener('click', (e) => {
@@ -1232,6 +1608,28 @@ langSwitch.addEventListener('click', (e) => {
 
 document.querySelectorAll('[data-flag]').forEach((el) => {
     el.addEventListener('click', () => renderDetails(el.dataset.flag));
+});
+
+// Back button — collapses the current single-item detail view back to
+// the list of items for the active flag. No-op if the user somehow
+// triggers it from the list view (the button is hidden there). The
+// chat-context-chip is cleared by renderDetails itself, so we don't
+// need to call renderChatContextChip here.
+detailBackBtn.addEventListener('click', () => {
+    if (!activeFlag) return;
+    openItem = null;
+    currentDetailItem = null;
+    currentDetailKind = null;
+    renderDetails(activeFlag, { instant: true });
+});
+
+// × on the chat-context-chip clears the active context without leaving
+// the detail view — the right panel keeps showing the same item, but
+// the next chat message will go to the LLM without the item context.
+chatContextChipClear.addEventListener('click', () => {
+    currentDetailItem = null;
+    currentDetailKind = null;
+    renderChatContextChip();
 });
 
 // ─── Chat — wired to POST /chat (real backend, no canned replies) ───
@@ -1267,7 +1665,17 @@ async function askAssistant(text) {
         'ai',
     );
 
-    const res = await apiPostChat(question);
+    // Attach the currently-open detail item as context if the chip is
+    // active. The backend prepends a structured summary to the user
+    // message so the LLM can answer questions about this specific item.
+    // Only `type` + `data` are needed — the backend doesn't read the
+    // active flag, and shipping extras wastes payload bytes on every
+    // chat request.
+    const contextPayload = currentDetailItem && currentDetailKind
+        ? { type: currentDetailKind, data: currentDetailItem }
+        : null;
+
+    const res = await apiPostChat(question, contextPayload);
     thinking.remove();
 
     if (res && res.response) {
@@ -1280,19 +1688,69 @@ async function askAssistant(text) {
 // Stages a note about a finding in the chat composer instead of sending
 // anything itself — the user reviews/edits it, and only the existing
 // /chat pipeline (with its own confirm-before-send flow) can act on it.
-function draftNote(f) {
-    const deadlinePart = f.dispute_deadline
-        ? lang === 'vi'
-            ? ` Hạn khiếu nại: ${f.dispute_deadline} (còn ${f.days_left} ngày).`
-            : ` Dispute deadline: ${f.dispute_deadline} (${f.days_left} days left).`
-        : '';
-    const text =
-        lang === 'vi'
-            ? `Giải thích giúp mình khoản này: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`
-            : `Explain this to me: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`;
-    chatInput.value = text;
+// Pre-fills the chat composer with a starter question about the given
+// item. Covers all three item kinds so the "Ask AI about this" button
+// inside each detail view (and the per-finding "Draft note for chat"
+// inline action) can share the same generator.
+function draftAskForItem(item, kind) {
+    let body;
+    if (kind === 'finding') {
+        const deadlinePart = item.dispute_deadline
+            ? lang === 'vi'
+                ? ` Hạn khiếu nại: ${item.dispute_deadline} (còn ${item.days_left} ngày).`
+                : ` Dispute deadline: ${item.dispute_deadline} (${item.days_left} days left).`
+            : '';
+        body = lang === 'vi'
+            ? `Giải thích giúp mình khoản này: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`
+            : `Explain this to me: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`;
+    } else if (kind === 'email-audit') {
+        const subj = item.email_subject || findingTitle(item) || '';
+        const sender = item.email_from || '';
+        const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
+        body = lang === 'vi'
+            ? `Email này có đáng lo không? "${subj}" từ ${sender}${refPart}`
+            : `Should I be concerned about this email? "${subj}" from ${sender}${refPart}`;
+    } else if (kind === 'subscription') {
+        const price = fmtCur((item.amount_cents || 0) / 100, item.currency || 'USD');
+        body = lang === 'vi'
+            ? `Tôi có nên giữ gói "${item.name}" này không? (${price}, gia hạn ${item.renewal_date || '—'})`
+            : `Should I keep this "${item.name}" subscription? (${price}, renews ${item.renewal_date || '—'})`;
+    } else {
+        body = lang === 'vi' ? `Giải thích giúp mình mục này.` : `Tell me about this item.`;
+    }
+    chatInput.value = body;
     chatInput.focus();
     chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}
+
+// Back-compat shim — the "Draft note for chat" inline action in the
+// finding meta block used to call this directly; it now shares the
+// generic draftAskForItem so all three detail views go through one
+// place.
+function draftNote(f) {
+    draftAskForItem(f, 'finding');
+}
+
+// Builds the "Ask AI about this" CTA used at the bottom of every
+// detail-page. Clicking pre-fills the chat composer with a starter
+// question AND ensures the chat-context-chip is showing so the user
+// sees the message will carry this item's data to the LLM.
+function buildAskAiButton(item, kind) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'detail-page-ask-ai';
+    btn.append(icon('chat-circle-dots'), document.createTextNode(t('detail_ask_ai')));
+    btn.addEventListener('click', () => {
+        // Make sure the context chip reflects this item even if the
+        // user previously cleared it (or came back from list view).
+        if (currentDetailItem !== item || currentDetailKind !== kind) {
+            currentDetailItem = item;
+            currentDetailKind = kind;
+            renderChatContextChip();
+        }
+        draftAskForItem(item, kind);
+    });
+    return btn;
 }
 
 chatForm.addEventListener('submit', (e) => {

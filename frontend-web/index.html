@@ -3,8 +3,8 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="Wealify Scout — AI financial review assistant for cross-border sellers" />
-        <title>Wealify Scout — AI Financial Assistant</title>
+        <meta name="description" content="Wealez — AI financial review assistant for cross-border sellers" />
+        <title>Wealez — AI Financial Assistant</title>
 
         <link
             rel="icon"
@@ -26,7 +26,7 @@
             <div class="brand">
                 <div class="brand-mark">W</div>
                 <div>
-                    <div class="brand-name">Wealify Scout</div>
+                    <div class="brand-name">Wealez</div>
                     <div class="brand-sub" data-i18n="brand_sub">AI financial review</div>
                 </div>
             </div>
@@ -78,7 +78,7 @@
 
                         <ol class="flow">
                             <li class="flow-node" data-flow="wallet">
-                                <span class="flow-label" data-i18n="flow_wallet">Wealify wallet</span>
+                                <span class="flow-label" data-i18n="flow_wallet">Wealez wallet</span>
                                 <span class="flow-value num">—</span>
                             </li>
                             <li class="flow-node" data-flow="transferred">
@@ -194,7 +194,7 @@
 
                 <div class="chat-history" id="chatHistory">
                     <div class="msg msg-ai">
-                        <div class="msg-avatar">AI</div>
+                        <div class="msg-avatar">Wz</div>
                         <div class="bubble bubble-ai" data-i18n="chat_greeting">
                             Hi! Ask me anything about your statements, subscriptions, or email cross-checks.
                         </div>
@@ -202,6 +202,20 @@
                 </div>
 
                 <div class="chat-footer">
+                    <div class="chat-context-chip" id="chatContextChip" hidden>
+                        <i class="ph ph-link chat-context-chip-icon" aria-hidden="true"></i>
+                        <span class="chat-context-chip-text" id="chatContextChipText">—</span>
+                        <button
+                            class="chat-context-chip-clear"
+                            id="chatContextChipClear"
+                            type="button"
+                            aria-label="Dismiss context"
+                            data-i18n-aria-label="context_chip_dismiss"
+                        >
+                            <i class="ph ph-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
                     <div class="chips" id="suggestionChips">
                         <button class="chip" type="button" data-i18n="chip_top3">Top 3 expenses?</button>
                         <button class="chip" type="button" data-i18n="chip_duplicate">Any duplicate charges?</button>
@@ -235,6 +249,16 @@
             <!-- ─── Right Panel: Detail View ─── -->
             <aside class="panel panel-right">
                 <div class="panel-head">
+                    <button
+                        class="panel-back"
+                        id="detailBackBtn"
+                        type="button"
+                        hidden
+                        aria-label="Back"
+                        data-i18n-aria-label="back"
+                    >
+                        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                    </button>
                     <h2 class="panel-title" id="detailTitle">Detail view</h2>
                     <span class="panel-hint num" id="detailCount"></span>
                 </div>
