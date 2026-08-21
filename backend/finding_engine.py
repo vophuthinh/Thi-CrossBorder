@@ -118,6 +118,8 @@ MERCHANT_DICT = {
     "DG_MEMBERSHIP": {"name": "DoorDash / DG Membership", "domain": "doordash.com"},
     "PLANET_FIT": {"name": "Planet Fitness", "domain": "planetfitness.com"},
     "GYMSHARK_US": {"name": "Gymshark US", "domain": "gymshark.com"},
+    "WALMART": {"name": "Walmart", "domain": "walmart.com"},
+    "TARGET": {"name": "Target", "domain": "target.com"},
 }
 
 

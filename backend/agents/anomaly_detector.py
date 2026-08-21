@@ -11,7 +11,13 @@ from typing import Any
 from config import LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT, DISPUTE_DEADLINE_DAYS
 
 
-# Known merchant explanations
+# Known merchant explanations.
+# Kept in sync by hand with finding_engine.py's MERCHANT_DICT — that file
+# uses a richer {name, domain} structure for email-domain allowlisting, so
+# the two aren't merged into one source, but any merchant recognized in one
+# must be added here too (a WALMART/TARGET gap here — and a DG_MEMBERSHIP
+# entry present there but missing here — caused the dashboard/chat to call
+# merchants "unidentified" that /findings already explained correctly).
 MERCHANT_EXPLANATIONS = {
     "AMZN MKTP": "Amazon Marketplace — mua hàng trên Amazon.com",
     "AMZN_MKTP": "Amazon Marketplace — mua hàng trên Amazon.com",
@@ -29,6 +35,9 @@ MERCHANT_EXPLANATIONS = {
     "NETFLIX_COM": "Netflix — dịch vụ xem phim trực tuyến",
     "SPOTIFY_USA": "Spotify Premium — dịch vụ nghe nhạc trực tuyến",
     "ADOBE_CLD": "Adobe Creative Cloud — bộ phần mềm thiết kế Adobe",
+    "WALMART": "Walmart — chuỗi bán lẻ Mỹ, mua sắm trực tuyến trên Walmart.com",
+    "TARGET": "Target — chuỗi bán lẻ Mỹ, mua sắm trực tuyến trên Target.com",
+    "DG MEMBERSHIP": "DoorDash DashPass / DG Membership — gói thành viên giao đồ ăn",
 }
 
 
@@ -82,11 +91,15 @@ def _detect_subscriptions(charges: list[dict[str, Any]]) -> list[dict[str, Any]]
 
         avg_interval = sum(intervals) / len(intervals) if intervals else 0
 
-        if 20 <= avg_interval <= 40:  # Monthly-ish
+        # Windows matched to finding_engine.py's THRESHOLDS["cadence_windows"]
+        # (validated there against the real dataset). The old 20-40 "monthly"
+        # window was wide enough that two unrelated purchases 40 days apart
+        # (different amounts, same merchant) got called a subscription.
+        if 27 <= avg_interval <= 33:
             frequency = "monthly"
-        elif 350 <= avg_interval <= 380:
+        elif 360 <= avg_interval <= 370:
             frequency = "yearly"
-        elif 80 <= avg_interval <= 100:
+        elif 88 <= avg_interval <= 95:
             frequency = "quarterly"
         else:
             continue
