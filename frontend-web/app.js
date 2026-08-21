@@ -26,7 +26,25 @@ const I18N = {
         flag_audit: 'Audit required',
         flag_audit_sub: '5 transactions',
 
-        block_radar: 'Subscription radar',
+        flag_email_audit: 'Email reconciliation needed',
+        flag_email_audit_sub: '8 emails',
+
+        action_add_whitelist: 'Add to whitelist',
+        action_draft_appeal: 'Draft appeal email',
+        label_days_remaining: (days) => `${days} days left`,
+
+        section_whitelist_not_found: 'Emails not yet in whitelist',
+        section_whitelist_found: 'Whitelisted emails without a matching transaction',
+
+        section_active_subs: 'Currently active',
+        section_pending_cancel: 'Awaiting cancellation',
+        action_want_cancel: 'Want to cancel renewal',
+        action_pending_cancel: 'Cancellation pending',
+        action_forgot_cancel: 'Forgot to cancel',
+        label_marked_ago: (days) => `Marked ${days} day${days === 1 ? '' : 's'} ago`,
+        label_marked_overdue: (days) => `${days} days since cancellation request`,
+
+        block_radar: 'Subscriptions',
         sub_price: 'Price increased',
         sub_active: 'Active subscriptions',
         sub_trial: 'Trials ending soon',
@@ -60,6 +78,7 @@ const I18N = {
         label_time: 'Time',
         label_status: 'Status',
         label_reason: 'Reason',
+        label_email: 'Email',
         count_items: (n) => `${n} item${n === 1 ? '' : 's'}`,
         action_draft_email: 'Draft support email',
         // Single line on purpose: a text input strips newlines.
@@ -100,7 +119,25 @@ const I18N = {
         flag_audit: 'Cần kiểm tra thủ công',
         flag_audit_sub: '5 giao dịch',
 
-        block_radar: 'Radar gói đăng ký',
+        flag_email_audit: 'Cần đối soát email',
+        flag_email_audit_sub: '8 email',
+
+        action_add_whitelist: 'Thêm vào whitelist',
+        action_draft_appeal: 'Soạn email khiếu nại',
+        label_days_remaining: (days) => `${days} ngày còn lại`,
+
+        section_whitelist_not_found: 'Email chưa có trong whitelist',
+        section_whitelist_found: 'Email trong whitelist nhưng chưa có giao dịch',
+
+        section_active_subs: 'Đang hoạt động',
+        section_pending_cancel: 'Đang chờ hủy',
+        action_want_cancel: 'Muốn dừng gia hạn',
+        action_pending_cancel: 'Đang chờ hủy',
+        action_forgot_cancel: 'Quên hủy đăng ký',
+        label_marked_ago: (days) => `Đã đánh dấu ${days} ngày trước`,
+        label_marked_overdue: (days) => `${days} ngày từ lúc yêu cầu hủy`,
+
+        block_radar: 'Các gói đăng ký',
         sub_price: 'Gói tăng giá',
         sub_active: 'Gói đang hoạt động',
         sub_trial: 'Bản dùng thử sắp hết hạn',
@@ -134,6 +171,7 @@ const I18N = {
         label_time: 'Thời gian',
         label_status: 'Trạng thái',
         label_reason: 'Lý do',
+        label_email: 'Email',
         count_items: (n) => `${n} mục`,
         action_draft_email: 'Soạn email hỗ trợ',
         // Một dòng duy nhất vì ô input sẽ bỏ ký tự xuống dòng.
@@ -229,21 +267,66 @@ const DETAIL_DATA = {
             },
         ],
     },
-    // `reason` is what unlocks the "draft support email" action on an item.
-    audit: {
-        titleKey: 'detail_audit',
+    // Email-audit: two categories — not yet in whitelist / already whitelisted with transactions
+    'email-audit': {
+        titleKey: 'flag_email_audit',
         items: [
+            // --- Type 1: Emails not in whitelist ---
             {
                 merchant: 'SP GLOBALSTORE',
                 amount: '-$132.40',
                 date: 'Oct 08',
                 alert: true,
                 warning: { en: 'Merchant never seen before', vi: 'Lần đầu xuất hiện đơn vị bán này' },
-                reason: {
-                    en: 'Unknown merchant, no receipt email, still pending after 6 days',
-                    vi: 'Không nhận diện được đơn vị bán, không có email biên lai, treo 6 ngày chưa xử lý',
-                },
+                email: 'billing@globalstore.com',
+                type: 'whitelist-not-found',
                 details: { id: 'TXN-98740', name: 'Global Store Ltd.', time: '11:06 EST', status: STATUS.pending },
+            },
+            {
+                merchant: 'BLINKIST*SUB',
+                amount: '-$89.99',
+                date: 'Oct 14',
+                alert: true,
+                warning: { en: 'No matching receipt email', vi: 'Không có email biên lai tương ứng' },
+                email: 'receipts@blinkist.com',
+                type: 'whitelist-not-found',
+                details: { id: 'TXN-99450', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.posted },
+            },
+            {
+                merchant: 'AWS EMEA',
+                amount: '-$18.22',
+                date: 'Oct 05',
+                email: 'accounting@aws.amazon.com',
+                type: 'whitelist-not-found',
+                details: { id: 'TXN-98501', name: 'Amazon Web Services', time: '06:02 EST', status: STATUS.posted },
+            },
+            {
+                merchant: 'PAYPAL *STEAM',
+                amount: '-$59.99',
+                date: 'Oct 11',
+                email: 'invoice@valve.com',
+                type: 'whitelist-not-found',
+                details: { id: 'TXN-99205', name: 'Valve Corp. via PayPal', time: '21:48 EST', status: STATUS.posted },
+            },
+            {
+                merchant: 'DIGITALOCEAN',
+                amount: '-$41.86',
+                date: 'Oct 13',
+                email: 'billing@digitalocean.com',
+                type: 'whitelist-not-found',
+                details: { id: 'TXN-99312', name: 'DigitalOcean LLC', time: '00:11 EST', status: STATUS.posted },
+            },
+            // --- Type 2: Whitelisted emails with matching transactions ---
+            {
+                merchant: 'WEALIFY TOPUP',
+                amount: '-$50.05',
+                date: 'Oct 09',
+                alert: true,
+                warning: { en: 'Left the account, never reached the card', vi: 'Đã rời tài khoản nhưng chưa lên thẻ' },
+                email: 'support@wealify.com',
+                statementDate: 'Oct 15',
+                type: 'whitelist-found',
+                details: { id: 'TXN-98655', name: 'Wealify Wallet', time: '16:41 EST', status: STATUS.pending },
             },
             {
                 merchant: 'Apple.com/bill',
@@ -251,45 +334,19 @@ const DETAIL_DATA = {
                 date: 'Oct 12',
                 alert: true,
                 warning: { en: 'Charged twice within 61 seconds', vi: 'Bị thu hai lần cách nhau 61 giây' },
-                reason: {
-                    en: 'Identical amount billed twice on the same day (TXN-99123 and TXN-99124)',
-                    vi: 'Cùng số tiền bị thu hai lần trong cùng ngày (TXN-99123 và TXN-99124)',
-                },
+                email: 'itunes-apple@invoice.apple.com',
+                statementDate: 'Oct 20',
+                type: 'whitelist-found',
                 details: { id: 'TXN-99124', name: 'Apple Services', time: '14:33 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'BLINKIST*SUB',
-                amount: '-$89.99',
-                date: 'Oct 14',
-                alert: true,
-                warning: { en: 'Renewed after cancellation request', vi: 'Vẫn gia hạn sau khi đã yêu cầu huỷ' },
-                reason: {
-                    en: 'Annual plan renewed although cancellation was requested on Sep 28',
-                    vi: 'Gói năm vẫn gia hạn dù đã yêu cầu huỷ ngày 28 Thg 9',
-                },
-                details: { id: 'TXN-99450', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.posted },
-            },
-            {
-                merchant: 'WEALIFY TOPUP',
-                amount: '-$50.05',
-                date: 'Oct 09',
-                alert: true,
-                warning: { en: 'Left the account, never reached the card', vi: 'Đã rời tài khoản nhưng chưa lên thẻ' },
-                reason: {
-                    en: 'Top-up debited from the bank account but missing from the card statement',
-                    vi: 'Tiền nạp đã trừ ở tài khoản ngân hàng nhưng không có trên sao kê thẻ',
-                },
-                details: { id: 'TXN-98655', name: 'Wealify Wallet', time: '16:41 EST', status: STATUS.pending },
             },
             {
                 merchant: 'Netflix Premium',
                 amount: '-$22.99',
                 date: 'Oct 07',
                 warning: { en: 'Price changed without notice', vi: 'Tăng giá không báo trước' },
-                reason: {
-                    en: 'Monthly price rose from $19.99 to $22.99 with no advance notice email',
-                    vi: 'Giá hàng tháng tăng từ $19.99 lên $22.99 mà không có email báo trước',
-                },
+                email: 'membership@netflix.com',
+                statementDate: 'Oct 12',
+                type: 'whitelist-found',
                 details: { id: 'TXN-98620', name: 'Netflix Inc.', time: '02:17 EST', status: STATUS.recurring },
             },
         ],
@@ -337,28 +394,36 @@ const DETAIL_DATA = {
                 details: { id: 'SUB-1003', name: 'Spotify AB', time: '19:23 EST', status: STATUS.recurring },
             },
             {
-                merchant: 'Canva Pro',
-                amount: '-$12.99',
-                date: { en: 'Monthly', vi: 'Hàng tháng' },
-                details: { id: 'SUB-1004', name: 'Canva Pty Ltd', time: '05:34 EST', status: STATUS.recurring },
-            },
-            {
                 merchant: 'iCloud+ 2TB',
                 amount: '-$9.99',
                 date: { en: 'Monthly', vi: 'Hàng tháng' },
                 details: { id: 'SUB-1005', name: 'Apple Services', time: '14:32 EST', status: STATUS.recurring },
+            },
+            // Marked for cancellation — recent (< 30 days): neutral pending state
+            {
+                merchant: 'Canva Pro',
+                amount: '-$12.99',
+                date: { en: 'Monthly', vi: 'Hàng tháng' },
+                details: { id: 'SUB-1004', name: 'Canva Pty Ltd', time: '05:34 EST', status: STATUS.recurring },
+                markedForCancel: true,
+                markedAt: '2026-08-01',
             },
             {
                 merchant: 'Blinkist Premium',
                 amount: '-$89.99',
                 date: { en: 'Yearly', vi: 'Hàng năm' },
                 details: { id: 'SUB-1006', name: 'Blinkist GmbH', time: '03:07 EST', status: STATUS.recurring },
+                markedForCancel: true,
+                markedAt: '2026-08-15',
             },
+            // Marked for cancellation — overdue (> 30 days): red "Forgot to cancel" state
             {
                 merchant: 'DigitalOcean',
                 amount: '-$41.86',
                 date: { en: 'Monthly', vi: 'Hàng tháng' },
                 details: { id: 'SUB-1007', name: 'DigitalOcean LLC', time: '00:11 EST', status: STATUS.recurring },
+                markedForCancel: true,
+                markedAt: '2026-07-01',
             },
         ],
     },
@@ -439,6 +504,11 @@ function buildMetaRow(list, labelKey, value) {
 function buildDetailItem(item, index) {
     const row = document.createElement('article');
     row.className = 'detail-item';
+
+    // Overdue: marked-for-cancel + more than 30 days ago
+    const isOverdue = item.markedForCancel && daysSinceMarked(item.markedAt) > 30;
+    if (isOverdue) row.classList.add('is-overdue');
+
     if (openIndex === index) row.classList.add('is-open');
     row.style.setProperty('--i', String(index));
 
@@ -493,6 +563,7 @@ function buildDetailItem(item, index) {
     buildMetaRow(meta, 'label_time', item.details.time);
     buildMetaRow(meta, 'label_status', loc(item.details.status));
     if (item.reason) buildMetaRow(meta, 'label_reason', loc(item.reason));
+    if (item.email) buildMetaRow(meta, 'label_email', item.email);
 
     inner.appendChild(meta);
 
@@ -504,6 +575,58 @@ function buildDetailItem(item, index) {
         label.textContent = t('action_draft_email');
         action.append(icon('envelope-simple'), label);
         action.addEventListener('click', () => draftSupportEmail(item));
+        inner.appendChild(action);
+    } else if (item.type === 'whitelist-not-found') {
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'detail-action';
+        const label = document.createElement('span');
+        label.textContent = t('action_add_whitelist');
+        action.append(icon('check-circle'), label);
+        action.addEventListener('click', () => addToWhitelist(item));
+        inner.appendChild(action);
+    } else if (item.type === 'whitelist-found') {
+        const countDown = document.createElement('div');
+        countDown.className = 'email-countdown';
+        const days = getDaysRemaining(item.date, item.statementDate);
+        const countBadge = document.createElement('span');
+        countBadge.className = 'email-countdown-badge' + (days <= 15 ? ' is-expiring' : '');
+        countBadge.textContent = t('label_days_remaining')(days);
+        countDown.append(icon('hourglass-half'), countBadge);
+
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'detail-action';
+        const label = document.createElement('span');
+        label.textContent = t('action_draft_appeal');
+        action.append(icon('envelope-simple'), label);
+        action.addEventListener('click', () => draftAppealEmail(item));
+        inner.append(countDown, action);
+    } else if (item.markedForCancel) {
+        const days = daysSinceMarked(item.markedAt);
+        const status = document.createElement('div');
+        status.className = 'cancel-status' + (isOverdue ? ' is-overdue' : '');
+
+        const badge = document.createElement('span');
+        badge.className = 'cancel-status-badge';
+        badge.textContent = isOverdue ? t('action_forgot_cancel') : t('action_pending_cancel');
+
+        const meta = document.createElement('span');
+        meta.className = 'cancel-status-days';
+        meta.textContent = isOverdue
+            ? t('label_marked_overdue')(days)
+            : t('label_marked_ago')(days);
+
+        status.append(badge, meta);
+        inner.appendChild(status);
+    } else {
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'detail-action';
+        const label = document.createElement('span');
+        label.textContent = t('action_want_cancel');
+        action.append(icon('x-circle'), label);
+        action.addEventListener('click', () => markForCancellation(item));
         inner.appendChild(action);
     }
 
@@ -573,12 +696,167 @@ function renderDetails(flag, { instant = false } = {}) {
     window.clearTimeout(loadTimer);
 
     if (instant) {
-        paintDetails(data);
+        if (flag === 'email-audit') {
+            renderEmailAudit(data);
+        } else if (flag === 'active-subs') {
+            renderActiveSubs(data);
+        } else {
+            paintDetails(data);
+        }
         return;
     }
 
     showSkeleton(Math.min(data.items.length, 4));
-    loadTimer = window.setTimeout(() => paintDetails(data), 220);
+    loadTimer = window.setTimeout(() => {
+        if (flag === 'email-audit') {
+            renderEmailAudit(data);
+        } else if (flag === 'active-subs') {
+            renderActiveSubs(data);
+        } else {
+            paintDetails(data);
+        }
+    }, 220);
+}
+
+// ─── Email-audit renderer ──────────────────────────
+
+function renderEmailAudit(data) {
+    const notFound = data.items.filter((i) => i.type === 'whitelist-not-found');
+    const found = data.items.filter((i) => i.type === 'whitelist-found');
+    const wrap = document.createElement('div');
+    wrap.className = 'detail-split';
+
+    if (notFound.length) {
+        wrap.appendChild(buildSplitSection(t('section_whitelist_not_found'), notFound));
+    }
+
+    if (found.length) {
+        wrap.appendChild(buildSplitSection(t('section_whitelist_found'), found));
+    }
+
+    detailBody.replaceChildren(wrap);
+}
+
+function buildSplitSection(title, items) {
+    const section = document.createElement('section');
+    section.className = 'detail-split-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.textContent = title;
+    section.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'detail-split-body';
+    items.forEach((item, idx) => body.appendChild(buildDetailItem(item, idx)));
+    section.appendChild(body);
+
+    return section;
+}
+
+// ─── Active-subs renderer (70/30 split) ────────────
+
+function renderActiveSubs(data) {
+    const active = data.items.filter((i) => !i.markedForCancel);
+    const pending = data.items.filter((i) => i.markedForCancel);
+    const wrap = document.createElement('div');
+    wrap.className = 'detail-split subs-split';
+
+    if (active.length) {
+        wrap.appendChild(buildSubSplitSection(t('section_active_subs'), active, 'top'));
+    }
+
+    if (pending.length) {
+        wrap.appendChild(buildSubSplitSection(t('section_pending_cancel'), pending, 'bottom'));
+    }
+
+    detailBody.replaceChildren(wrap);
+}
+
+function buildSubSplitSection(title, items, position) {
+    const section = document.createElement('section');
+    section.className = `detail-split-section subs-split-section subs-split-${position}`;
+
+    const header = document.createElement('div');
+    header.className = 'section-header';
+    header.textContent = title;
+    section.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'detail-split-body';
+    items.forEach((item, idx) => body.appendChild(buildDetailItem(item, idx)));
+    section.appendChild(body);
+
+    return section;
+}
+
+function markForCancellation(item) {
+    // TODO: wire to backend — locally toggle and re-render
+    item.markedForCancel = true;
+    item.markedAt = new Date().toISOString().slice(0, 10);
+    openIndex = null;
+    if (activeFlag === 'active-subs') {
+        renderActiveSubs(DETAIL_DATA['active-subs']);
+    }
+}
+
+// ─── Helper: count down days from 60-day window ─────
+
+function getDaysRemaining(txnDateStr, statementDateStr) {
+    const statement = parseMonthDate(statementDateStr);
+    const txn = parseMonthDate(txnDateStr);
+    const windowEnd = new Date(statement);
+    windowEnd.setDate(windowEnd.getDate() + 60);
+    const diff = windowEnd - txn;
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function daysSinceMarked(isoDateStr) {
+    const marked = new Date(isoDateStr);
+    if (isNaN(marked)) return 0;
+    const now = new Date();
+    const diff = now - marked;
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function parseMonthDate(str) {
+    const months = {
+        jan: 0,
+        feb: 1,
+        mar: 2,
+        apr: 3,
+        may: 4,
+        jun: 5,
+        jul: 6,
+        aug: 7,
+        aug: 7,
+        sep: 8,
+        oct: 9,
+        nov: 10,
+        dec: 11,
+    };
+    const match = str.match(/^([A-Za-z]+)\s+(\d{1,2})$/);
+    if (!match) return new Date();
+    const m = months[match[1].toLowerCase()];
+    if (m === undefined) return new Date();
+    return new Date(2025, m, parseInt(match[2], 10));
+}
+
+// ─── Email-audit actions ───────────────────────────
+
+function addToWhitelist(item) {
+    // TODO: call backend API to add email to whitelist
+    // For now, show a quick confirmation in the chat
+    appendMessage(`Đã thêm ${item.email} vào whitelist.`, 'user');
+    window.setTimeout(() => appendMessage('Email đã được thêm thành công.', 'ai'), 450);
+}
+
+function draftAppealEmail(item) {
+    const prompt =
+        `Tôi có một giao dịch với email ${item.email} (${item.merchant}, ${item.amount}, ngày ${item.date}, ` +
+        `mã ${item.details.id}), nhưng bên Wealify chưa có giao dịch tương ứng. ` +
+        `Đề nghị đội support hỗ trợ làm rõ.`;
+    askAssistant(prompt);
 }
 
 // ─── Language switching ────────────────────────────
@@ -645,11 +923,9 @@ function askAssistant(text) {
     window.setTimeout(() => appendMessage(t('ai_reply'), 'ai'), 450);
 }
 
-// Stages the prompt in the composer instead of sending it, so the user reviews it first.
+// Sends the draft prompt directly to the chatbot.
 function draftSupportEmail(item) {
-    chatInput.value = t('prompt_draft_email')(item);
-    chatInput.focus();
-    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+    askAssistant(t('prompt_draft_email')(item));
 }
 
 chatForm.addEventListener('submit', (e) => {

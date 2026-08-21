@@ -742,6 +742,95 @@ ol {
     border-top: 1px solid var(--line);
 }
 
+/* Section headers between whitelist categories */
+.section-header {
+    padding: 12px 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+}
+
+/* Split layout: two equal-height halves, each scrolls independently */
+.detail-split {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.detail-split-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 50%;
+    min-height: 0;
+    border-top: 1px solid var(--line);
+}
+
+.detail-split-section:first-child {
+    border-top: 0;
+}
+
+.detail-split-section .section-header {
+    flex: 0 0 auto;
+}
+
+.detail-split-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Sub split: top section 70%, bottom section 30% */
+.subs-split-top {
+    flex: 7 1 70%;
+}
+
+.subs-split-bottom {
+    flex: 3 1 30%;
+}
+
+/* Overdue state — red border around the item */
+.detail-item.is-overdue {
+    background: var(--red-bg);
+    box-shadow: inset 0 0 0 1px var(--red-fg);
+}
+
+.detail-item.is-overdue .detail-merchant {
+    color: var(--red-fg);
+}
+
+/* Cancellation status badge */
+.cancel-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 2px 14px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.cancel-status-badge {
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: var(--caution-bg);
+    color: var(--caution-fg);
+}
+
+.cancel-status.is-overdue .cancel-status-badge {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.cancel-status-days {
+    font-variant-numeric: tabular-nums;
+}
+
 .detail-item {
     border-bottom: 1px solid var(--line);
     animation: rise 420ms var(--ease) both;
@@ -892,6 +981,43 @@ ol {
 
 .detail-action:active {
     transform: scale(0.98);
+}
+
+/* Email countdown badge */
+.email-countdown {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 2px 10px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.email-countdown i {
+    font-size: 13px;
+    color: var(--caution-fg);
+}
+
+.email-countdown.is-expiring i {
+    color: var(--red-fg);
+}
+
+.email-countdown-badge {
+    padding: 1px 8px;
+    border-radius: var(--r-sm);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.email-countdown-badge:not(.is-expiring) {
+    background: var(--caution-bg);
+    color: var(--caution-fg);
+}
+
+.email-countdown-badge.is-expiring {
+    background: var(--red-bg);
+    color: var(--red-fg);
 }
 
 /* Skeleton loader — matches the row shape */
