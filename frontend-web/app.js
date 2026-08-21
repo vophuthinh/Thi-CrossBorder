@@ -13,7 +13,8 @@ const i18n = {
     nav_findings: 'Findings', btn_scan: 'Rà soát định kỳ', btn_export: 'Xuất nhật ký',
     btn_refresh: 'Làm mới dữ liệu', btn_send: 'Gửi',
     hero_subtitle: 'AI Dashboard soi sao kê · Quản lý chi tiêu & An toàn giao dịch cho Seller Cross-Border',
-    metric_income: 'TỔNG TIỀN VÀO', metric_spending: 'TỔNG CHI TIÊU', metric_fees: 'TỔNG PHÍ',
+    metric_income: 'HOÀN TIỀN', metric_spending: 'TỔNG CHI TIÊU', metric_fees: 'TỔNG PHÍ',
+    metric_wallet: 'SỐ DƯ VÍ (WEALIFY)',
     disclaimer: '⚠️ Công cụ này chỉ hỗ trợ bạn rà soát tài chính. Kết quả để tham khảo, không phải kết luận chính thức của Wealify và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ngay — ở Mỹ thời hạn khiếu nại là 60 ngày kể từ ngày ngân hàng gửi sao kê.',
     chat_placeholder: 'Nhập câu hỏi...',
     quick_btns: [
@@ -31,7 +32,8 @@ const i18n = {
     nav_findings: 'Findings', btn_scan: 'Scheduled Scan', btn_export: 'Export Audit Log',
     btn_refresh: 'Refresh Data', btn_send: 'Send',
     hero_subtitle: 'AI Statement Scanner · Expense Management & Transaction Safety for Cross-Border Sellers',
-    metric_income: 'TOTAL INCOME', metric_spending: 'TOTAL SPENDING', metric_fees: 'TOTAL FEES',
+    metric_income: 'REFUNDS', metric_spending: 'TOTAL SPENDING', metric_fees: 'TOTAL FEES',
+    metric_wallet: 'WALLET BALANCE (WEALIFY)',
     disclaimer: '⚠️ This tool assists you in reviewing finances. Results are for reference only, not official Wealify conclusions. If you spot suspicious transactions, contact support — in the US, the dispute deadline is 60 days from statement date.',
     chat_placeholder: 'Ask a question...',
     quick_btns: [
@@ -90,6 +92,16 @@ function setLang(l) {
 
 // ─── Format Helpers ───────────────────────────────
 const fmt = (n) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Live statement mixes currencies (VND payin, USD/EUR card spend) — the
+// backend groups summary/top3/monthly by currency instead of summing them
+// together (which would be meaningless without a fake conversion rate).
+const CURRENCY_SYMBOLS = { USD: '$', EUR: '€' };
+// VND on Wealify's own site reads "274,436,000 VND" — no decimals, code as
+// a suffix, not a symbol prefix — matched exactly so this number is
+// directly comparable to what's on the real page.
+const fmtCur = (n, currency) => currency === 'VND'
+  ? `${Math.round(Math.abs(n)).toLocaleString('en-US')} VND`
+  : `${CURRENCY_SYMBOLS[currency] || currency + ' '}${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function labelBadge(label) {
   const map = {
@@ -107,7 +119,7 @@ function severityClass(rank) {
 
 // ─── Load Dashboard Data ──────────────────────────
 async function loadAll() {
-  const [health, overview, risk, anomalies, recon, emailsData, report, findings, txns] = await Promise.all([
+  const [health, overview, risk, anomalies, recon, emailsData, report, findings, txns, wallet] = await Promise.all([
     apiGet('/health'),
     apiGet('/dashboard/overview'),
     apiGet('/dashboard/risk-score'),
@@ -117,15 +129,16 @@ async function loadAll() {
     apiGet('/dashboard/report'),
     apiGet('/findings'),
     apiGet('/dashboard/transactions'),
+    apiGet('/dashboard/wallet'),
   ]);
   const emails = emailsData ? emailsData.matches : [];
-  dashboardData = { health, overview, risk, anomalies, recon, emails, report, findings, txns };
+  dashboardData = { health, overview, risk, anomalies, recon, emails, report, findings, txns, wallet };
 
   // Update status dot
   const dot = document.querySelector('.status-dot');
   dot.className = `status-dot ${health ? 'online' : 'offline'}`;
 
-  renderMetrics(overview, risk);
+  renderMetrics(overview, risk, report, wallet);
   renderOverview(overview, report, anomalies);
   renderReconcile(recon, emails);
   renderSafety(anomalies);
@@ -133,12 +146,40 @@ async function loadAll() {
 }
 
 // ─── Render Metrics ───────────────────────────────
-function renderMetrics(overview, risk) {
+function renderMetrics(overview, risk, report, wallet) {
   if (!overview) return;
-  const s = overview.summary;
-  document.getElementById('metricIncome').textContent = fmt(s['Tổng tiền vào'] || s['Total income'] || 0);
-  document.getElementById('metricSpending').textContent = fmt(s['Tổng chi tiêu'] || s['Total spending'] || 0);
-  document.getElementById('metricFees').textContent = fmt(s['Tổng phí'] || s['Total fees'] || 0);
+  // overview.summary is {currency: {label: value}} — each currency gets its
+  // own line (never summed together, which would need a fake FX rate).
+  const summaryByCurrency = overview.summary || {};
+  const pick = (group, viKey, enKey) => (group[viKey] ?? group[enKey] ?? 0);
+  const stackAcrossCurrencies = (viKey, enKey) => {
+    const entries = Object.entries(summaryByCurrency);
+    if (!entries.length) return fmt(0);
+    return entries
+      .map(([currency, group]) => {
+        const amount = fmtCur(pick(group, viKey, enKey), currency);
+        // Wealify web format: "$12,555.56" / "€1,421.39" / "274,436,000 VND"
+        // — no redundant ISO prefix when symbol is already present.
+        return `<span class="cur-line">${amount}</span>`;
+      })
+      .join('');
+  };
+
+  document.getElementById('metricIncome').innerHTML = stackAcrossCurrencies('Tổng tiền vào', 'Total Income');
+  document.getElementById('metricSpending').innerHTML = stackAcrossCurrencies('Tổng chi tiêu', 'Total Spending');
+  document.getElementById('metricFees').innerHTML = stackAcrossCurrencies('Tổng phí', 'Total Fees');
+  // The one figure that's directly verifiable against the real Wealify
+  // site (confirmed against a live screenshot) is the wallet balance —
+  // show it plainly so there's always a number on this dashboard that
+  // matches Wealify's own page.
+  const walletEl = document.getElementById('metricWallet');
+  if (walletEl) {
+    if (wallet && typeof wallet.wallet_balance === 'number') {
+      walletEl.textContent = fmtCur(wallet.wallet_balance, wallet.currency || 'VND');
+    } else {
+      walletEl.textContent = '—';
+    }
+  }
 
   if (risk) {
     const score = risk.total_score || 0;
@@ -153,74 +194,89 @@ function renderOverview(overview, report, anomalies) {
   if (!overview) return;
   const el = document.getElementById('tab-overview');
 
-  // Top 3
-  const top3 = overview.top3_largest || [];
+  // Top 3 — per currency (top3_largest is {currency: [...]})
+  const top3ByCurrency = overview.top3_largest || {};
   const medals = ['🥇', '🥈', '🥉'];
   let top3Html = '<div class="section"><div class="section-header"><span class="section-icon">🏆</span>' +
-    (lang === 'vi' ? 'Top 3 khoản lớn nhất' : 'Top 3 Largest Charges') + '</div><div class="grid-3">';
-  top3.forEach((t, i) => {
-    top3Html += `<div class="top3-card">
-      <div class="top3-medal">${medals[i]}</div>
-      <div class="top3-desc">${t.description}</div>
-      <div class="top3-amount">${fmt(t.amount)}</div>
-      <div class="top3-date">📅 ${t.date}</div>
-    </div>`;
-  });
-  top3Html += '</div></div>';
-
-  // Monthly Breakdown Chart (simple bar chart)
-  const monthly = overview.monthly_breakdown || {};
-  let chartHtml = '<div class="section"><div class="section-header"><span class="section-icon">📅</span>' +
-    (lang === 'vi' ? 'Chi tiêu theo tháng' : 'Monthly Spending') + '</div><div class="card"><div class="risk-breakdown">';
-  const maxSpend = Math.max(...Object.values(monthly).map(m => m.spending || 0), 1);
-  for (const [month, data] of Object.entries(monthly).sort()) {
-    const pct = ((data.spending || 0) / maxSpend * 100).toFixed(0);
-    chartHtml += `<div class="risk-bar-container">
-      <span class="risk-bar-label">${month}</span>
-      <div class="risk-bar-track"><div class="risk-bar-fill warning" style="width:${pct}%"></div></div>
-      <span class="risk-bar-value">${fmt(data.spending || 0)}</span>
-    </div>`;
+    (lang === 'vi' ? 'Top 3 khoản lớn nhất' : 'Top 3 Largest Charges') + '</div>';
+  for (const [currency, top3] of Object.entries(top3ByCurrency)) {
+    if (!top3.length) continue;
+    top3Html += `<div class="finding-meta" style="margin:8px 0 4px">[${currency}]</div><div class="grid-3">`;
+    top3.forEach((t, i) => {
+      top3Html += `<div class="top3-card">
+        <div class="top3-medal">${medals[i]}</div>
+        <div class="top3-desc">${t.description}</div>
+        <div class="top3-amount">${fmtCur(t.amount, currency)}</div>
+        <div class="top3-date">📅 ${t.date}</div>
+      </div>`;
+    });
+    top3Html += '</div>';
   }
-  chartHtml += '</div></div></div>';
+  top3Html += '</div>';
 
-  // Quarterly & Yearly
+  // Monthly Breakdown Chart — per currency (monthly_breakdown is {currency: {month: {...}}})
+  const monthlyByCurrency = overview.monthly_breakdown || {};
+  let chartHtml = '<div class="section"><div class="section-header"><span class="section-icon">📅</span>' +
+    (lang === 'vi' ? 'Chi tiêu theo tháng' : 'Monthly Spending') + '</div>';
+  for (const [currency, monthly] of Object.entries(monthlyByCurrency)) {
+    const maxSpend = Math.max(...Object.values(monthly).map(m => m.spending || 0), 1);
+    chartHtml += `<div class="card"><div class="finding-meta" style="margin-bottom:4px">[${currency}]</div><div class="risk-breakdown">`;
+    for (const [month, data] of Object.entries(monthly).sort()) {
+      const pct = ((data.spending || 0) / maxSpend * 100).toFixed(0);
+      chartHtml += `<div class="risk-bar-container">
+        <span class="risk-bar-label">${month}</span>
+        <div class="risk-bar-track"><div class="risk-bar-fill warning" style="width:${pct}%"></div></div>
+        <span class="risk-bar-value">${fmtCur(data.spending || 0, currency)}</span>
+      </div>`;
+    }
+    chartHtml += '</div></div>';
+  }
+  chartHtml += '</div>';
+
+  // Quarterly & Yearly — per currency (quarterly_breakdown/yearly_breakdown are {currency: {period: {...}}})
   let qyHtml = '';
   if (report) {
-    const quarterly = report.quarterly_breakdown || {};
-    const yearly = report.yearly_breakdown || {};
+    const quarterlyByCurrency = report.quarterly_breakdown || {};
+    const yearlyByCurrency = report.yearly_breakdown || {};
     qyHtml = '<div class="grid-2">';
 
     // Quarterly
     qyHtml += '<div class="section"><div class="section-header"><span class="section-icon">📅</span>' +
       (lang === 'vi' ? 'Báo cáo quý' : 'Quarterly Report') + '</div>';
-    for (const [q, d] of Object.entries(quarterly).sort()) {
-      const netColor = d.net >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-      qyHtml += `<div class="finding-item info" style="margin-bottom:8px">
-        <div class="finding-title">${q}</div>
-        <div class="finding-detail" style="display:flex;gap:14px;margin-top:6px">
-          <span style="color:var(--accent-green)">Thu: ${fmt(d.income)}</span>
-          <span style="color:var(--accent-red)">Chi: ${fmt(d.spending)}</span>
-          <span style="color:var(--accent-yellow)">Phí: ${fmt(d.fees)}</span>
-          <span style="color:${netColor};font-weight:700">Ròng: ${fmt(d.net)}</span>
-        </div>
-      </div>`;
+    for (const [currency, quarterly] of Object.entries(quarterlyByCurrency)) {
+      qyHtml += `<div class="finding-meta" style="margin:6px 0 4px">[${currency}]</div>`;
+      for (const [q, d] of Object.entries(quarterly).sort()) {
+        const netColor = d.net >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+        qyHtml += `<div class="finding-item info" style="margin-bottom:8px">
+          <div class="finding-title">${q}</div>
+          <div class="finding-detail" style="display:flex;gap:14px;margin-top:6px">
+            <span style="color:var(--accent-green)">Thu: ${fmtCur(d.income, currency)}</span>
+            <span style="color:var(--accent-red)">Chi: ${fmtCur(d.spending, currency)}</span>
+            <span style="color:var(--accent-yellow)">Phí: ${fmtCur(d.fees, currency)}</span>
+            <span style="color:${netColor};font-weight:700">Ròng: ${fmtCur(d.net, currency)}</span>
+          </div>
+        </div>`;
+      }
     }
     qyHtml += '</div>';
 
     // Yearly
     qyHtml += '<div class="section"><div class="section-header"><span class="section-icon">📆</span>' +
       (lang === 'vi' ? 'Báo cáo năm' : 'Yearly Report') + '</div>';
-    for (const [y, d] of Object.entries(yearly).sort()) {
-      const netColor = d.net >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-      qyHtml += `<div class="finding-item info" style="margin-bottom:8px">
-        <div class="finding-title">${y}</div>
-        <div class="finding-detail" style="display:flex;gap:14px;margin-top:6px">
-          <span style="color:var(--accent-green)">Thu: ${fmt(d.income)}</span>
-          <span style="color:var(--accent-red)">Chi: ${fmt(d.spending)}</span>
-          <span style="color:var(--accent-yellow)">Phí: ${fmt(d.fees)}</span>
-          <span style="color:${netColor};font-weight:700">Ròng: ${fmt(d.net)}</span>
-        </div>
-      </div>`;
+    for (const [currency, yearly] of Object.entries(yearlyByCurrency)) {
+      qyHtml += `<div class="finding-meta" style="margin:6px 0 4px">[${currency}]</div>`;
+      for (const [y, d] of Object.entries(yearly).sort()) {
+        const netColor = d.net >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+        qyHtml += `<div class="finding-item info" style="margin-bottom:8px">
+          <div class="finding-title">${y}</div>
+          <div class="finding-detail" style="display:flex;gap:14px;margin-top:6px">
+            <span style="color:var(--accent-green)">Thu: ${fmtCur(d.income, currency)}</span>
+            <span style="color:var(--accent-red)">Chi: ${fmtCur(d.spending, currency)}</span>
+            <span style="color:var(--accent-yellow)">Phí: ${fmtCur(d.fees, currency)}</span>
+            <span style="color:${netColor};font-weight:700">Ròng: ${fmtCur(d.net, currency)}</span>
+          </div>
+        </div>`;
+      }
     }
     qyHtml += '</div></div>';
   }
@@ -478,7 +534,11 @@ async function sendChat() {
   const typing = document.createElement('div');
   typing.id = typingId;
   typing.className = 'chat-msg bot';
-  typing.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> ...';
+  // A "..." spinner for up to ~18s (real DeepSeek reasoning-model latency
+  // for complex questions) reads as stuck — a short status line makes it
+  // clear it's still actively working.
+  const thinkingText = lang === 'vi' ? 'Đang phân tích...' : 'Analyzing...';
+  typing.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> ${thinkingText}`;
   msgsEl.appendChild(typing);
   msgsEl.scrollTop = msgsEl.scrollHeight;
 

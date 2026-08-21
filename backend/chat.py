@@ -24,7 +24,73 @@ from agents.report_generator import generate_report
 from agents.email_drafter import draft_report_email, draft_dispute_reminder_email
 from agents.risk_scorer import calculate_risk_score
 
-from config import LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT, BYTEPLUS_API_KEY
+from config import (
+    LABEL_CONFIRMED, LABEL_NEEDS_REVIEW, LABEL_INSUFFICIENT,
+    LABEL_CONFIRMED_EN, LABEL_NEEDS_REVIEW_EN, LABEL_INSUFFICIENT_EN,
+    BYTEPLUS_API_KEY, CURRENCY_SYMBOLS,
+)
+
+# anomaly_detector.py's finding dicts carry the label as a raw Vietnamese
+# string (config.py's canonical value, used for internal comparisons like
+# `s["label"] == LABEL_CONFIRMED`) — unlike finding_schema.py's findings,
+# there's no separate label_vi/label_en pair here, so displaying it in
+# English mode needs an explicit translation, not just printing it as-is.
+_LABEL_EN = {
+    LABEL_CONFIRMED: LABEL_CONFIRMED_EN,
+    LABEL_NEEDS_REVIEW: LABEL_NEEDS_REVIEW_EN,
+    LABEL_INSUFFICIENT: LABEL_INSUFFICIENT_EN,
+}
+
+
+def _label_text(label: str, lang: str) -> str:
+    return _LABEL_EN.get(label, label) if lang == "en" else label
+
+
+# Short, natural replies for greetings/small talk — kept separate from the
+# capability-list fallback (below in _handle_general) so a plain "xin chào"
+# doesn't get the exact same wall of bullet points as every other
+# unmatched message. Only fires on short messages so it doesn't swallow a
+# real question that happens to start with a greeting word.
+_GREETING_KEYWORDS = ["chào", "hi", "hello", "hey", "alo"]
+_THANKS_KEYWORDS = ["cảm ơn", "cám ơn", "thanks", "thank you"]
+_IDENTITY_KEYWORDS = ["bạn tên gì", "bạn là ai", "who are you", "your name"]
+_WELLBEING_KEYWORDS = ["khoẻ không", "khỏe không", "how are you"]
+
+
+def _greeting_reply(message: str, lang: str) -> str | None:
+    lower = message.lower().strip()
+    if len(lower) > 30:
+        return None
+
+    if any(p in lower for p in _IDENTITY_KEYWORDS):
+        return (
+            "Mình là trợ lý rà soát tài chính Wealify — đọc sao kê, đối chiếu email, "
+            "phát hiện bất thường trong tài khoản của bạn. Hỏi mình bất kỳ điều gì nhé!"
+            if lang == "vi" else
+            "I'm the Wealify financial review assistant — I read statements, cross-check "
+            "emails, and flag anomalies on your account. Ask me anything!"
+        )
+    if any(p in lower for p in _WELLBEING_KEYWORDS):
+        return (
+            "Mình ổn, cảm ơn bạn! Bạn muốn mình kiểm tra gì trên tài khoản không?"
+            if lang == "vi" else
+            "I'm doing well, thanks for asking! Anything you'd like me to check?"
+        )
+    if any(p in lower for p in _THANKS_KEYWORDS):
+        return (
+            "Không có gì! Cần kiểm tra thêm gì cứ hỏi mình nhé." if lang == "vi"
+            else "You're welcome! Let me know if there's anything else to check."
+        )
+    if any(p in lower for p in _GREETING_KEYWORDS):
+        return (
+            "Chào bạn! Mình có thể giúp rà soát sao kê, đối chiếu email, gói đăng ký, "
+            "khoản bất thường... Bạn muốn kiểm tra gì?"
+            if lang == "vi" else
+            "Hello! I can help review statements, cross-check emails, subscriptions, "
+            "anomalies... What would you like to check?"
+        )
+    return None
+
 
 # Use double newline for Streamlit markdown rendering
 NL = "\n\n"
@@ -258,56 +324,74 @@ class ChatOrchestrator:
         analysis = self._get_statement_analysis(lang)
         anomalies = self._get_anomalies(lang)
         report = generate_report(analysis, anomalies, lang)
-        summary = analysis["summary"]
-        top3 = analysis["top3_largest"]
-        monthly = analysis["monthly_breakdown"]
-        quarterly = report.get("quarterly_breakdown", {})
-        yearly = report.get("yearly_breakdown", {})
+        # summary/top3/monthly are {currency: ...} — statement mixes VND/USD/EUR
+        # with no conversion, so each currency is reported separately.
+        summary_by_currency = analysis["summary"]
+        top3_by_currency = analysis["top3_largest"]
+        monthly_by_currency = analysis["monthly_breakdown"]
+        quarterly_by_currency = report.get("quarterly_breakdown", {})
+        yearly_by_currency = report.get("yearly_breakdown", {})
+        currencies = summary_by_currency.keys()
 
         if lang == "en":
             parts = ["📊 **Account Overview**"]
-            for k, v in summary.items():
-                parts.append(f"- **{k}:** ${v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
-            parts.append("")
-            parts.append("**Top 3 Largest Charges:**")
-            for i, t in enumerate(top3, 1):
-                parts.append(f"{i}. `{t['description']}` — `${abs(t['amount']):,.2f}` ({t['date']})")
-            parts.append("")
-            parts.append("**Monthly Breakdown:**")
-            for month, data in sorted(monthly.items()):
-                parts.append(f"- `{month}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}`")
-            if quarterly:
-                parts.append("")
-                parts.append("**Quarterly Breakdown:**")
-                for q, data in sorted(quarterly.items()):
-                    parts.append(f"- `{q}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}` · Net `${data['net']:,.2f}`")
-            if yearly:
-                parts.append("")
-                parts.append("**Yearly Summary:**")
-                for y, data in sorted(yearly.items()):
-                    parts.append(f"- `{y}`: Income `${data['income']:,.2f}` · Spending `${data['spending']:,.2f}` · Fees `${data['fees']:,.2f}` · Net `${data['net']:,.2f}`")
+            for currency in currencies:
+                sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+                parts.append(f"\n**[{currency}]**")
+                for k, v in summary_by_currency[currency].items():
+                    parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+                top3 = top3_by_currency.get(currency, [])
+                if top3:
+                    parts.append("**Top 3 Largest Charges:**")
+                    for i, t in enumerate(top3, 1):
+                        parts.append(f"{i}. `{t['description']}` — `{sym}{abs(t['amount']):,.2f}` ({t['date']})")
+                monthly = monthly_by_currency.get(currency, {})
+                if monthly:
+                    parts.append("**Monthly Breakdown:**")
+                    for month, data in sorted(monthly.items()):
+                        parts.append(f"- `{month}`: Income `{sym}{data['income']:,.2f}` · Spending `{sym}{data['spending']:,.2f}` · Fees `{sym}{data['fees']:,.2f}`")
+                quarterly = quarterly_by_currency.get(currency, {})
+                if quarterly:
+                    parts.append("**Quarterly Breakdown:**")
+                    for q, data in sorted(quarterly.items()):
+                        parts.append(f"- `{q}`: Income `{sym}{data['income']:,.2f}` · Spending `{sym}{data['spending']:,.2f}` · Fees `{sym}{data['fees']:,.2f}` · Net `{sym}{data['net']:,.2f}`")
+                yearly = yearly_by_currency.get(currency, {})
+                if yearly:
+                    parts.append("**Yearly Summary:**")
+                    for y, data in sorted(yearly.items()):
+                        parts.append(f"- `{y}`: Income `{sym}{data['income']:,.2f}` · Spending `{sym}{data['spending']:,.2f}` · Fees `{sym}{data['fees']:,.2f}` · Net `{sym}{data['net']:,.2f}`")
         else:
             parts = ["📊 **Tổng quan tài khoản**"]
-            for k, v in summary.items():
-                parts.append(f"- **{k}:** ${v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+            for currency in currencies:
+                sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+                parts.append(f"\n**[{currency}]**")
+                for k, v in summary_by_currency[currency].items():
+                    parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+                top3 = top3_by_currency.get(currency, [])
+                if top3:
+                    parts.append("**3 khoản lớn nhất:**")
+                    for i, t in enumerate(top3, 1):
+                        parts.append(f"{i}. `{t['description']}` — `{sym}{abs(t['amount']):,.2f}` ({t['date']})")
+                monthly = monthly_by_currency.get(currency, {})
+                if monthly:
+                    parts.append("**Chi tiết theo tháng:**")
+                    for month, data in sorted(monthly.items()):
+                        parts.append(f"- `{month}`: Thu `{sym}{data['income']:,.2f}` · Chi `{sym}{data['spending']:,.2f}` · Phí `{sym}{data['fees']:,.2f}`")
+                quarterly = quarterly_by_currency.get(currency, {})
+                if quarterly:
+                    parts.append("**Theo quý:**")
+                    for q, data in sorted(quarterly.items()):
+                        parts.append(f"- `{q}`: Thu `{sym}{data['income']:,.2f}` · Chi `{sym}{data['spending']:,.2f}` · Phí `{sym}{data['fees']:,.2f}` · Ròng `{sym}{data['net']:,.2f}`")
+                yearly = yearly_by_currency.get(currency, {})
+                if yearly:
+                    parts.append("**Theo năm:**")
+                    for y, data in sorted(yearly.items()):
+                        parts.append(f"- `{y}`: Thu `{sym}{data['income']:,.2f}` · Chi `{sym}{data['spending']:,.2f}` · Phí `{sym}{data['fees']:,.2f}` · Ròng `{sym}{data['net']:,.2f}`")
+
+        income_note = report.get("income_note")
+        if income_note:
             parts.append("")
-            parts.append("**3 khoản lớn nhất:**")
-            for i, t in enumerate(top3, 1):
-                parts.append(f"{i}. `{t['description']}` — `${abs(t['amount']):,.2f}` ({t['date']})")
-            parts.append("")
-            parts.append("**Chi tiết theo tháng:**")
-            for month, data in sorted(monthly.items()):
-                parts.append(f"- `{month}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}`")
-            if quarterly:
-                parts.append("")
-                parts.append("**Theo quý:**")
-                for q, data in sorted(quarterly.items()):
-                    parts.append(f"- `{q}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}` · Ròng `${data['net']:,.2f}`")
-            if yearly:
-                parts.append("")
-                parts.append("**Theo năm:**")
-                for y, data in sorted(yearly.items()):
-                    parts.append(f"- `{y}`: Thu `${data['income']:,.2f}` · Chi `${data['spending']:,.2f}` · Phí `${data['fees']:,.2f}` · Ròng `${data['net']:,.2f}`")
+            parts.append(f"ℹ️ {income_note}")
 
         return {"response": NL.join(parts), "type": "overview", "data": analysis}
 
@@ -417,7 +501,7 @@ class ChatOrchestrator:
             else:
                 parts.append(f"- Giá: `${s['current_price']:.2f}` / {freq}")
                 parts.append(f"- Kỳ trừ tiếp: {s['next_charge_date']}")
-            parts.append(f"- 🏷️ _{s['label']}_")
+            parts.append(f"- 🏷️ _{_label_text(s['label'], lang)}_")
 
         # Explanations
         parts.append("")
@@ -435,7 +519,7 @@ class ChatOrchestrator:
 
             for h in hikes:
                 parts.append(f"- 🔺 **{h['merchant']}**: `${h['old_price']:.2f}` → `${h['new_price']:.2f}` (+`${h['increase']:.2f}`, +{h['increase_pct']}%)")
-                parts.append(f"  - 🏷️ *{h['label']}*")
+                parts.append(f"  - 🏷️ *{_label_text(h['label'], lang)}*")
 
                 audit_log.log_flag(
                     transaction_ref=h["merchant"],
@@ -585,7 +669,7 @@ class ChatOrchestrator:
             parts.append(f"- ℹ️ {u['explanation']}")
             dl_label = "Hạn khiếu nại" if lang == "vi" else "Dispute deadline"
             parts.append(f"- ⏰ {dl_label}: **{u.get('dispute_deadline', 'N/A')}**")
-            parts.append(f"- 🏷️ *{u['label']}*")
+            parts.append(f"- 🏷️ *{_label_text(u['label'], lang)}*")
 
         return {"response": NL.join(parts), "type": "unknown_merchants", "data": unknowns}
 
@@ -732,26 +816,38 @@ class ChatOrchestrator:
         else:
             by_label = summary.get("by_label", {})
             for label, count in by_label.items():
-                parts.append(f"- {label}: **{count}**")
+                parts.append(f"- {_label_text(label, lang)}: **{count}**")
 
             parts.append("")
             recent_label = "**Gần đây nhất:**" if lang == "vi" else "**Recent:**"
             parts.append(recent_label)
 
             for f in flags[-10:]:
-                parts.append(f"- `{f['transaction_ref']}` — {f['reason']} — *{f['label']}* ({f['timestamp'][:16]})")
+                parts.append(f"- `{f['transaction_ref']}` — {f['reason']} — *{_label_text(f['label'], lang)}* ({f['timestamp'][:16]})")
 
         return {"response": NL.join(parts), "type": "audit_log", "data": flags}
 
     def _handle_general(self, message: str, lang: str) -> dict[str, Any]:
-        # Try LLM for complex questions if API key is available
-        if BYTEPLUS_API_KEY and len(message) > 20:
+        greeting_reply = _greeting_reply(message, lang)
+        if greeting_reply:
+            return {"response": greeting_reply, "type": "greeting"}
+
+        # Try LLM for anything else. Previously gated on len(message) > 20,
+        # which meant short-but-real questions ("bạn tên gì", "how much
+        # fee?") always got the generic capability-list dump below instead
+        # of an actual answer — length alone doesn't mean "not a question".
+        if BYTEPLUS_API_KEY:
             try:
                 from llm_client import call_llm
-                # Build context from data
+                # Build context from data. analysis["summary"] is
+                # {currency: {label: value}} — statement mixes VND/USD/EUR
+                # with no conversion, so each currency is listed separately.
                 analysis = self._get_statement_analysis(lang)
                 anomalies = self._get_anomalies(lang)
-                summary_text = ", ".join(f"{k}: {v}" for k, v in analysis.get("summary", {}).items())
+                summary_text = " | ".join(
+                    f"[{currency}] " + ", ".join(f"{k}: {v}" for k, v in group.items())
+                    for currency, group in analysis.get("summary", {}).items()
+                )
 
                 system = (
                     "You are Wealify — a financial review assistant for cross-border sellers. "

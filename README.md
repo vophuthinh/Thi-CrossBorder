@@ -80,6 +80,21 @@ python main.py
 # → Mở http://localhost:8000 — dashboard + chat đều phục vụ tại đây, không cần chạy service nào khác.
 ```
 
+> **Dữ liệu là dữ liệu thật, không phải mock.** `.env.example` đã có sẵn tài khoản
+> Wealify mẫu do BTC cấp (dùng chung cho mọi đội) nên không cần tự tạo tài khoản —
+> app gọi thẳng Wealify API thật khi khởi động (`USE_LIVE_WEALIFY=true`, mặc định).
+> Không có fallback sang dữ liệu giả: nếu Wealify API lỗi, app sẽ báo lỗi thay vì
+> âm thầm hiện dữ liệu cũ.
+>
+> Phần đối chiếu email thật (tab đối chiếu, các endpoint `/dashboard/*-reconciliation`)
+> dùng Gmail API đọc hộp thư demo riêng của đội (`idm.hpt@gmail.com`, tạo riêng cho
+> hackathon, không phải email cá nhân) — cần 2 file `gmail_credentials.json` và
+> `gmail_token.json`, **đính kèm trong mục ghi chú riêng cho giám khảo của form nộp
+> bài** (không commit vào repo public vì là thông tin xác thực). Giải nén và đặt cả
+> 2 file vào `backend/` trước khi chạy `python main.py`.
+> Thiếu 2 file này thì phần chat/finding chính (dùng email mock đã tinh chỉnh) vẫn
+> chạy bình thường, chỉ riêng 3 endpoint đối chiếu email thật sẽ báo lỗi.
+
 ### 3. Demo
 1. Mở Dashboard → Tab **📊 Tổng quan** → xem metrics + charts
 2. Tab **🔍 Đối chiếu** → xem khoản lệch giữa 3 nguồn
@@ -108,6 +123,17 @@ BYTEPLUS_ENDPOINT=your_endpoint_id_here
 BYTEPLUS_API_KEY=your_key_here
 LLM_PROVIDER=byteplus    # byteplus | openai | anthropic
 DEMO_MODE=true            # true = cached data, false = live API
+
+# Wealify — tài khoản mẫu BTC cấp, đã điền sẵn trong .env.example, không cần đổi.
+WEALIFY_EMAIL=wealifytester@yopmail.com
+WEALIFY_PASSWORD=Wealify@123
+USE_LIVE_WEALIFY=true      # luôn true — không có fallback dữ liệu giả
+
+# Gmail — đối chiếu email thật, cần gmail_credentials.json + gmail_token.json
+# (nhận riêng, xem lưu ý ở mục Quick Start). Cờ này KHÔNG ảnh hưởng /findings
+# chính (luôn dùng email mock đã tinh chỉnh) — chỉ gate 3 endpoint đối chiếu
+# email thật, các endpoint đó tự gọi Gmail API bất kể cờ này.
+USE_GMAIL_API=false
 
 # Self-notify: "gửi báo cáo vào email" chỉ gửi tới USER_EMAIL, không bao giờ gửi bên thứ 3.
 USER_EMAIL=your_email@example.com
@@ -171,8 +197,12 @@ hackathon/
 | GET | `/dashboard/risk-score` | Risk Score 0-100 |
 | GET | `/dashboard/report` | Báo cáo tổng hợp |
 | GET | `/dashboard/wallet` | Số dư ví hiện tại |
-| GET | `/dashboard/wealify-accounts` | (Tuỳ chọn) VA/VC live từ Wealify API, chỉ đọc |
-| GET | `/dashboard/wealify-transactions` | (Tuỳ chọn) Giao dịch thẻ live từ Wealify API |
+| GET | `/dashboard/wealify-accounts` | VA/VC live từ Wealify API, chỉ đọc, đã che số |
+| GET | `/dashboard/wealify-transactions` | Giao dịch thẻ live từ Wealify API |
+| GET | `/dashboard/outbound-reconciliation` | Đối chiếu email biên lai thật ↔ giao dịch VC (cần Gmail) |
+| GET | `/dashboard/inbound-reconciliation` | Đối chiếu email báo có VA ↔ giao dịch (cần Gmail; luôn "Chưa đủ dữ liệu" vì API VA-transactions của Wealify hiện lỗi) |
+| GET | `/dashboard/suspicious-domains` | Quét domain giả mạo/lookalike trong toàn bộ hộp thư (cần Gmail) |
+| GET | `/setup` | Setup Wizard 3 bước (Gmail / Wealify / whitelist) |
 | POST | `/ai/insight` | AI Insight (BytePlus Seed 2.0) |
 | POST | `/chat` | Chat AI |
 | POST | `/scheduled-check` | Gọi tay 1 lần cơ chế rà soát định kỳ (xem mục dưới) |
@@ -188,12 +218,16 @@ hackathon/
 - **Read-Only**: Chỉ đọc & phân tích, KHÔNG thực hiện hành động
 - **Data Masking**: Che số thẻ, số tài khoản
 - **Audit Log**: Ghi nhận mọi cảnh báo, không báo trùng khoản đã báo
-- **Giám sát định kỳ tự động**: cứ mỗi `SCHEDULED_CHECK_INTERVAL_SECONDS` giây (mặc định 300s), server tự nạp lại dữ liệu (mock hoặc live Wealify tuỳ `USE_LIVE_WEALIFY`) và rà soát lại — chỉ ghi log khoản mới, **không tự gửi email** (self-notify vẫn cần xác nhận). Có thể gọi tay qua `POST /scheduled-check` để test ngay không cần chờ.
+- **Giám sát định kỳ tự động**: cứ mỗi `SCHEDULED_CHECK_INTERVAL_SECONDS` giây (mặc định 300s), server tự nạp lại dữ liệu live từ Wealify API và rà soát lại — chỉ ghi log khoản mới, **không tự gửi email** (self-notify vẫn cần xác nhận). Có thể gọi tay qua `POST /scheduled-check` để test ngay không cần chờ.
 
 ## ⚠️ Known Limitations
 
-- Demo mode uses pre-computed outputs (cached data)
-- Live mode requires valid BytePlus API key
+- `DEMO_MODE=true` chỉ tắt gọi LLM thật (dùng insight/chat rule-based) — dữ liệu tài chính (Wealify) và email luôn là dữ liệu thật, không có chế độ "cached/mock" cho phần này.
+- Live mode requires valid BytePlus API key (AI Insight/Chat qua LLM thật)
+- Wealify API `GET /v2/virtual-accounts/transactions` hiện luôn trả `data: null` (lỗi phía Wealify, không phải app) — vì vậy `/dashboard/inbound-reconciliation` luôn trả nhãn "Chưa đủ dữ liệu" thay vì đối chiếu được, đúng tinh thần không tự nhận đã kiểm tra khi chưa kiểm tra được.
+- Cùng nguyên nhân trên: báo cáo tháng/quý/năm (`/dashboard/report`, tab Tổng quan, chat "tổng quan tài khoản") không tính được "Tổng tiền vào" theo từng khoản nạp có ngày cụ thể — vì API không cho danh sách giao dịch VA. App **không giả lập số này** (đã có bug ở bản trước lấy nhầm `total_received` — một trường tổng cộng trọn đời của mỗi tài khoản ảo — làm một giao dịch nạp trong ngày, khiến báo cáo hiện sai hàng tỷ VND; đã sửa, xác nhận khớp với số dư thật trên trang Wealify qua ảnh chụp màn hình). Số dư ví hiện tại (khớp trang Wealify) xem ở `/dashboard/wallet`; tổng nhận trọn đời từng tài khoản xem ở `/dashboard/wealify-accounts`.
+- Statement thật trộn nhiều loại tiền (VND cho ví, USD/EUR cho thẻ) trên cùng tài khoản — mọi tổng số (summary, top3, theo tháng/quý/năm) đều tách riêng theo từng loại tiền, không quy đổi (Wealify API không có sẵn tỷ giá thật cho giao dịch thẻ, nên không tự bịa tỷ giá).
+- Cùng nguyên nhân (API VA lỗi): 2 rule detector trong `finding_engine.py` không bao giờ báo trên dữ liệu live — **R-09** (nạp trùng, vì không có giao dịch nạp có ngày cụ thể để so trùng) và **R-11** (lệch số dư ví, vì không có dữ liệu số dư chạy theo từng giao dịch để tính số dư đầu kỳ thật). Đây là hành vi có chủ đích (thà im lặng còn hơn báo số bịa) chứ không phải bug — cả 2 vẫn hoạt động đầy đủ trên dữ liệu mock (`USE_LIVE_WEALIFY=false`).
 - Statistical anomaly detection uses heuristic matching (production would need ML)
 - Risk Score uses weighted formula (production would need training data)
 

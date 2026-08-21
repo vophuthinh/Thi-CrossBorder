@@ -232,7 +232,7 @@ body {
 /* ─── Metrics Grid ──────────────────────────────── */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 24px 40px 0;
 }
@@ -265,6 +265,7 @@ body {
 .metric-card.spending::before { background: var(--accent-red); }
 .metric-card.fees::before { background: var(--accent-yellow); }
 .metric-card.risk::before { background: var(--accent-red); }
+.metric-card.wallet::before { background: var(--accent); }
 
 .metric-icon {
   width: 40px; height: 40px;
@@ -278,6 +279,7 @@ body {
 .metric-card.spending .metric-icon { background: #FEE2E2; }
 .metric-card.fees .metric-icon { background: #FEF3C7; }
 .metric-card.risk .metric-icon { background: #FEE2E2; }
+.metric-card.wallet .metric-icon { background: var(--accent-soft); }
 
 .metric-label {
   font-size: 13px;
@@ -299,6 +301,26 @@ body {
 .metric-value.green,
 .metric-value.red,
 .metric-value.yellow { color: var(--text-primary); }
+
+.metric-value .cur-line {
+  display: block;
+}
+
+/* Real statements mix currencies (VND wallet, USD/EUR card spend) with no
+   fake conversion — each currency gets its own line instead of being
+   joined on one line, which read as a formatting glitch. */
+.metric-value .cur-line + .cur-line {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.metric-note {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 6px;
+  line-height: 1.4;
+}
 
 .metric-change {
   font-size: 12px;

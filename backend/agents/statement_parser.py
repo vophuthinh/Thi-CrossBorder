@@ -4,13 +4,21 @@ Tách rõ: tiền vào, tiền ra, chuyển sang thẻ, phí, chi tiêu.
 """
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any
 
 
 def analyze_statement(transactions: list[dict[str, Any]], lang: str = "vi") -> dict[str, Any]:
     """
     Parse and categorize account statement transactions.
-    Returns categorized breakdown + summary.
+
+    Live Wealify data mixes multiple currencies in one statement (VND payin,
+    USD/EUR card spend) — summing raw amounts across currencies without
+    conversion would be meaningless (and converting would require a fake/
+    made-up FX rate). So summary/top3/monthly_breakdown are all grouped by
+    currency; nothing is added across currencies. Mock data has no
+    `_currency` field on transactions, so it's treated as a single "USD"
+    group, matching its previous flat-number behavior.
     """
     categories = {
         "payin": [],       # Tiền vào
@@ -18,75 +26,93 @@ def analyze_statement(transactions: list[dict[str, Any]], lang: str = "vi") -> d
         "transfer": [],    # Chuyển sang thẻ
         "fee": [],         # Phí
         "charge": [],      # Chi tiêu (quẹt thẻ)
+        "refund": [],      # Hoàn tiền (bù trừ vào chi tiêu)
     }
 
-    total_in = 0.0
-    total_out = 0.0
-    total_fees = 0.0
-    total_charges = 0.0
-    total_transfers = 0.0
+    # Per-currency running totals: {currency: {total_in, total_out, ...}}
+    totals = defaultdict(lambda: {
+        "total_in": 0.0, "total_out": 0.0, "total_fees": 0.0,
+        "total_charges": 0.0, "total_transfers": 0.0, "txn_count": 0,
+    })
+    charges_by_currency = defaultdict(list)
 
     for txn in transactions:
         t = txn.get("type", "unknown")
         amount = txn.get("amount", 0)
+        currency = txn.get("_currency") or "USD"
+        bucket = totals[currency]
+        bucket["txn_count"] += 1
 
         if t == "payin":
             categories["payin"].append(txn)
-            total_in += amount
-        elif t == "payout":
+            bucket["total_in"] += amount
+        elif t in ("payout", "withdrawal"):
             categories["payout"].append(txn)
-            total_out += abs(amount)
+            bucket["total_out"] += abs(amount)
         elif t == "transfer":
             categories["transfer"].append(txn)
-            total_transfers += abs(amount)
+            bucket["total_transfers"] += abs(amount)
         elif t == "fee":
             categories["fee"].append(txn)
-            total_fees += abs(amount)
+            bucket["total_fees"] += abs(amount)
         elif t == "charge":
             categories["charge"].append(txn)
-            total_charges += abs(amount)
+            bucket["total_charges"] += abs(amount)
+            charges_by_currency[currency].append(txn)
+        elif t == "refund":
+            categories["refund"].append(txn)
+            bucket["total_in"] += abs(amount)
 
-    # Top 3 largest charges
-    sorted_charges = sorted(categories["charge"], key=lambda x: abs(x.get("amount", 0)), reverse=True)
-    top3 = sorted_charges[:3]
+    # Top 3 largest charges, per currency (comparing amounts across
+    # currencies without conversion isn't meaningful).
+    top3_by_currency = {}
+    for currency, charges in charges_by_currency.items():
+        sorted_charges = sorted(charges, key=lambda x: abs(x.get("amount", 0)), reverse=True)
+        top3_by_currency[currency] = [
+            {"date": t["date"], "description": t["description"], "amount": t["amount"]}
+            for t in sorted_charges[:3]
+        ]
 
-    # Monthly breakdown
-    monthly = {}
+    # Monthly breakdown, per currency
+    monthly = defaultdict(lambda: defaultdict(lambda: {"income": 0, "spending": 0, "fees": 0, "transfers": 0}))
     for txn in transactions:
+        currency = txn.get("_currency") or "USD"
         month_key = txn["date"][:7]  # YYYY-MM
-        if month_key not in monthly:
-            monthly[month_key] = {"income": 0, "spending": 0, "fees": 0, "transfers": 0}
+        bucket = monthly[currency][month_key]
         amount = txn.get("amount", 0)
         t = txn.get("type", "")
         if t == "payin":
-            monthly[month_key]["income"] += amount
+            bucket["income"] += amount
         elif t == "charge":
-            monthly[month_key]["spending"] += abs(amount)
+            bucket["spending"] += abs(amount)
+        elif t == "refund":
+            bucket["income"] += abs(amount)
         elif t == "fee":
-            monthly[month_key]["fees"] += abs(amount)
+            bucket["fees"] += abs(amount)
         elif t == "transfer":
-            monthly[month_key]["transfers"] += abs(amount)
+            bucket["transfers"] += abs(amount)
 
     labels = _get_labels(lang)
 
+    summary_by_currency = {}
+    for currency, b in totals.items():
+        summary_by_currency[currency] = {
+            labels["total_in"]: round(b["total_in"], 2),
+            labels["total_charges"]: round(b["total_charges"], 2),
+            labels["total_fees"]: round(b["total_fees"], 2),
+            labels["total_transfers"]: round(b["total_transfers"], 2),
+            labels["total_out"]: round(b["total_out"], 2),
+            labels["net"]: round(
+                b["total_in"] - b["total_charges"] - b["total_fees"]
+                - b["total_transfers"] - b["total_out"], 2
+            ),
+            labels["txn_count"]: b["txn_count"],
+        }
+
     return {
-        "summary": {
-            labels["total_in"]: round(total_in, 2),
-            labels["total_charges"]: round(total_charges, 2),
-            labels["total_fees"]: round(total_fees, 2),
-            labels["total_transfers"]: round(total_transfers, 2),
-            labels["net"]: round(total_in - total_charges - total_fees - total_transfers, 2),
-            labels["txn_count"]: len(transactions),
-        },
-        "top3_largest": [
-            {
-                "date": t["date"],
-                "description": t["description"],
-                "amount": t["amount"],
-            }
-            for t in top3
-        ],
-        "monthly_breakdown": monthly,
+        "summary": summary_by_currency,
+        "top3_largest": top3_by_currency,
+        "monthly_breakdown": {cur: dict(months) for cur, months in monthly.items()},
         "categories": {k: len(v) for k, v in categories.items()},
     }
 
@@ -98,6 +124,7 @@ def _get_labels(lang: str) -> dict[str, str]:
             "total_charges": "Total Spending",
             "total_fees": "Total Fees",
             "total_transfers": "Total Transfers to Card",
+            "total_out": "Other Withdrawals",
             "net": "Net Balance Change",
             "txn_count": "Transaction Count",
         }
@@ -106,6 +133,7 @@ def _get_labels(lang: str) -> dict[str, str]:
         "total_charges": "Tổng chi tiêu",
         "total_fees": "Tổng phí",
         "total_transfers": "Tổng chuyển sang thẻ",
+        "total_out": "Tổng rút ra khác",
         "net": "Thay đổi số dư ròng",
         "txn_count": "Số giao dịch",
     }

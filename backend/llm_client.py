@@ -97,12 +97,23 @@ def call_llm(
     system: str = "You are a helpful financial analyst assistant.",
     max_tokens: int = 1500,
     temperature: float = 0.4,
-    retries: int = 3,
+    retries: int = 2,
+    timeout: float = 25.0,
     provider: str | None = None,
 ) -> str:
     """
     Call LLM with retry + exponential backoff.
     Powered by BytePlus ModelArk — DeepSeek V4 Flash.
+
+    Every caller here is synchronous chat/insight code with a human waiting
+    on the other end — retries=3 + timeout=60.0 (the old defaults) meant a
+    slow/unresponsive API could block a single chat message for up to ~187s
+    (3 attempts x 60s + backoff) before anything came back. Cut to 2
+    attempts x 25s (~51s worst case) so a stuck call fails fast enough to
+    reach chat.py's fallback instead of leaving the UI looking frozen.
+    25s (not lower) because measured real DeepSeek reasoning-model latency
+    for complex prompts is up to ~18s — a tighter timeout risks aborting
+    calls that were about to succeed.
 
     Args:
         prompt: User prompt
@@ -110,6 +121,7 @@ def call_llm(
         max_tokens: Max response tokens
         temperature: Sampling temperature (lower = more deterministic)
         retries: Number of retry attempts
+        timeout: Per-attempt HTTP timeout in seconds
         provider: Override provider (default: use LLM_PROVIDER env var)
 
     Returns:
@@ -165,7 +177,7 @@ def call_llm(
 
     for attempt in range(retries):
         try:
-            with httpx.Client(timeout=60.0) as client:
+            with httpx.Client(timeout=timeout) as client:
                 response = client.post(cfg["url"], json=payload, headers=headers)
                 response.raise_for_status()
                 result = response.json()

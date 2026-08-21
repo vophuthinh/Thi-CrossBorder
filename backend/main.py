@@ -22,6 +22,7 @@ from config import (
     DISCLAIMER_EN,
     BYTEPLUS_API_KEY,
     SCHEDULED_CHECK_INTERVAL_SECONDS,
+    CURRENCY_SYMBOLS,
 )
 from chat import ChatOrchestrator
 from audit_log import audit_log
@@ -30,7 +31,7 @@ from agents.statement_parser import analyze_statement
 from agents.anomaly_detector import detect_anomalies
 from agents.reconciler import reconcile_three_sources
 from agents.email_matcher import match_transactions_to_emails, get_match_summary
-from agents.report_generator import generate_report
+from agents.report_generator import generate_report, income_note
 from agents.risk_scorer import calculate_risk_score
 from finding_engine import generate_all_findings
 
@@ -267,15 +268,23 @@ def _run_scheduled_check() -> dict:
 
     for h in anomalies.get("price_hikes", []):
         total_issues += 1
-        if audit_log.log_flag(h["merchant"], "price_hike", "high",
+        # Ref includes the specific old→new prices, not just the merchant
+        # name — otherwise a merchant's *second* (different) price hike
+        # would be silently deduped forever against its first.
+        ref = f"{h['merchant']}|{h['old_price']}->{h['new_price']}"
+        if audit_log.log_flag(ref, "price_hike", "high",
                               "Cần bạn tự xác nhận", "anomaly_detector",
                               f"${h['old_price']} → ${h['new_price']}"):
             new_flags += 1
 
     for disc in recon.get("discrepancies", []):
         total_issues += 1
-        ref = disc.get("reference", disc.get("type", "unknown"))
-        if audit_log.log_flag(ref, disc.get("type", "discrepancy"), "medium",
+        disc_type = disc.get("type", "discrepancy")
+        # Aggregate checks like wallet_card_mismatch have no per-transaction
+        # reference — fold the magnitude into the ref so a changed/worsened
+        # mismatch is treated as new, not deduped against the first sighting.
+        ref = disc.get("reference") or f"{disc_type}|{disc.get('difference', disc.get('detail', ''))}"
+        if audit_log.log_flag(ref, disc_type, "medium",
                               "Cần bạn tự xác nhận", "reconciler",
                               disc.get("detail", "")):
             new_flags += 1
@@ -338,6 +347,7 @@ def ai_insight(req: InsightRequest):
 
     # Build context for LLM
     summary = analysis["summary"]
+    note = income_note("vi")
     n_anomalies = anomalies.get("total_anomalies", 0)
     n_subs = len(anomalies.get("subscriptions", []))
     n_hikes = len(anomalies.get("price_hikes", []))
@@ -351,6 +361,7 @@ def ai_insight(req: InsightRequest):
 
 Tổng quan:
 {_dict_to_text(summary)}
+({note})
 
 Phát hiện:
 - {n_anomalies} khoản bất thường
@@ -429,17 +440,25 @@ def reset_session():
 # ─── Helpers ──────────────────────────────────────────────
 
 
-def _dict_to_text(d: dict) -> str:
-    return "\n".join(f"- {k}: {v}" for k, v in d.items())
+def _dict_to_text(summary_by_currency: dict) -> str:
+    """summary_by_currency is {currency: {label: value}} — statement mixes
+    VND/USD/EUR, so each currency's totals are listed separately, never summed."""
+    lines = []
+    for currency, d in summary_by_currency.items():
+        lines.append(f"[{currency}]")
+        lines.extend(f"- {k}: {v}" for k, v in d.items())
+    return "\n".join(lines)
 
 
-def _format_top3(items: list) -> str:
-    if not items:
+def _format_top3(items_by_currency: dict) -> str:
+    if not items_by_currency:
         return "Không có dữ liệu"
     lines = []
-    for i, t in enumerate(items, 1):
-        lines.append(f"{i}. {t['description']} — ${abs(t['amount']):,.2f} ({t['date']})")
-    return "\n".join(lines)
+    for currency, items in items_by_currency.items():
+        symbol = CURRENCY_SYMBOLS.get(currency, currency + " ")
+        for i, t in enumerate(items, 1):
+            lines.append(f"{i}. [{currency}] {t['description']} — {symbol}{abs(t['amount']):,.2f} ({t['date']})")
+    return "\n".join(lines) if lines else "Không có dữ liệu"
 
 
 def _format_hikes(hikes: list) -> str:
@@ -463,21 +482,24 @@ def _generate_cached_insight(summary, anomalies, reconciliation) -> str:
 
     parts = []
 
-    # Financial summary
-    total_in = 0
-    total_out = 0
-    for k, v in summary.items():
-        if "vào" in k.lower() or "income" in k.lower():
-            total_in = v
-        if "chi tiêu" in k.lower() or "spending" in k.lower():
-            total_out = v
+    # Financial summary — summary is {currency: {label: value}}; report each
+    # currency separately since the statement mixes VND/USD/EUR with no conversion.
+    for currency, group in summary.items():
+        total_in = 0
+        total_out = 0
+        for k, v in group.items():
+            if "vào" in k.lower() or "income" in k.lower():
+                total_in = v
+            if "chi tiêu" in k.lower() or "spending" in k.lower():
+                total_out = v
 
-    if total_in and total_out:
-        ratio = total_out / total_in * 100 if total_in else 0
-        parts.append(
-            f"📊 **Tổng quan:** Tháng này bạn chi ${total_out:,.2f} "
-            f"trên tổng thu ${total_in:,.2f} ({ratio:.0f}% thu nhập)."
-        )
+        if total_in and total_out:
+            symbol = CURRENCY_SYMBOLS.get(currency, currency + " ")
+            ratio = total_out / total_in * 100 if total_in else 0
+            parts.append(
+                f"📊 **Tổng quan ({currency}):** Tháng này bạn chi {symbol}{total_out:,.2f} "
+                f"trên tổng thu {symbol}{total_in:,.2f} ({ratio:.0f}% thu nhập)."
+            )
 
     # Subscriptions
     if subs:

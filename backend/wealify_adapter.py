@@ -17,19 +17,17 @@ logger = logging.getLogger("wealify_adapter")
 
 
 def adapt_va_to_account_statement(
-    va_accounts: list[dict],
     vc_transactions: list[dict],
     wallets: list[dict],
 ) -> list[dict[str, Any]]:
     """
-    Transform Wealify VA accounts + VC transactions → account_statement format.
+    Transform Wealify VC transactions → account_statement format.
 
     The account_statement CSV has columns:
       date, reference, description, type, amount, balance, merchant_code, card_last4
 
-    We reconstruct this from:
-    - VA accounts: provide overall balance info
-    - VC transactions: provide individual card payment records
+    VC transactions provide individual, dated card records. VA accounts are
+    NOT a source here — see the note below on why.
     """
     transactions = []
     running_balance = 0.0
@@ -40,36 +38,22 @@ def adapt_va_to_account_statement(
             running_balance = float(w.get("balance", 0))
             break
 
-    # Build synthetic transactions from VA accounts (payin records)
-    for va in va_accounts:
-        total_received = float(va.get("total_received", 0))
-        card_holder = va.get("card_holder", va.get("nickname", "Unknown"))
-        card_number = va.get("card_number", "")
-        platform_name = ""
-        if isinstance(va.get("platform"), dict):
-            platform_name = va["platform"].get("name", "")
-        elif isinstance(va.get("platform"), str):
-            platform_name = va["platform"]
-        bank = va.get("bank", "")
-        created_at = va.get("created_at", "")
-        order_no = va.get("order_no", "")
-
-        # Create a payin summary transaction per VA account
-        txn_date = _parse_date(created_at)
-        transactions.append({
-            "date": txn_date,
-            "reference": order_no or f"VA-{va.get('id', 'N/A')}",
-            "description": f"PAYIN - {platform_name} via {bank} ({card_holder})",
-            "type": "payin",
-            "amount": total_received,
-            "balance": running_balance,
-            "merchant_code": platform_name.upper().replace(" ", "_"),
-            "card_last4": _mask_last4(card_number),
-            "dispute_deadline": _calc_dispute_deadline(txn_date),
-            "_source": "wealify_va",
-            "_va_id": va.get("id"),
-            "_currency": va.get("currency_symbol", va.get("currency", {}).get("symbol", "VND")),
-        })
+    # NOTE: va_accounts[].total_received is a LIFETIME cumulative figure
+    # (all money ever received into that VA, since account creation), not a
+    # single dated transaction. An earlier version synthesized one "payin"
+    # transaction per VA account using this whole lifetime total, dated at
+    # account creation — that made "Tổng tiền vào" in the monthly/quarterly/
+    # yearly report show billions of VND for a single day, which doesn't
+    # match Wealify's real dashboard (verified against a live screenshot:
+    # real "Số dư khả dụng" / "nạp vào trong tháng" are both far smaller and
+    # come from per-transaction data this API doesn't expose — the VA
+    # transactions list endpoint, GET /v2/virtual-accounts/transactions,
+    # always returns data: null). Rather than fabricate dated payin events
+    # from a lifetime total, VA income is intentionally left out of the
+    # transaction-level statement here; the true lifetime total_received
+    # per account is still shown, correctly labeled, at
+    # /dashboard/wealify-accounts, and the current VND balance (which does
+    # match the live site) is shown at /dashboard/wallet.
 
     # Build transactions from VC card spending
     for txn in vc_transactions:
@@ -114,7 +98,13 @@ def adapt_va_to_account_statement(
             "description": description,
             "type": mapped_type,
             "amount": amount,
-            "balance": 0,  # Will recalculate below
+            # No real running balance is computable per VC transaction (the
+            # API gives no per-transaction balance snapshot) — left at 0
+            # rather than a fabricated value. finding_engine.py's
+            # _detect_wallet_mismatch treats an all-zero balance column as
+            # "not real" and skips rather than deriving a fake opening
+            # balance from it.
+            "balance": 0,
             "merchant_code": _guess_merchant_code(remark, card_name),
             "card_last4": f"****{card_last4}" if card_last4 else "",
             "dispute_deadline": _calc_dispute_deadline(txn_date),
@@ -270,7 +260,7 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
     wallets = wealify_data.get("wallets", [])
 
     account_statement = adapt_va_to_account_statement(
-        va_accounts, vc_transactions, wallets
+        vc_transactions, wallets
     )
     card_statement = adapt_vc_to_card_statement(vc_cards, vc_transactions)
     wallet_balance = adapt_to_wallet_balance(wallets, vc_cards, va_accounts)

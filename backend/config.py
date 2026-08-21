@@ -53,6 +53,9 @@ AUDIT_LOG_PATH = DATA_DIR / "audit_log.json"
 
 # --- Constants ---
 DISPUTE_DEADLINE_DAYS = 60
+# Live statements mix currencies (VND payin, USD/EUR card spend) — used to
+# format amounts per currency group instead of a hardcoded "$".
+CURRENCY_SYMBOLS = {"USD": "$", "EUR": "€", "VND": "₫"}
 SUPPORTED_LANGUAGES = ["vi", "en"]
 USER_EMAIL = os.getenv("USER_EMAIL", "user@demo-wealify.com")
 

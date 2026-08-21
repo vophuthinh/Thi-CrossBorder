@@ -44,15 +44,18 @@ def generate_report(
     labels = _labels(lang)
 
     # --- Monthly / Quarterly / Yearly breakdown ---
+    # monthly is {currency: {month_key: {...}}} — statement mixes VND/USD/EUR,
+    # so each currency is aggregated separately, never summed together.
     monthly = statement_analysis.get("monthly_breakdown", {})
-    quarterly = _aggregate_quarterly(monthly)
-    yearly = _aggregate_yearly(monthly)
+    quarterly = {cur: _aggregate_quarterly(months) for cur, months in monthly.items()}
+    yearly = {cur: _aggregate_yearly(months) for cur, months in monthly.items()}
 
     return {
         "overview": statement_analysis.get("summary", {}),
         "monthly_breakdown": monthly,
         "quarterly_breakdown": quarterly,
         "yearly_breakdown": yearly,
+        "income_note": income_note(lang),
         "subscriptions": {
             labels["active_subs"]: len(subscriptions),
             labels["monthly_cost"]: round(total_monthly_sub, 2),
@@ -146,3 +149,31 @@ def _labels(lang: str) -> dict[str, str]:
         "yearly_cost": "Chi phí gói hàng năm",
         "projected_annual": "Dự báo tổng chi năm",
     }
+
+
+def income_note(lang: str) -> str:
+    """
+    "Tổng tiền vào" in this report only counts dated card-side transactions
+    (refunds). Wealify's virtual-account transaction history API
+    (GET /v2/virtual-accounts/transactions) always returns no data, so
+    individual, dated VA deposit events can't be reconstructed — showing $0
+    income would be misleading, not "no fake data", since real deposits do
+    happen. This note makes that gap explicit instead of hiding it.
+    """
+    if lang == "en":
+        return (
+            "Note: 'Total Income' here only reflects dated card-side refunds. "
+            "Wealify's virtual-account deposit history API is currently "
+            "unavailable, so individual deposit transactions can't be listed "
+            "or dated — this is NOT the same as zero income. See lifetime "
+            "totals per account and the current wallet balance in the "
+            "Wealify Accounts tab."
+        )
+    return (
+        "Lưu ý: 'Tổng tiền vào' ở đây chỉ tính các khoản hoàn tiền (refund) có "
+        "ngày cụ thể từ thẻ. API lịch sử giao dịch tài khoản ảo (VA) của "
+        "Wealify hiện không trả dữ liệu, nên không dựng lại được từng khoản "
+        "tiền nạp vào có ngày cụ thể — đây KHÔNG có nghĩa là không có thu "
+        "nhập. Xem tổng nhận trọn đời từng tài khoản và số dư ví hiện tại ở "
+        "tab Tài khoản Wealify."
+    )

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from statistics import median
 from typing import Any, Optional
 
+from config import CURRENCY_SYMBOLS
 from finding_schema import (
     make_finding,
     compute_confidence,
@@ -31,6 +32,11 @@ def generate_all_findings(
 
     charges = [t for t in account_statement if t.get("type") == "charge"]
     fees = [t for t in account_statement if t.get("type") == "fee"]
+    # On live data this is always []: Wealify's VA deposit-history API is
+    # broken (always returns no data — see wealify_adapter.py), so no dated
+    # "payin" transactions can be reconstructed. That means R-09 (duplicate
+    # payins, below) never fires for live data — expected, not a bug; don't
+    # fabricate payin events just to keep that detector "active".
     payins = [t for t in account_statement if t.get("type") == "payin"]
     transfers = [t for t in account_statement if t.get("type") == "transfer"]
 
@@ -475,6 +481,12 @@ def _detect_wallet_mismatch(account_statement: list[dict], wallet: dict) -> list
     Formula: |(đầu + Σvào − Σra) − cuối| ≥ 1 cent.
     đầu (opening) is derived from the first transaction's running balance;
     cuối (closing) is the wallet's reported current balance.
+
+    Live statements mix currencies (VND/USD/EUR) — reconciling against the
+    wallet's balance only makes sense within the wallet's own currency, so
+    transactions in other currencies are excluded rather than summed in
+    raw (which previously produced a fabricated-looking "$274M mismatch"
+    by comparing USD/EUR transaction sums against a VND wallet balance).
     """
     findings = []
     if not account_statement:
@@ -484,7 +496,26 @@ def _detect_wallet_mismatch(account_statement: list[dict], wallet: dict) -> list
     if actual_closing is None:
         return findings
 
-    sorted_txns = sorted(account_statement, key=lambda t: t.get("date", ""))
+    wallet_currency = wallet.get("currency", "USD")
+    same_currency_txns = [
+        t for t in account_statement if (t.get("_currency") or "USD") == wallet_currency
+    ]
+    if not same_currency_txns:
+        # No dated transactions in the wallet's own currency to reconcile
+        # against — don't fabricate a cross-currency comparison.
+        return findings
+
+    sorted_txns = sorted(same_currency_txns, key=lambda t: t.get("date", ""))
+
+    # Live VC-sourced transactions never carry a real running balance (the
+    # adapter can't compute one — see wealify_adapter.py), and are always
+    # written with balance=0. Deriving "opening = balance - amount" from
+    # that would fabricate an opening balance out of a placeholder, not a
+    # real number. Only trust this when at least one transaction has a
+    # genuine (nonzero) balance — true for mock CSV data, false for live.
+    if all(float(t.get("balance", 0)) == 0 for t in sorted_txns):
+        return findings
+
     first = sorted_txns[0]
     opening = float(first.get("balance", 0)) - float(first.get("amount", 0))
 
@@ -494,19 +525,20 @@ def _detect_wallet_mismatch(account_statement: list[dict], wallet: dict) -> list
 
     delta = round(abs(expected_closing - actual_closing), 2)
     if delta >= 0.01:
+        sym = CURRENCY_SYMBOLS.get(wallet_currency, wallet_currency + " ")
         findings.append(make_finding(
             finding_type="WALLET_BALANCE_MISMATCH",
             label_rule_id="R-11",
-            title_vi=f"Lệch số dư ví ${delta:.2f}",
-            title_en=f"Wallet balance mismatch ${delta:.2f}",
+            title_vi=f"Lệch số dư ví {sym}{delta:.2f}",
+            title_en=f"Wallet balance mismatch {sym}{delta:.2f}",
             explanation_vi=(
-                f"Số dư đầu ${opening:.2f} + tổng vào ${total_in:.2f} − tổng ra ${total_out:.2f} "
-                f"= ${expected_closing:.2f}, lệch ${delta:.2f} so với số dư ví thực tế ${actual_closing:.2f}. "
+                f"Số dư đầu {sym}{opening:.2f} + tổng vào {sym}{total_in:.2f} − tổng ra {sym}{total_out:.2f} "
+                f"= {sym}{expected_closing:.2f}, lệch {sym}{delta:.2f} so với số dư ví thực tế {sym}{actual_closing:.2f}. "
                 f"Chưa xác định nguyên nhân."
             ),
             explanation_en=(
-                f"Opening ${opening:.2f} + inflows ${total_in:.2f} − outflows ${total_out:.2f} "
-                f"= ${expected_closing:.2f}, differs by ${delta:.2f} from actual wallet balance ${actual_closing:.2f}. "
+                f"Opening {sym}{opening:.2f} + inflows {sym}{total_in:.2f} − outflows {sym}{total_out:.2f} "
+                f"= {sym}{expected_closing:.2f}, differs by {sym}{delta:.2f} from actual wallet balance {sym}{actual_closing:.2f}. "
                 f"Cause unresolved."
             ),
             amount_cents=int(delta * 100),

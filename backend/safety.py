@@ -224,9 +224,15 @@ def detect_language(message: str) -> str:
     # Vietnamese keywords
     vn_keywords = ["tôi", "mình", "bạn", "chi", "giao dịch", "tài khoản", "sao kê",
                    "khoản", "phí", "tiền", "thẻ", "gói", "tháng", "năm", "có", "không",
-                   "gửi", "báo cáo", "kiểm tra"]
+                   "gửi", "báo cáo", "kiểm tra", "chào", "sao", "làm", "giúp", "được",
+                   "cần", "muốn", "xin", "gì", "này", "đây", "nào", "ơi", "dạ"]
     vn_keyword_count = sum(1 for kw in vn_keywords if kw in lower)
 
-    if vn_count > 2 or vn_keyword_count >= 2:
+    # A short greeting ("xin chào") or a one-keyword question only has one
+    # diacritic/keyword hit — the old `> 2` / `>= 2` thresholds misclassified
+    # these as English. This app is Vietnamese-first, so any Vietnamese
+    # signal at all should win; English needs to be the "no VN signal found"
+    # fallback, not the default that a single miss falls back to.
+    if vn_count >= 1 or vn_keyword_count >= 1:
         return "vi"
     return "en"
