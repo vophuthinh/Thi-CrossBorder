@@ -1052,6 +1052,457 @@ ol {
     text-wrap: pretty;
 }
 
+/* ─── Email-audit split view (right panel) ─────────────
+   Two stacked panes, each with its own header and independently-scrolling
+   body. Used only when the email-audit flag is active — every other flag
+   still renders the single flat .detail-list as before. */
+
+.detail-split {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: 100%;
+    min-height: 0;
+}
+
+.detail-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.detail-pane-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.detail-pane-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.detail-pane-count {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+}
+
+.detail-pane-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Compact row for the email-audit panes — each item carries its own action
+   inline (add to whitelist, or draft complaint email + countdown), so the
+   row never needs to expand into the existing accordion shape. */
+.email-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    animation: rise 420ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.email-row:last-child {
+    border-bottom: 0;
+}
+
+.email-row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.email-row-from {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.email-row-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.email-row-side {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Days-left pill — countdown against the 60-day US dispute window from
+   the email's date. Colour follows remaining time so an "almost expired"
+   row visibly stands out before the deadline hits. */
+.deadline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--caution-bg);
+    color: var(--caution-fg);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.deadline-pill i {
+    font-size: 12px;
+}
+
+.deadline-pill.is-urgent {
+    background: var(--red-bg);
+    color: var(--red-fg);
+}
+
+.deadline-pill.is-clear {
+    background: var(--green-bg);
+    color: var(--green-fg);
+}
+
+/* The "Add to whitelist" and "Draft complaint email" actions share the
+   existing .detail-action look but in a tighter, icon-only variant so two
+   can sit on one row without crowding. */
+.email-action {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition:
+        background var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        color var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+
+.email-action i {
+    font-size: 13px;
+}
+
+.email-action:hover {
+    background: var(--canvas);
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.email-action:active {
+    transform: scale(0.97);
+}
+
+/* The email-audit button lives in the Reconciliation section, not in the
+   Urgent flags list — soften its weight slightly so it doesn't read like
+   one of the elevated alert cards. */
+.flag-card-secondary {
+    margin-top: 14px;
+    background: transparent;
+    box-shadow: none;
+    border-style: dashed;
+}
+
+.flag-card-secondary:hover {
+    background: var(--surface);
+}
+
+.email-pane-empty {
+    padding: 22px 14px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* On narrow viewports the right panel collapses under the others — give
+   each pane a reasonable minimum height so the per-pane scroll still kicks
+   in instead of growing the whole stack. */
+@media (max-width: 1100px) {
+    .detail-pane {
+        min-height: 220px;
+    }
+}
+
+/* ─── Toast notifications ──────────────────────────────
+   Lightweight, non-blocking feedback that replaces the browser alert() —
+   same hairline aesthetic as the rest of the UI, stacks under the navbar
+   on the right, and self-dismisses (or can be closed by click). */
+
+.toast-stack {
+    position: fixed;
+    top: calc(var(--navbar-h) + 12px);
+    right: 18px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(340px, calc(100vw - 36px));
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-soft);
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    text-wrap: pretty;
+    pointer-events: auto;
+    animation: toast-in 240ms var(--ease) both;
+}
+
+.toast.is-success {
+    background: var(--green-bg);
+    border-color: var(--green-fg);
+    color: var(--green-fg);
+}
+
+.toast.is-warning {
+    background: var(--caution-bg);
+    border-color: var(--caution-fg);
+    color: var(--caution-fg);
+}
+
+.toast.is-danger {
+    background: var(--red-bg);
+    border-color: var(--red-fg);
+    color: var(--red-fg);
+}
+
+.toast.is-leaving {
+    animation: toast-out 220ms var(--ease) both;
+}
+
+.toast > i {
+    flex: 0 0 auto;
+    font-size: 15px;
+    line-height: 1.4;
+    margin-top: 1px;
+}
+
+.toast-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.toast-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin: -2px -4px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.toast-close:hover {
+    opacity: 1;
+    background: rgba(17, 24, 39, 0.06);
+}
+
+.toast-close i {
+    font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .toast.is-leaving {
+        animation-duration: 0.01ms !important;
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(16px);
+    }
+}
+
+/* ─── Active-subs 60/40 split (right panel) ───────────
+   Top pane gets the larger share — that's the working list the user reads
+   first; the bottom "pending cancellation" pane is a smaller queue the
+   user only revisits to clear items. */
+
+.detail-split-60-40 {
+    display: grid;
+    grid-template-rows: 6fr 4fr;
+    gap: 18px;
+    height: 100%;
+    min-height: 0;
+}
+
+@media (max-width: 1100px) {
+    .detail-split-60-40 {
+        grid-template-rows: auto auto;
+    }
+}
+
+/* Subscription row — full-width column layout. Buttons sit on their own
+   row below the label/price/meta so nothing ever clips the subscription
+   name (the previous right-aligned button row stole width from the label
+   and forced ellipsis on long names like "NordVPN 2-Year Plan"). */
+.sub-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    animation: rise 420ms var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.sub-row:last-child {
+    border-bottom: 0;
+}
+
+.sub-row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Active marker — small green dot prefixed to the subscription name in
+   the TOP pane only. Same shape and color as the .status-chip .dot
+   used in the chat panel header, so the two surfaces read as one
+   system: green = currently active, no marker = pending cancellation
+   (the bottom pane already escalates overdue rows on its own). */
+.sub-row.is-active .sub-row-name::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green-fg);
+    margin-right: 8px;
+    vertical-align: 1px;
+}
+
+.sub-row-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+.sub-row-amount {
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.sub-row-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.sub-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Overdue state — only the bottom pane uses this. After 30 days without
+   confirming cancellation, the row gets a red ring AND an inline "Forgot
+   to cancel?" pill so the user can't miss it on a long list. */
+.sub-row.is-overdue {
+    border-left: 2px solid var(--red-fg);
+    background: linear-gradient(90deg, var(--red-bg) 0%, var(--surface) 40%);
+}
+
+.overdue-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--red-bg);
+    color: var(--red-fg);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.overdue-flag i {
+    font-size: 12px;
+}
+
+.pending-days {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
 /* ─── Bottom disclaimer banner ─────────────────────── */
 
 .disclaimer {

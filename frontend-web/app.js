@@ -37,7 +37,7 @@ const I18N = {
         flag_audit: 'Needs your confirmation',
         flag_email_audit: 'Email reconciliation needed',
 
-        block_radar: 'Subscription radar',
+        block_radar: 'Subscriptions',
         sub_price: 'Price increased',
         sub_active: 'Active subscriptions',
         sub_trial: 'Trials ending soon',
@@ -72,6 +72,31 @@ const I18N = {
         count_items: (n) => `${n} item${n === 1 ? '' : 's'}`,
         action_draft_email: 'Draft note for chat',
 
+        email_pane_not_in_wlist: 'Not in whitelist',
+        email_pane_in_wlist_no_tx: 'In whitelist, no matching transaction',
+        email_pane_empty: 'No items in this group.',
+        email_action_add_wlist: 'Add to whitelist',
+        email_action_draft_complaint: 'Draft complaint email',
+        email_added_to_wlist: (sender) => `Added ${sender} to whitelist.`,
+        email_deadline_urgent: (days) => `${days}d left`,
+        email_deadline_clear: (days) => `${days}d left`,
+
+        sub_active_top: 'Currently active',
+        sub_active_bottom: 'Pending cancellation',
+        sub_action_stop_renewal: 'Stop renewal',
+        sub_action_confirmed_cancelled: 'Confirmed cancelled',
+        sub_action_restore: 'Restore',
+        sub_overdue_label: 'Forgot to cancel?',
+        sub_overdue_sub: (days) => `${days} days pending`,
+        sub_pending_sub: (days) => `Pending for ${days} day${days === 1 ? '' : 's'}`,
+        sub_empty_top: 'No active subscriptions.',
+        sub_empty_bottom: 'No subscriptions pending cancellation.',
+        sub_moved_pending: 'Moved to pending cancellation.',
+        sub_restored: 'Restored to active list.',
+        sub_confirmed_done: 'Marked as cancelled.',
+
+        toast_close: 'Dismiss',
+
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
             '⚠️ This tool only assists you in reviewing your finances. Results are for reference only, not ' +
@@ -102,11 +127,11 @@ const I18N = {
 
         block_urgent: 'Cảnh báo giao dịch bất thường',
         flag_duplicate: 'Giao dịch trùng lặp',
-        flag_unrecognized: 'Chưa nhận diện / không có biên lai',
+        flag_unrecognized: 'Không có biên lai',
         flag_audit: 'Cần bạn tự xác nhận',
         flag_email_audit: 'Cần đối soát email',
 
-        block_radar: 'Radar gói đăng ký',
+        block_radar: 'Các gói đã đăng ký',
         sub_price: 'Gói tăng giá',
         sub_active: 'Gói đang hoạt động',
         sub_trial: 'Bản dùng thử sắp hết hạn',
@@ -140,6 +165,31 @@ const I18N = {
         label_evidence: 'Bằng chứng',
         count_items: (n) => `${n} mục`,
         action_draft_email: 'Soạn ghi chú vào khung chat',
+
+        email_pane_not_in_wlist: 'Chưa có trong whitelist',
+        email_pane_in_wlist_no_tx: 'Có trong whitelist nhưng chưa có giao dịch',
+        email_pane_empty: 'Chưa có mục nào trong nhóm này.',
+        email_action_add_wlist: 'Thêm vào whitelist',
+        email_action_draft_complaint: 'Soạn email khiếu nại',
+        email_added_to_wlist: (sender) => `Đã thêm ${sender} vào whitelist.`,
+        email_deadline_urgent: (days) => `còn ${days} ngày`,
+        email_deadline_clear: (days) => `còn ${days} ngày`,
+
+        sub_active_top: 'Đang hoạt động',
+        sub_active_bottom: 'Đang chờ hủy',
+        sub_action_stop_renewal: 'Muốn dừng gia hạn',
+        sub_action_confirmed_cancelled: 'Đã hủy xong',
+        sub_action_restore: 'Khôi phục',
+        sub_overdue_label: 'Quên hủy đăng ký',
+        sub_overdue_sub: (days) => `Chờ ${days} ngày`,
+        sub_pending_sub: (days) => `Chờ ${days} ngày`,
+        sub_empty_top: 'Chưa có gói đang hoạt động.',
+        sub_empty_bottom: 'Không có gói chờ hủy.',
+        sub_moved_pending: 'Đã chuyển vào danh sách chờ hủy.',
+        sub_restored: 'Đã khôi phục gói.',
+        sub_confirmed_done: 'Đã đánh dấu hủy.',
+
+        toast_close: 'Đóng',
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
@@ -255,11 +305,22 @@ const FLAG_TITLE_KEY = {
 // sender domains (check_suspicious_domains), (2) receipt emails that
 // matched a Wealify transaction but not cleanly (match_outbound_emails,
 // excluding "matched_success" — those are fine, nothing to review).
+//
+// Each normalized item also carries an `email_group` so the right panel can
+// split the list into two panes:
+//   - "not_in_wlist"   — sender domain isn't on the trusted list (every
+//                        suspicious-domain flag falls here by definition).
+//   - "in_wlist_no_tx" — sender is trusted (an outbound Ref email) but
+//                        Wealify has no matching transaction for the Ref
+//                        printed in the receipt body (not_found_on_wealify).
 function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
     const items = [];
     for (const it of (suspiciousRes && suspiciousRes.items) || []) {
         items.push({
             finding_id: `SUSPICIOUS-${it.email_from}`,
+            email_group: 'not_in_wlist',
+            email_from: it.email_from,
+            email_subject: it.email_subject,
             title_vi: it.email_subject || it.email_from,
             title_en: it.email_subject || it.email_from,
             explanation_vi: it.detail,
@@ -270,12 +331,24 @@ function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
             amount_cents: 0,
             currency: 'USD',
             occurred_at: (it.email_date || '').split(' ')[0],
+            email_date: it.email_date,
         });
     }
     for (const it of (outboundRes && outboundRes.items) || []) {
         if (it.category === 'matched_success') continue;
+        // Only "no matching Wealify transaction" emails belong in the
+        // bottom pane — the other non-success buckets (matched_pending,
+        // amount_mismatch, matched_failed_or_cancelled) all have a Wealify
+        // record; they're surfaced elsewhere as findings, not as missing
+        // receipts.
+        const group = it.category === 'not_found_on_wealify' ? 'in_wlist_no_tx' : null;
+        if (!group) continue;
         items.push({
             finding_id: `OUTBOUND-${it.email_ref}`,
+            email_group: group,
+            email_from: it.email_from,
+            email_ref: it.email_ref,
+            email_subject: it.email_subject,
             title_vi: it.email_subject || it.email_ref,
             title_en: it.email_subject || it.email_ref,
             explanation_vi: it.detail,
@@ -286,6 +359,7 @@ function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
             amount_cents: Math.round((it.wealify_amount ?? it.email_amount ?? 0) * 100),
             currency: 'USD',
             occurred_at: (it.email_date || '').split(' ')[0],
+            email_date: it.email_date,
         });
     }
     return items;
@@ -381,7 +455,10 @@ function renderReconciliation() {
 function renderCommandCenterCounts() {
     document.querySelectorAll('[data-flag]').forEach((el) => {
         const flag = el.dataset.flag;
-        const count = flag === 'email-audit' ? emailAuditItems.length : allFindings.filter(FLAG_FILTERS[flag]).length;
+        let count;
+        if (flag === 'email-audit') count = emailAuditItems.length;
+        else if (flag === 'active-subs') count = MOCK_ACTIVE_SUBS.length;
+        else count = allFindings.filter(FLAG_FILTERS[flag]).length;
         const badge = el.querySelector('.badge, .pill');
         if (badge) badge.textContent = String(count);
         const sub = el.querySelector('.flag-sub');
@@ -421,6 +498,71 @@ function icon(name, extraClass) {
     i.className = `ph ph-${name}${extraClass ? ' ' + extraClass : ''}`;
     i.setAttribute('aria-hidden', 'true');
     return i;
+}
+
+// ─── Toast notifications ────────────────────────────────────────────
+// Replaces the browser alert() for non-blocking, in-app feedback. Same
+// pastel semantic palette as the rest of the UI (success/warning/danger),
+// stacks under the navbar on the right, self-dismisses, and can be closed
+// by click. Hard-capped at 4 visible toasts — older ones fall off the stack
+// instead of growing it indefinitely under heavy action bursts.
+
+const TOAST_DEFAULT_MS = 4000;
+const TOAST_MAX_VISIBLE = 4;
+const TOAST_ICON = { info: 'info', success: 'check-circle', warning: 'warning-circle', danger: 'x-circle' };
+
+function getToastStack() {
+    let stack = document.getElementById('toastStack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'toastStack';
+        stack.className = 'toast-stack';
+        stack.setAttribute('role', 'status');
+        stack.setAttribute('aria-live', 'polite');
+        document.body.appendChild(stack);
+    }
+    return stack;
+}
+
+function showToast(message, type = 'info', duration = TOAST_DEFAULT_MS) {
+    const stack = getToastStack();
+    while (stack.children.length >= TOAST_MAX_VISIBLE) {
+        stack.firstElementChild && stack.firstElementChild.remove();
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast is-${type}`;
+    toast.setAttribute('role', type === 'danger' || type === 'warning' ? 'alert' : 'status');
+
+    const iconEl = document.createElement('i');
+    iconEl.className = `ph ph-${TOAST_ICON[type] || TOAST_ICON.info}`;
+    iconEl.setAttribute('aria-hidden', 'true');
+
+    const body = document.createElement('div');
+    body.className = 'toast-body';
+    body.textContent = String(message);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'toast-close';
+    closeBtn.setAttribute('aria-label', t('toast_close'));
+    const closeIcon = document.createElement('i');
+    closeIcon.className = 'ph ph-x';
+    closeIcon.setAttribute('aria-hidden', 'true');
+    closeBtn.appendChild(closeIcon);
+
+    toast.append(iconEl, body, closeBtn);
+    stack.appendChild(toast);
+
+    let timer = null;
+    const dismiss = () => {
+        if (toast.classList.contains('is-leaving')) return;
+        toast.classList.add('is-leaving');
+        window.clearTimeout(timer);
+        window.setTimeout(() => toast.remove(), 240);
+    };
+    closeBtn.addEventListener('click', dismiss);
+    timer = window.setTimeout(dismiss, duration);
 }
 
 function buildMetaRow(list, label, value) {
@@ -569,6 +711,176 @@ function paintEmpty() {
     detailBody.replaceChildren(wrap);
 }
 
+// ─── Email-audit split view ──────────────────────────────────────────
+// Two stacked panes (not-in-whitelist on top, in-whitelist-no-tx below),
+// each with its own header and independently-scrollable body. The top
+// pane lets the user add an unknown sender to the whitelist; the bottom
+// pane shows the 60-day dispute countdown and drafts a complaint email
+// straight into the chat composer (where the existing /chat pipeline —
+// with its confirm-before-send flow — takes over).
+
+const EMAIL_DISPUTE_WINDOW_DAYS = 60;
+
+function daysUntilDeadline(emailDate) {
+    const raw = (emailDate || '').split(' ')[0];
+    if (!raw) return null;
+    const sent = new Date(raw);
+    if (Number.isNaN(sent.getTime())) return null;
+    const deadline = new Date(sent.getTime());
+    deadline.setDate(deadline.getDate() + EMAIL_DISPUTE_WINDOW_DAYS);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    return Math.round((deadline.getTime() - today.getTime()) / msPerDay);
+}
+
+function buildEmailRow(item, index) {
+    const row = document.createElement('div');
+    row.className = 'email-row';
+    row.style.setProperty('--i', String(index));
+
+    const main = document.createElement('div');
+    main.className = 'email-row-main';
+
+    const from = document.createElement('div');
+    from.className = 'email-row-from';
+    from.textContent = item.email_from || item.email_ref || findingTitle(item);
+    main.appendChild(from);
+
+    const sub = document.createElement('div');
+    sub.className = 'email-row-sub';
+    const subj = item.email_subject || '';
+    const ref = item.email_ref ? `Ref ${item.email_ref}` : '';
+    sub.textContent = [subj, ref].filter(Boolean).join(' · ') || findingExplanation(item);
+    main.appendChild(sub);
+
+    const side = document.createElement('div');
+    side.className = 'email-row-side';
+
+    if (item.email_group === 'in_wlist_no_tx') {
+        const days = daysUntilDeadline(item.email_date);
+        if (days !== null) {
+            const pill = document.createElement('span');
+            const isOverdue = days <= 0;
+            const isUrgent = !isOverdue && days <= 14;
+            pill.className = 'deadline-pill' + (isOverdue || isUrgent ? ' is-urgent' : days > 30 ? ' is-clear' : '');
+            pill.append(icon('hourglass-medium'), document.createTextNode(t('email_deadline_urgent')(days)));
+            side.appendChild(pill);
+        }
+
+        const complaint = document.createElement('button');
+        complaint.type = 'button';
+        complaint.className = 'email-action';
+        complaint.append(icon('envelope-simple'), document.createTextNode(t('email_action_draft_complaint')));
+        complaint.addEventListener('click', () => draftComplaintEmail(item));
+        side.appendChild(complaint);
+    } else {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'email-action';
+        addBtn.append(icon('plus-circle'), document.createTextNode(t('email_action_add_wlist')));
+        addBtn.addEventListener('click', () => addSenderToWhitelist(item, addBtn));
+        side.appendChild(addBtn);
+    }
+
+    row.append(main, side);
+    return row;
+}
+
+function buildEmailPane(titleKey, items) {
+    const pane = document.createElement('section');
+    pane.className = 'detail-pane';
+
+    const head = document.createElement('header');
+    head.className = 'detail-pane-head';
+    const title = document.createElement('h3');
+    title.className = 'detail-pane-title';
+    title.textContent = t(titleKey);
+    const count = document.createElement('span');
+    count.className = 'detail-pane-count num';
+    count.textContent = String(items.length);
+    head.append(title, count);
+    pane.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'detail-pane-body';
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'email-pane-empty';
+        empty.textContent = t('email_pane_empty');
+        body.appendChild(empty);
+    } else {
+        items.forEach((it, i) => body.appendChild(buildEmailRow(it, i)));
+    }
+    pane.appendChild(body);
+
+    return pane;
+}
+
+function paintEmailAuditDetails(items) {
+    if (items.length === 0) {
+        paintEmpty();
+        return;
+    }
+    const split = document.createElement('div');
+    split.className = 'detail-split';
+    const top = items.filter((it) => it.email_group === 'not_in_wlist');
+    const bottom = items.filter((it) => it.email_group === 'in_wlist_no_tx');
+    split.append(buildEmailPane('email_pane_not_in_wlist', top), buildEmailPane('email_pane_in_wlist_no_tx', bottom));
+    detailBody.replaceChildren(split);
+}
+
+// Adds the sender's domain to the user's whitelist via the Setup Wizard's
+// backend endpoint. UI-only feedback for now — no reload; the next
+// scheduled re-scan picks the change up, and the row is removed from the
+// "not in whitelist" pane immediately so the user sees the action land.
+async function addSenderToWhitelist(item, btn) {
+    const sender = item.email_from || '';
+    const domain = sender.split('@').pop() || '';
+    btn.disabled = true;
+    try {
+        await fetch(`${API}/setup/whitelist/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain }),
+        });
+    } catch {
+        // Network failure is silent on purpose — the row still disappears
+        // locally so the user can keep working; the next scan will re-add
+        // it if the backend actually rejected the call.
+    }
+    showToast(t('email_added_to_wlist')(sender || domain), 'success');
+    // Drop this item from the cached list and re-render so the top pane
+    // shrinks immediately.
+    emailAuditItems = emailAuditItems.filter((it) => it !== item);
+    renderCommandCenterCounts();
+    paintEmailAuditDetails(emailAuditItems);
+}
+
+// Stages a complaint-email draft in the chat composer (same pattern as
+// draftNote for findings) — the user reviews/edits, then the existing
+// /chat pipeline sends it. We never fire-and-forget an email on the
+// user's behalf.
+function draftComplaintEmail(item) {
+    const days = daysUntilDeadline(item.email_date);
+    const deadlinePart =
+        days !== null
+            ? lang === 'vi'
+                ? ` Hạn khiếu nại: còn ${days} ngày.`
+                : ` Dispute deadline: ${days} days left.`
+            : '';
+    const subject = item.email_subject || item.email_ref || findingTitle(item);
+    const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
+    const senderPart = item.email_from ? ` từ ${item.email_from}` : '';
+    const text =
+        lang === 'vi'
+            ? `Giúp tôi soạn một email cho đội hỗ trợ: tôi có một giao dịch như email này${refPart}${senderPart} nhưng bên Wealify chưa có giao dịch tương ứng — đề nghị đội support hỗ trợ làm rõ.${deadlinePart}`
+            : `Please draft a complaint email to support: I have a transaction receipt in this email${refPart}${senderPart} but no matching transaction on the Wealify side — please investigate.${deadlinePart}`;
+    chatInput.value = `${subject}\n\n${text}`;
+    chatInput.focus();
+    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}
+
 function paintDetails(items) {
     if (items.length === 0) {
         paintEmpty();
@@ -581,14 +893,274 @@ function paintDetails(items) {
     detailBody.scrollTop = 0;
 }
 
+// ─── Active subscriptions — 60/40 split (mock data) ──────────────────
+// The user has flagged this section as a "wire API later" placeholder, so
+// the row list is a hard-coded mockup that demonstrates the layout. When
+// the real /dashboard/active-subscriptions lands, the only thing that
+// changes is how MOCK_ACTIVE_SUBS is populated — every renderer below
+// reads it as a plain list.
+//
+// Two panes, top 60% / bottom 40%:
+//   - Top:    "Currently active" — each row has a "Stop renewal" button.
+//             Clicking it moves the row to the bottom pane with the
+//             current timestamp recorded, so we can later tell whether
+//             the user actually went and cancelled at the merchant.
+//   - Bottom: "Pending cancellation" — each row shows how many days the
+//             cancellation has been pending. After 30 days the row picks
+//             up a red ring + "Forgot to cancel?" flag. Buttons on each
+//             row let the user confirm they cancelled at the merchant
+//             (drop the row entirely) or restore the sub to active.
+
+const MOCK_ACTIVE_SUBS = [
+    {
+        id: 'sub-adobe-cc',
+        name: 'Adobe Creative Cloud',
+        amount_cents: 5999,
+        currency: 'USD',
+        cycle: 'monthly',
+        renewal_date: '2026-09-15',
+    },
+    {
+        id: 'sub-figma-pro',
+        name: 'Figma Professional',
+        amount_cents: 1500,
+        currency: 'USD',
+        cycle: 'monthly',
+        renewal_date: '2026-09-03',
+    },
+    {
+        id: 'sub-notion-plus',
+        name: 'Notion Plus',
+        amount_cents: 1000,
+        currency: 'USD',
+        cycle: 'monthly',
+        renewal_date: '2026-09-10',
+    },
+    {
+        id: 'sub-nordvpn-2y',
+        name: 'NordVPN 2-Year Plan',
+        amount_cents: 9900,
+        currency: 'USD',
+        cycle: 'biennial',
+        renewal_date: '2027-03-22',
+    },
+    {
+        id: 'sub-spotify-family',
+        name: 'Spotify Family',
+        amount_cents: 1699,
+        currency: 'USD',
+        cycle: 'monthly',
+        renewal_date: '2026-09-01',
+    },
+    {
+        id: 'sub-netflix-premium',
+        name: 'Netflix Premium',
+        amount_cents: 229900,
+        currency: 'VND',
+        cycle: 'monthly',
+        renewal_date: '2026-08-30',
+    },
+];
+
+const SUB_OVERDUE_DAYS = 30;
+const PENDING_CANCEL_KEY = 'wealify_pending_cancellations';
+
+function loadPendingCancellations() {
+    try {
+        const raw = localStorage.getItem(PENDING_CANCEL_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+}
+
+function savePendingCancellations(map) {
+    try {
+        localStorage.setItem(PENDING_CANCEL_KEY, JSON.stringify(map));
+    } catch {
+        // localStorage unavailable (private window, quota) — the in-memory
+        // state still drives the current render; the user just won't see
+        // the queue survive a reload.
+    }
+}
+
+function daysPending(isoTimestamp) {
+    if (!isoTimestamp) return 0;
+    const ts = new Date(isoTimestamp).getTime();
+    if (Number.isNaN(ts)) return 0;
+    const ms = Date.now() - ts;
+    return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)));
+}
+
+function buildSubRow(sub, kind, index) {
+    const row = document.createElement('div');
+    row.className = 'sub-row';
+    if (kind === 'top') {
+        // Top pane = "currently active" — gets the green status dot.
+        row.classList.add('is-active');
+    } else {
+        const days = daysPending(sub.cancelled_at);
+        if (days > SUB_OVERDUE_DAYS) row.classList.add('is-overdue');
+    }
+    row.style.setProperty('--i', String(index));
+
+    // Top line: subscription name (wraps freely) + price on the right.
+    const head = document.createElement('div');
+    head.className = 'sub-row-head';
+
+    const name = document.createElement('span');
+    name.className = 'sub-row-name';
+    name.textContent = sub.name;
+    head.appendChild(name);
+
+    const amount = document.createElement('span');
+    amount.className = 'sub-row-amount';
+    amount.textContent = fmtCur((sub.amount_cents || 0) / 100, sub.currency || 'USD');
+    head.appendChild(amount);
+
+    row.appendChild(head);
+
+    // Middle: meta (cycle · renewal date · pending days).
+    const meta = document.createElement('div');
+    meta.className = 'sub-row-meta';
+    const cycleLabel = sub.cycle ? sub.cycle.charAt(0).toUpperCase() + sub.cycle.slice(1) : '';
+    const parts = [];
+    if (cycleLabel) parts.push(cycleLabel);
+    if (sub.renewal_date) parts.push(`renews ${sub.renewal_date}`);
+    if (kind === 'bottom') {
+        const days = daysPending(sub.cancelled_at);
+        parts.push(t('sub_pending_sub')(days));
+    }
+    meta.textContent = parts.join(' · ');
+    row.appendChild(meta);
+
+    // Bottom: action buttons sit on their own row so the label above is
+    // never squeezed by them.
+    const actions = document.createElement('div');
+    actions.className = 'sub-row-actions';
+
+    if (kind === 'top') {
+        const stopBtn = document.createElement('button');
+        stopBtn.type = 'button';
+        stopBtn.className = 'email-action';
+        stopBtn.append(icon('prohibit'), document.createTextNode(t('sub_action_stop_renewal')));
+        stopBtn.addEventListener('click', () => moveSubToPending(sub, stopBtn));
+        actions.appendChild(stopBtn);
+    } else {
+        const days = daysPending(sub.cancelled_at);
+        if (days > SUB_OVERDUE_DAYS) {
+            const flag = document.createElement('span');
+            flag.className = 'overdue-flag';
+            flag.append(icon('warning-circle'), document.createTextNode(t('sub_overdue_label')));
+            flag.title = t('sub_overdue_sub')(days);
+            actions.appendChild(flag);
+        }
+        const restoreBtn = document.createElement('button');
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'email-action';
+        restoreBtn.append(icon('arrow-counter-clockwise'), document.createTextNode(t('sub_action_restore')));
+        restoreBtn.addEventListener('click', () => restoreSub(sub, restoreBtn));
+        actions.appendChild(restoreBtn);
+
+        const doneBtn = document.createElement('button');
+        doneBtn.type = 'button';
+        doneBtn.className = 'email-action';
+        doneBtn.append(icon('check-circle'), document.createTextNode(t('sub_action_confirmed_cancelled')));
+        doneBtn.addEventListener('click', () => confirmCancelled(sub, doneBtn));
+        actions.appendChild(doneBtn);
+    }
+
+    row.appendChild(actions);
+    return row;
+}
+
+function buildSubPane(titleKey, items, kind) {
+    const pane = document.createElement('section');
+    pane.className = 'detail-pane';
+
+    const head = document.createElement('header');
+    head.className = 'detail-pane-head';
+    const title = document.createElement('h3');
+    title.className = 'detail-pane-title';
+    title.textContent = t(titleKey);
+    const count = document.createElement('span');
+    count.className = 'detail-pane-count num';
+    count.textContent = String(items.length);
+    head.append(title, count);
+    pane.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'detail-pane-body';
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'email-pane-empty';
+        empty.textContent = t(kind === 'top' ? 'sub_empty_top' : 'sub_empty_bottom');
+        body.appendChild(empty);
+    } else {
+        items.forEach((it, i) => body.appendChild(buildSubRow(it, kind, i)));
+    }
+    pane.appendChild(body);
+
+    return pane;
+}
+
+function paintActiveSubsDetails() {
+    const pending = loadPendingCancellations();
+    const active = MOCK_ACTIVE_SUBS.filter((s) => !pending[s.id]);
+    const pendingList = MOCK_ACTIVE_SUBS.filter((s) => pending[s.id]).map((s) => ({
+        ...s,
+        cancelled_at: pending[s.id],
+    }));
+
+    const split = document.createElement('div');
+    split.className = 'detail-split-60-40';
+    split.append(
+        buildSubPane('sub_active_top', active, 'top'),
+        buildSubPane('sub_active_bottom', pendingList, 'bottom'),
+    );
+    detailBody.replaceChildren(split);
+}
+
+function moveSubToPending(sub, btn) {
+    const pending = loadPendingCancellations();
+    pending[sub.id] = new Date().toISOString();
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_moved_pending'), 'info');
+    paintActiveSubsDetails();
+}
+
+function restoreSub(sub, btn) {
+    const pending = loadPendingCancellations();
+    delete pending[sub.id];
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_restored'), 'success');
+    paintActiveSubsDetails();
+}
+
+function confirmCancelled(sub, btn) {
+    const pending = loadPendingCancellations();
+    delete pending[sub.id];
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_confirmed_done'), 'success');
+    paintActiveSubsDetails();
+}
+
 function renderDetails(flag, { instant = false } = {}) {
     const isEmailAudit = flag === 'email-audit';
-    if (!isEmailAudit && !FLAG_FILTERS[flag]) return;
+    const isActiveSubs = flag === 'active-subs';
+    if (!isEmailAudit && !isActiveSubs && !FLAG_FILTERS[flag]) return;
 
     if (flag !== activeFlag) openIndex = null;
     activeFlag = flag;
 
-    const items = isEmailAudit ? emailAuditItems : allFindings.filter(FLAG_FILTERS[flag]);
+    const items = isEmailAudit
+        ? emailAuditItems
+        : isActiveSubs
+          ? MOCK_ACTIVE_SUBS
+          : allFindings.filter(FLAG_FILTERS[flag]);
 
     detailTitle.textContent = t(isEmailAudit ? 'flag_email_audit' : FLAG_TITLE_KEY[flag]);
     detailCount.textContent = t('count_items')(items.length);
@@ -598,6 +1170,23 @@ function renderDetails(flag, { instant = false } = {}) {
     });
 
     window.clearTimeout(loadTimer);
+
+    if (isEmailAudit) {
+        // The email-audit view never uses the skeleton loader — the two
+        // panes either populate immediately or stay visibly empty, which is
+        // more honest feedback than a couple of grey bars flashing on top
+        // of a layout the user is still learning.
+        if (instant) paintEmailAuditDetails(items);
+        else loadTimer = window.setTimeout(() => paintEmailAuditDetails(items), 220);
+        return;
+    }
+
+    if (isActiveSubs) {
+        // Active-subs is mock data — no network delay, so the skeleton
+        // loader would just flash for no reason. Render immediately.
+        paintActiveSubsDetails();
+        return;
+    }
 
     if (instant) {
         paintDetails(items);
@@ -757,10 +1346,10 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
     label.textContent = originalText;
 
     if (res && typeof res.new_flags === 'number') {
-        alert(t('run_check_done')(res.new_flags, res.already_reported));
+        showToast(t('run_check_done')(res.new_flags, res.already_reported), 'success');
         await loadAll();
     } else {
-        alert(t('run_check_failed'));
+        showToast(t('run_check_failed'), 'warning');
     }
 });
 
@@ -769,9 +1358,9 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
 document.getElementById('exportAuditBtn').addEventListener('click', async () => {
     const res = await apiGet('/audit-log/export');
     if (res && res.status === 'exported') {
-        alert(`${t('export_done')} ${res.exported_to} (${res.total_flags})`);
+        showToast(`${t('export_done')} ${res.exported_to} (${res.total_flags})`, 'success', 6000);
     } else {
-        alert(t('export_failed'));
+        showToast(t('export_failed'), 'warning');
     }
 });
 

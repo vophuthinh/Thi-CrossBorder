@@ -98,6 +98,17 @@
                                 <div class="note-sub">—</div>
                             </div>
                         </div>
+
+                        <button class="flag-card flag-card-secondary" data-flag="email-audit" type="button">
+                            <span class="flag-icon flag-icon-caution">
+                                <i class="ph ph-envelope-simple" aria-hidden="true"></i>
+                            </span>
+                            <span class="flag-text">
+                                <span class="flag-name" data-i18n="flag_email_audit">Email reconciliation needed</span>
+                                <span class="flag-sub">—</span>
+                            </span>
+                            <span class="badge badge-caution num">—</span>
+                        </button>
                     </section>
 
                     <!-- Section 2: Urgent Flags -->
@@ -136,22 +147,11 @@
                             </span>
                             <span class="badge badge-caution num">—</span>
                         </button>
-
-                        <button class="flag-card" data-flag="email-audit" type="button" style="margin-top:16px;">
-                            <span class="flag-icon flag-icon-caution">
-                                <i class="ph ph-envelope-simple" aria-hidden="true"></i>
-                            </span>
-                            <span class="flag-text">
-                                <span class="flag-name" data-i18n="flag_email_audit">Email reconciliation needed</span>
-                                <span class="flag-sub">—</span>
-                            </span>
-                            <span class="badge badge-caution num">—</span>
-                        </button>
                     </section>
 
                     <!-- Section 3: Subscription Radar -->
                     <section class="block">
-                        <h3 class="block-title" data-i18n="block_radar">Subscription radar</h3>
+                        <h3 class="block-title" data-i18n="block_radar">Subscriptions</h3>
 
                         <ul class="sub-list">
                             <li>
@@ -207,7 +207,9 @@
                         <button class="chip" type="button" data-i18n="chip_duplicate">Any duplicate charges?</button>
                         <button class="chip" type="button" data-i18n="chip_subs">Which subscriptions increased?</button>
                         <button class="chip" type="button" data-i18n="chip_report">Draft monthly report</button>
-                        <button class="chip" type="button" data-i18n="chip_deadline">Anything nearing the 60-day deadline?</button>
+                        <button class="chip" type="button" data-i18n="chip_deadline">
+                            Anything nearing the 60-day deadline?
+                        </button>
                     </div>
 
                     <form class="chat-input" id="chatForm" autocomplete="off">
