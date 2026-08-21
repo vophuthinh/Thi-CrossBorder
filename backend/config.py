@@ -23,6 +23,13 @@ BYTEPLUS_BASE_URL = os.getenv(
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# --- Wealify API ---
+WEALIFY_API_URL = os.getenv("WEALIFY_API_URL", "https://dev-api.wealify.com/api")
+WEALIFY_VC_API_URL = os.getenv("WEALIFY_VC_API_URL", "https://dev-api.virtual-card.wealify.com/api")
+WEALIFY_EMAIL = os.getenv("WEALIFY_EMAIL", "")
+WEALIFY_PASSWORD = os.getenv("WEALIFY_PASSWORD", "")
+USE_LIVE_WEALIFY = os.getenv("USE_LIVE_WEALIFY", "false").lower() == "true"
+
 # --- Paths ---
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
@@ -36,6 +43,12 @@ AUDIT_LOG_PATH = DATA_DIR / "audit_log.json"
 DISPUTE_DEADLINE_DAYS = 60
 SUPPORTED_LANGUAGES = ["vi", "en"]
 USER_EMAIL = os.getenv("USER_EMAIL", "user@demo-wealify.com")
+
+# --- Outbound email (self-notify only — never third parties) ---
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
 # --- Labels (3 levels as required by problem statement) ---
 LABEL_CONFIRMED = "Định kỳ đã xác định"

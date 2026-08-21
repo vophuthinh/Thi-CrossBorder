@@ -444,28 +444,55 @@ def _detect_transit(transfers: list[dict], card_statement: list[dict]) -> list[d
 
 
 def _detect_wallet_mismatch(account_statement: list[dict], wallet: dict) -> list[dict]:
-    """D5: Detect wallet balance mismatch (R-11)."""
+    """
+    D5: Detect wallet balance mismatch (R-11).
+    Formula: |(đầu + Σvào − Σra) − cuối| ≥ 1 cent.
+    đầu (opening) is derived from the first transaction's running balance;
+    cuối (closing) is the wallet's reported current balance.
+    """
     findings = []
-    expected = wallet.get("expected_balance")
-    actual = wallet.get("current_balance")
+    if not account_statement:
+        return findings
 
-    if expected is not None and actual is not None:
-        delta = round(abs(actual - expected), 2)
-        if delta >= 0.01:
-            findings.append(make_finding(
-                finding_type="WALLET_BALANCE_MISMATCH",
-                label_rule_id="R-11",
-                title_vi=f"Lệch số dư ví ${delta:.2f}",
-                title_en=f"Wallet balance mismatch ${delta:.2f}",
-                explanation_vi=f"Số dư ví thực tế ${actual:.2f} lệch ${delta:.2f} so với tính toán ${expected:.2f}. Chưa xác định nguyên nhân.",
-                explanation_en=f"Actual balance ${actual:.2f} differs by ${delta:.2f} from calculated ${expected:.2f}. Cause unresolved.",
-                amount_cents=int(delta * 100),
-                occurred_at=datetime.utcnow().strftime("%Y-%m-%d"),
-                evidence_refs=[],
-                evidence_sources=[{"source": "wallet_snapshots", "file": "wallet_balance.json"}],
-                confidence=0.20,
-                severity_rank=2,
-            ))
+    actual_closing = wallet.get("wallet_balance")
+    if actual_closing is None:
+        return findings
+
+    sorted_txns = sorted(account_statement, key=lambda t: t.get("date", ""))
+    first = sorted_txns[0]
+    opening = float(first.get("balance", 0)) - float(first.get("amount", 0))
+
+    total_in = sum(t["amount"] for t in sorted_txns if t["amount"] > 0)
+    total_out = sum(-t["amount"] for t in sorted_txns if t["amount"] < 0)
+    expected_closing = opening + total_in - total_out
+
+    delta = round(abs(expected_closing - actual_closing), 2)
+    if delta >= 0.01:
+        findings.append(make_finding(
+            finding_type="WALLET_BALANCE_MISMATCH",
+            label_rule_id="R-11",
+            title_vi=f"Lệch số dư ví ${delta:.2f}",
+            title_en=f"Wallet balance mismatch ${delta:.2f}",
+            explanation_vi=(
+                f"Số dư đầu ${opening:.2f} + tổng vào ${total_in:.2f} − tổng ra ${total_out:.2f} "
+                f"= ${expected_closing:.2f}, lệch ${delta:.2f} so với số dư ví thực tế ${actual_closing:.2f}. "
+                f"Chưa xác định nguyên nhân."
+            ),
+            explanation_en=(
+                f"Opening ${opening:.2f} + inflows ${total_in:.2f} − outflows ${total_out:.2f} "
+                f"= ${expected_closing:.2f}, differs by ${delta:.2f} from actual wallet balance ${actual_closing:.2f}. "
+                f"Cause unresolved."
+            ),
+            amount_cents=int(delta * 100),
+            occurred_at=datetime.utcnow().strftime("%Y-%m-%d"),
+            evidence_refs=[],
+            evidence_sources=[
+                {"source": "account_statement", "file": "account_statement.csv"},
+                {"source": "wallet_snapshots", "file": "wallet_balance.json"},
+            ],
+            confidence=0.20,
+            severity_rank=2,
+        ))
 
     return findings
 

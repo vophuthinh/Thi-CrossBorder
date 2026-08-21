@@ -38,6 +38,7 @@ class ChatOrchestrator:
         self.conversation_history: list[dict[str, str]] = []
         self._cache: dict[str, Any] = {}
         self.pending_email_draft: dict[str, Any] | None = None
+        self.pending_email_lang: str = "vi"
 
     def process_message(self, message: str) -> dict[str, Any]:
         """Process a user message and return response."""
@@ -57,17 +58,13 @@ class ChatOrchestrator:
             }
 
         # 2. Check for email confirmation
+        # Use the language the draft was created in — a short confirmation
+        # word ("ok", "có") often isn't enough signal for fresh detection.
         if self.pending_email_draft and _is_confirmation(message):
             draft = self.pending_email_draft
+            draft_lang = self.pending_email_lang
             self.pending_email_draft = None
-            confirm_msg = "✅ Email đã được gửi tới " + draft["to"] if lang == "vi" else "✅ Email sent to " + draft["to"]
-            return {
-                "response": confirm_msg,
-                "type": "email_sent",
-                "email": draft,
-                "lang": lang,
-                "disclaimer": get_disclaimer(lang),
-            }
+            return self._send_confirmed_email(draft, draft_lang)
 
         # 3. Detect intent and route to agents
         intent = self._detect_intent(message, lang)
@@ -83,6 +80,54 @@ class ChatOrchestrator:
         self.conversation_history.append({"role": "assistant", "content": response["response"]})
 
         return response
+
+    def _send_confirmed_email(self, draft: dict[str, Any], lang: str) -> dict[str, Any]:
+        """Actually send the confirmed draft via SMTP to the user's own address only."""
+        from email_sender import send_email, is_configured, EmailSendError
+
+        if is_configured():
+            try:
+                send_email(draft["to"], draft["subject"], draft["body"])
+                confirm_msg = (
+                    "✅ Email đã được gửi tới " + draft["to"] if lang == "vi"
+                    else "✅ Email sent to " + draft["to"]
+                )
+                result_type = "email_sent"
+            except EmailSendError as e:
+                confirm_msg = self._email_failed_message(draft, lang, str(e))
+                result_type = "email_send_failed"
+        else:
+            reason = "SMTP chưa được cấu hình" if lang == "vi" else "SMTP not configured"
+            confirm_msg = self._email_failed_message(draft, lang, reason)
+            result_type = "email_send_failed"
+
+        return {
+            "response": confirm_msg,
+            "type": result_type,
+            "email": draft,
+            "lang": lang,
+            "disclaimer": get_disclaimer(lang),
+        }
+
+    @staticmethod
+    def _email_failed_message(draft: dict[str, Any], lang: str, reason: str) -> str:
+        if lang == "vi":
+            return NL.join([
+                f"⚠️ Chưa gửi được email ({reason}).",
+                "Đây là nội dung để bạn tự gửi:",
+                f"**Tới:** {draft['to']}",
+                f"**Tiêu đề:** {draft['subject']}",
+                "---",
+                draft["body"],
+            ])
+        return NL.join([
+            f"⚠️ Could not send the email ({reason}).",
+            "Here is the content for you to send yourself:",
+            f"**To:** {draft['to']}",
+            f"**Subject:** {draft['subject']}",
+            "---",
+            draft["body"],
+        ])
 
     def _detect_intent(self, message: str, lang: str) -> str:
         """Detect user intent from message."""
@@ -132,11 +177,13 @@ class ChatOrchestrator:
             ],
         }
 
+        # Weight by keyword word-count so a specific multi-word phrase
+        # (e.g. "gửi báo cáo") outranks a shorter generic overlap (e.g. "tháng này").
         scores = {intent: 0 for intent in intents}
         for intent, keywords in intents.items():
             for kw in keywords:
                 if kw in lower:
-                    scores[intent] += 1
+                    scores[intent] += len(kw.split())
 
         best = max(scores, key=scores.get)
         if scores[best] == 0:
@@ -442,6 +489,7 @@ class ChatOrchestrator:
         draft = draft_report_email(report, anomalies, recon, lang)
 
         self.pending_email_draft = draft
+        self.pending_email_lang = lang
 
         if lang == "en":
             parts = [
@@ -575,6 +623,7 @@ class ChatOrchestrator:
             if approaching:
                 draft = draft_dispute_reminder_email(approaching, lang)
                 self.pending_email_draft = draft
+                self.pending_email_lang = lang
                 parts.append("")
                 parts.append("📧 " + ("Mình đã soạn email nhắc hạn. Gõ 'xác nhận' để gửi vào email của bạn." if lang == "vi" else "I've drafted a reminder email. Type 'confirm' to send it to your email."))
 

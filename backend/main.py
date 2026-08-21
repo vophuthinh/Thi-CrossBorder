@@ -476,6 +476,119 @@ def _generate_cached_insight(summary, anomalies, reconciliation) -> str:
     return "\n\n".join(parts)
 
 
+# ─── Wealify Live API endpoints ─────────────────────────
+
+
+@app.get("/dashboard/wealify-accounts")
+def dashboard_wealify_accounts():
+    """
+    Live VA/VC accounts from Wealify API.
+    Falls back to empty data if API is not configured.
+    """
+    try:
+        from wealify_client import get_wealify_client
+        from wealify_adapter import _mask_last4
+
+        client = get_wealify_client()
+        va_accounts = client.get_va_list()
+        vc_cards = client.get_vc_list()
+        wallets = client.get_wallets_balance()
+        user_info = client.get_user_info()
+
+        return {
+            "status": "live",
+            "user": user_info,
+            "va_accounts": [
+                {
+                    "id": va.get("id"),
+                    "name": va.get("card_holder", va.get("nickname", "")),
+                    "account_number": _mask_last4(va.get("card_number", "")),
+                    "bank": va.get("bank", ""),
+                    "platform": va.get("platform", {}).get("name", "") if isinstance(va.get("platform"), dict) else str(va.get("platform", "")),
+                    "total_received": va.get("total_received", 0),
+                    "currency": va.get("currency_symbol", va.get("currency", {}).get("symbol", "VND") if isinstance(va.get("currency"), dict) else "VND"),
+                    "status": va.get("status", ""),
+                    "created_at": va.get("created_at", ""),
+                }
+                for va in va_accounts
+            ],
+            "vc_cards": [
+                {
+                    "id": vc.get("id"),
+                    "name": vc.get("card_name", ""),
+                    "last_four": vc.get("last_four", ""),
+                    "provider": vc.get("card_provider", ""),
+                    "status": vc.get("card_status", ""),
+                    "balance": float(vc.get("balance", "0")),
+                    "total_top_up": float(vc.get("total_top_up", "0")),
+                    "total_withdraw": float(vc.get("total_withdraw", "0")),
+                    "category": vc.get("category", ""),
+                    "expiry_date": vc.get("expiry_date", ""),
+                }
+                for vc in vc_cards
+            ],
+            "wallets": wallets,
+            "summary": {
+                "total_va": len(va_accounts),
+                "total_vc": len(vc_cards),
+                "active_va": sum(1 for va in va_accounts if va.get("status") == "ACTIVE"),
+                "active_vc": sum(1 for vc in vc_cards if vc.get("card_status") == "ACTIVE"),
+            },
+            "powered_by": "Wealify × BytePlus Seed 2.0",
+        }
+    except Exception as e:
+        return {
+            "status": "unavailable",
+            "error": str(e),
+            "message": "Wealify API not configured. Set WEALIFY_EMAIL and WEALIFY_PASSWORD in .env",
+            "va_accounts": [],
+            "vc_cards": [],
+            "wallets": [],
+        }
+
+
+@app.get("/dashboard/wealify-transactions")
+def dashboard_wealify_transactions():
+    """
+    VC card transactions from Wealify API.
+    VA transactions endpoint returns 500 on dev, so we use VC transactions.
+    """
+    try:
+        from wealify_client import get_wealify_client
+
+        client = get_wealify_client()
+        vc_txns = client.get_vc_transactions()
+
+        transactions = [
+            {
+                "date": txn.get("created_at", ""),
+                "reference": txn.get("transaction_id", ""),
+                "type": txn.get("transaction_vc_type", ""),
+                "detail_type": txn.get("vc_detail_transaction_type", ""),
+                "amount": txn.get("amount", 0),
+                "currency": txn.get("currency", {}).get("symbol", "USD") if isinstance(txn.get("currency"), dict) else "USD",
+                "status": txn.get("transaction_vc_status", ""),
+                "remark": txn.get("remark", ""),
+                "card_name": txn.get("_card_name", ""),
+                "card_last4": txn.get("_card_last4", ""),
+            }
+            for txn in vc_txns
+        ]
+
+        return {
+            "status": "live",
+            "total": len(transactions),
+            "transactions": transactions,
+            "powered_by": "Wealify × BytePlus Seed 2.0",
+        }
+    except Exception as e:
+        return {
+            "status": "unavailable",
+            "error": str(e),
+            "transactions": [],
+        }
+
+
 # ─── Serve Frontend ─────────────────────────────────────
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend-web"

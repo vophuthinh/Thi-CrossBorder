@@ -157,7 +157,32 @@ def _calc_dispute_deadline(date_str: str) -> str:
 
 
 def get_all_data() -> dict[str, Any]:
-    """Load all data sources at once."""
+    """
+    Load all data sources at once.
+    If USE_LIVE_WEALIFY=true, fetches live data from Wealify API.
+    Otherwise, loads from local CSV/JSON files (mock data).
+    Falls back to local data if API fails.
+    """
+    from config import USE_LIVE_WEALIFY
+
+    if USE_LIVE_WEALIFY:
+        try:
+            from wealify_client import get_wealify_client
+            from wealify_adapter import adapt_all
+
+            client = get_wealify_client()
+            raw_data = client.get_all_data()
+            adapted = adapt_all(raw_data)
+
+            # Merge local emails (Wealify API doesn't have email data)
+            adapted["emails"] = load_emails()
+
+            print("[data_loader] ✅ Loaded LIVE data from Wealify API")
+            return adapted
+        except Exception as e:
+            print(f"[data_loader] ⚠️ Wealify API failed ({e}), falling back to local data")
+
+    # Default: load from local CSV/JSON files
     return {
         "account_statement": load_account_statement(),
         "card_statement": load_card_statement(),
