@@ -88,8 +88,14 @@ def adapt_va_to_account_statement(
             "_currency": currency,
         })
 
-    # Build transactions from VC card spending
+    # Build transactions from VC card spending — SUCCESS only, matching the
+    # VA-side filter above (settled money only; PENDING/PROCESSING haven't
+    # completed and shouldn't count toward income/spending totals — those
+    # are surfaced separately by reminder_checker.py instead of silently
+    # folded into "real" totals here).
     for txn in vc_transactions:
+        if txn.get("transaction_vc_status") != "SUCCESS":
+            continue
         amount = float(txn.get("amount", 0))
         txn_type = txn.get("transaction_vc_type", "UNKNOWN")
         detail_type = txn.get("vc_detail_transaction_type", "")

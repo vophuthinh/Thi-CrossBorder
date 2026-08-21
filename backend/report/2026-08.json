@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-21T20:23:55.934903+00:00",
-  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
-  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
+  "generated_at": "2026-08-21T20:32:05.186386+00:00",
+  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
+  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 7776.36,
-        "Tổng chi tiêu": 978.03,
+        "Tổng chi tiêu": 959.1,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 4023.76,
         "Tổng rút ra khác": 5960.68,
-        "Thay đổi số dư ròng": -3186.11,
-        "Số giao dịch": 33
+        "Thay đổi số dư ròng": -3167.18,
+        "Số giao dịch": 30
       },
       "VND": {
         "Tổng tiền vào": 890366000.0,
@@ -36,7 +36,7 @@
       "USD": {
         "2026-08": {
           "income": 7776.360000000001,
-          "spending": 978.0300000000002,
+          "spending": 959.1000000000001,
           "fees": 0,
           "transfers": 4023.7599999999998
         }
@@ -62,10 +62,10 @@
       "USD": {
         "2026-Q3": {
           "income": 7776.36,
-          "spending": 978.03,
+          "spending": 959.1,
           "fees": 0,
           "transfers": 4023.76,
-          "net": 2774.57
+          "net": 2793.5
         }
       },
       "VND": {
@@ -91,10 +91,10 @@
       "USD": {
         "2026": {
           "income": 7776.36,
-          "spending": 978.03,
+          "spending": 959.1,
           "fees": 0,
           "transfers": 4023.76,
-          "net": 2774.57
+          "net": 2793.5
         }
       },
       "VND": {
@@ -118,18 +118,12 @@
     },
     "income_note": "",
     "subscriptions": {
-      "Gói đang hoạt động": 5,
-      "Chi phí gói hàng tháng": 115.96,
+      "Gói đang hoạt động": 3,
+      "Chi phí gói hàng tháng": 92.98,
       "Chi phí gói hàng năm": 0,
-      "Dự báo tổng chi năm": 1391.52
+      "Dự báo tổng chi năm": 1115.76
     },
     "upcoming_charges": [
-      {
-        "service": "Subscription CANVA* PRO MONTHLY",
-        "amount": 12.99,
-        "next_date": "2026-08-20",
-        "frequency": "monthly"
-      },
       {
         "service": "Subscription OPENAI *CHATGPT SUBSCR",
         "amount": 20.0,
@@ -140,12 +134,6 @@
         "service": "Subscription NETFLIX.COM",
         "amount": 17.99,
         "next_date": "2026-09-05",
-        "frequency": "monthly"
-      },
-      {
-        "service": "Subscription Spotify P0F2K",
-        "amount": 9.99,
-        "next_date": "2026-09-08",
         "frequency": "monthly"
       },
       {

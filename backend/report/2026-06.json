@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-08-21T20:23:55.863969+00:00",
-  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
-  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
+  "generated_at": "2026-08-21T20:32:05.184858+00:00",
+  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
+  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 11785.23,
-        "Tổng chi tiêu": 2441.31,
+        "Tổng chi tiêu": 2251.09,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 16094.97,
+        "Tổng chuyển sang thẻ": 15794.97,
         "Tổng rút ra khác": 27654.38,
-        "Thay đổi số dư ròng": -34405.43,
-        "Số giao dịch": 69
+        "Thay đổi số dư ròng": -33915.21,
+        "Số giao dịch": 67
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
-        "Tổng chi tiêu": 134.31,
+        "Tổng chi tiêu": 133.78,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 0.0,
         "Tổng rút ra khác": 0.0,
-        "Thay đổi số dư ròng": -134.31,
-        "Số giao dịch": 7
+        "Thay đổi số dư ròng": -133.78,
+        "Số giao dịch": 6
       },
       "VND": {
         "Tổng tiền vào": 451304000.0,
@@ -36,15 +36,15 @@
       "USD": {
         "2026-06": {
           "income": 11785.230000000001,
-          "spending": 2441.3099999999995,
+          "spending": 2251.0899999999997,
           "fees": 0,
-          "transfers": 16094.970000000001
+          "transfers": 15794.970000000001
         }
       },
       "EUR": {
         "2026-06": {
           "income": 0,
-          "spending": 134.30999999999997,
+          "spending": 133.77999999999997,
           "fees": 0,
           "transfers": 0
         }
@@ -62,19 +62,19 @@
       "USD": {
         "2026-Q2": {
           "income": 11785.23,
-          "spending": 2441.31,
+          "spending": 2251.09,
           "fees": 0,
-          "transfers": 16094.97,
-          "net": -6751.05
+          "transfers": 15794.97,
+          "net": -6260.83
         }
       },
       "EUR": {
         "2026-Q2": {
           "income": 0,
-          "spending": 134.31,
+          "spending": 133.78,
           "fees": 0,
           "transfers": 0,
-          "net": -134.31
+          "net": -133.78
         }
       },
       "VND": {
@@ -91,19 +91,19 @@
       "USD": {
         "2026": {
           "income": 11785.23,
-          "spending": 2441.31,
+          "spending": 2251.09,
           "fees": 0,
-          "transfers": 16094.97,
-          "net": -6751.05
+          "transfers": 15794.97,
+          "net": -6260.83
         }
       },
       "EUR": {
         "2026": {
           "income": 0,
-          "spending": 134.31,
+          "spending": 133.78,
           "fees": 0,
           "transfers": 0,
-          "net": -134.31
+          "net": -133.78
         }
       },
       "VND": {
@@ -118,18 +118,12 @@
     },
     "income_note": "",
     "subscriptions": {
-      "Gói đang hoạt động": 5,
-      "Chi phí gói hàng tháng": 115.96,
+      "Gói đang hoạt động": 3,
+      "Chi phí gói hàng tháng": 92.98,
       "Chi phí gói hàng năm": 0,
-      "Dự báo tổng chi năm": 1391.52
+      "Dự báo tổng chi năm": 1115.76
     },
     "upcoming_charges": [
-      {
-        "service": "Subscription CANVA* PRO MONTHLY",
-        "amount": 12.99,
-        "next_date": "2026-08-20",
-        "frequency": "monthly"
-      },
       {
         "service": "Subscription OPENAI *CHATGPT SUBSCR",
         "amount": 20.0,
@@ -140,12 +134,6 @@
         "service": "Subscription NETFLIX.COM",
         "amount": 17.99,
         "next_date": "2026-09-05",
-        "frequency": "monthly"
-      },
-      {
-        "service": "Subscription Spotify P0F2K",
-        "amount": 9.99,
-        "next_date": "2026-09-08",
         "frequency": "monthly"
       },
       {

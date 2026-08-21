@@ -21,6 +21,7 @@ from agents.email_matcher import match_transactions_to_emails, get_match_summary
 from agents.reconciler import reconcile_three_sources
 from agents.anomaly_detector import detect_anomalies
 from agents.report_generator import generate_report
+import report_cache
 from agents.email_drafter import draft_report_email, draft_dispute_reminder_email
 from agents.risk_scorer import calculate_risk_score
 
@@ -55,6 +56,38 @@ _GREETING_KEYWORDS = ["chào", "hi", "hello", "hey", "alo"]
 _THANKS_KEYWORDS = ["cảm ơn", "cám ơn", "thanks", "thank you"]
 _IDENTITY_KEYWORDS = ["bạn tên gì", "bạn là ai", "who are you", "your name"]
 _WELLBEING_KEYWORDS = ["khoẻ không", "khỏe không", "how are you"]
+
+
+_VN_MONTH_RE = re.compile(r"th[aá]ng\s*(\d{1,2})\b", re.IGNORECASE)
+_EN_MONTH_RE = re.compile(
+    r"\b(january|february|march|april|may|june|july|august|september|october|november|december)\b",
+    re.IGNORECASE,
+)
+_EN_MONTH_NUM = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+}
+
+
+def _extract_month_key(message: str, year: int = 2026) -> str | None:
+    """
+    Detect an explicit month mention ("tháng 2", "February") so questions
+    about one month get that month's real numbers instead of silently
+    falling back to the full-period total — that's what produced a wrong
+    "617 transactions in February" (the full Jan-Aug count) earlier.
+    Hardcodes the current data's year (2026) rather than trying to detect
+    one — there's only one year of data to ask about right now.
+    """
+    m = _VN_MONTH_RE.search(message)
+    if m:
+        month = int(m.group(1))
+        if 1 <= month <= 12:
+            return f"{year}-{month:02d}"
+    m2 = _EN_MONTH_RE.search(message)
+    if m2:
+        month = _EN_MONTH_NUM[m2.group(1).lower()]
+        return f"{year}-{month:02d}"
+    return None
 
 
 def _has_any(patterns: list[str], text: str) -> bool:
@@ -217,6 +250,15 @@ class ChatOrchestrator:
         if has_amount and asks_what_is:
             return "unknown_merchant"
 
+        # A message naming a specific month ("tháng 2", "February") always
+        # routes to _handle_overview's month-specific path — otherwise this
+        # can lose the keyword-score competition and fall through to the
+        # free-form LLM, which has no month-filtered data and guesses (seen
+        # producing two different wrong transaction counts for the same
+        # real question in testing).
+        if _extract_month_key(message) is not None:
+            return "overview"
+
         intents = {
             "overview": [
                 "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
@@ -326,7 +368,38 @@ class ChatOrchestrator:
 
     # --- Intent handlers ---
 
+    def _handle_month_overview(self, month_key: str, lang: str) -> dict[str, Any] | None:
+        """Answer using report_cache's pre-generated per-month report (Nhiệm
+        vụ 6) instead of the full-period totals — that's the fix for a
+        month-specific question ("tháng 2 có bao nhiêu giao dịch") getting
+        answered with the whole dataset's numbers."""
+        cached = report_cache.get_cached_report(month_key)
+        if cached is None:
+            return None
+        overview = cached["report"].get("overview", {})
+        if not overview:
+            return None
+
+        header = f"📊 **Tổng quan tháng {month_key}**" if lang == "vi" else f"📊 **Overview for {month_key}**"
+        parts = [header]
+        for currency, group in overview.items():
+            sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+            parts.append(f"\n**[{currency}]**")
+            for k, v in group.items():
+                parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+
+        return {"response": NL.join(parts), "type": "month_overview", "data": cached}
+
     def _handle_overview(self, message: str, lang: str) -> dict[str, Any]:
+        month_key = _extract_month_key(message)
+        if month_key:
+            month_response = self._handle_month_overview(month_key, lang)
+            if month_response:
+                return month_response
+            # Falls through to the full-period overview below if that
+            # month isn't cached yet (e.g. a future month with no report
+            # generated) — better to show something than nothing.
+
         analysis = self._get_statement_analysis(lang)
         anomalies = self._get_anomalies(lang)
         report = generate_report(analysis, anomalies, lang)

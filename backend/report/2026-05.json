@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-21T20:23:55.825506+00:00",
-  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
-  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
+  "generated_at": "2026-08-21T20:32:05.184150+00:00",
+  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
+  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 9625.92,
-        "Tổng chi tiêu": 2086.31,
+        "Tổng chi tiêu": 1991.13,
         "Tổng phí": 0.0,
         "Tổng chuyển sang thẻ": 13075.12,
         "Tổng rút ra khác": 22933.95,
-        "Thay đổi số dư ròng": -28469.46,
-        "Số giao dịch": 60
+        "Thay đổi số dư ròng": -28374.28,
+        "Số giao dịch": 58
       },
       "VND": {
         "Tổng tiền vào": 514138000.0,
@@ -24,19 +24,19 @@
       },
       "EUR": {
         "Tổng tiền vào": 0.0,
-        "Tổng chi tiêu": 44.8,
+        "Tổng chi tiêu": 44.44,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 354.04,
+        "Tổng chuyển sang thẻ": 0.0,
         "Tổng rút ra khác": 0.0,
-        "Thay đổi số dư ròng": -398.84,
-        "Số giao dịch": 5
+        "Thay đổi số dư ròng": -44.44,
+        "Số giao dịch": 3
       }
     },
     "monthly_breakdown": {
       "USD": {
         "2026-05": {
           "income": 9625.92,
-          "spending": 2086.3100000000004,
+          "spending": 1991.1299999999999,
           "fees": 0,
           "transfers": 13075.12
         }
@@ -52,9 +52,9 @@
       "EUR": {
         "2026-05": {
           "income": 0,
-          "spending": 44.8,
+          "spending": 44.44,
           "fees": 0,
-          "transfers": 354.04
+          "transfers": 0
         }
       }
     },
@@ -62,10 +62,10 @@
       "USD": {
         "2026-Q2": {
           "income": 9625.92,
-          "spending": 2086.31,
+          "spending": 1991.13,
           "fees": 0,
           "transfers": 13075.12,
-          "net": -5535.51
+          "net": -5440.33
         }
       },
       "VND": {
@@ -80,10 +80,10 @@
       "EUR": {
         "2026-Q2": {
           "income": 0,
-          "spending": 44.8,
+          "spending": 44.44,
           "fees": 0,
-          "transfers": 354.04,
-          "net": -398.84
+          "transfers": 0,
+          "net": -44.44
         }
       }
     },
@@ -91,10 +91,10 @@
       "USD": {
         "2026": {
           "income": 9625.92,
-          "spending": 2086.31,
+          "spending": 1991.13,
           "fees": 0,
           "transfers": 13075.12,
-          "net": -5535.51
+          "net": -5440.33
         }
       },
       "VND": {
@@ -109,27 +109,21 @@
       "EUR": {
         "2026": {
           "income": 0,
-          "spending": 44.8,
+          "spending": 44.44,
           "fees": 0,
-          "transfers": 354.04,
-          "net": -398.84
+          "transfers": 0,
+          "net": -44.44
         }
       }
     },
     "income_note": "",
     "subscriptions": {
-      "Gói đang hoạt động": 5,
-      "Chi phí gói hàng tháng": 115.96,
+      "Gói đang hoạt động": 3,
+      "Chi phí gói hàng tháng": 92.98,
       "Chi phí gói hàng năm": 0,
-      "Dự báo tổng chi năm": 1391.52
+      "Dự báo tổng chi năm": 1115.76
     },
     "upcoming_charges": [
-      {
-        "service": "Subscription CANVA* PRO MONTHLY",
-        "amount": 12.99,
-        "next_date": "2026-08-20",
-        "frequency": "monthly"
-      },
       {
         "service": "Subscription OPENAI *CHATGPT SUBSCR",
         "amount": 20.0,
@@ -140,12 +134,6 @@
         "service": "Subscription NETFLIX.COM",
         "amount": 17.99,
         "next_date": "2026-09-05",
-        "frequency": "monthly"
-      },
-      {
-        "service": "Subscription Spotify P0F2K",
-        "amount": 9.99,
-        "next_date": "2026-09-08",
         "frequency": "monthly"
       },
       {
@@ -186,9 +174,9 @@
           "amount": -8.8
         },
         {
-          "date": "2026-05-18",
-          "description": "FX fee for SQ *THE COFFEE HOUSE",
-          "amount": -0.36
+          "date": "2026-05-11",
+          "description": "FX fee for GRAB* RIDE HCM",
+          "amount": -0.09
         }
       ]
     }

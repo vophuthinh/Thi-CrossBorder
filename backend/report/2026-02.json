@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-21T20:23:55.818640+00:00",
-  "newest_record_at_generation": "2026-08-21T07:51:48.219Z",
-  "newest_txn_date_at_generation": "2026-08-21T07:51:48.219Z",
+  "generated_at": "2026-08-21T20:32:05.181920+00:00",
+  "newest_record_at_generation": "2026-08-20T10:46:26.191Z",
+  "newest_txn_date_at_generation": "2026-08-20T10:46:26.191Z",
   "report": {
     "overview": {
       "USD": {
         "Tổng tiền vào": 5505.83,
-        "Tổng chi tiêu": 1061.57,
+        "Tổng chi tiêu": 465.57,
         "Tổng phí": 0.0,
-        "Tổng chuyển sang thẻ": 10398.95,
+        "Tổng chuyển sang thẻ": 10178.36,
         "Tổng rút ra khác": 9888.17,
-        "Thay đổi số dư ròng": -15842.86,
-        "Số giao dịch": 52
+        "Thay đổi số dư ròng": -15026.27,
+        "Số giao dịch": 50
       },
       "VND": {
         "Tổng tiền vào": 413554000.0,
@@ -36,9 +36,9 @@
       "USD": {
         "2026-02": {
           "income": 5505.83,
-          "spending": 1061.57,
+          "spending": 465.57,
           "fees": 0,
-          "transfers": 10398.949999999999
+          "transfers": 10178.359999999999
         }
       },
       "VND": {
@@ -62,10 +62,10 @@
       "USD": {
         "2026-Q1": {
           "income": 5505.83,
-          "spending": 1061.57,
+          "spending": 465.57,
           "fees": 0,
-          "transfers": 10398.95,
-          "net": -5954.69
+          "transfers": 10178.36,
+          "net": -5138.1
         }
       },
       "VND": {
@@ -91,10 +91,10 @@
       "USD": {
         "2026": {
           "income": 5505.83,
-          "spending": 1061.57,
+          "spending": 465.57,
           "fees": 0,
-          "transfers": 10398.95,
-          "net": -5954.69
+          "transfers": 10178.36,
+          "net": -5138.1
         }
       },
       "VND": {
@@ -118,18 +118,12 @@
     },
     "income_note": "",
     "subscriptions": {
-      "Gói đang hoạt động": 5,
-      "Chi phí gói hàng tháng": 115.96,
+      "Gói đang hoạt động": 3,
+      "Chi phí gói hàng tháng": 92.98,
       "Chi phí gói hàng năm": 0,
-      "Dự báo tổng chi năm": 1391.52
+      "Dự báo tổng chi năm": 1115.76
     },
     "upcoming_charges": [
-      {
-        "service": "Subscription CANVA* PRO MONTHLY",
-        "amount": 12.99,
-        "next_date": "2026-08-20",
-        "frequency": "monthly"
-      },
       {
         "service": "Subscription OPENAI *CHATGPT SUBSCR",
         "amount": 20.0,
@@ -143,12 +137,6 @@
         "frequency": "monthly"
       },
       {
-        "service": "Subscription Spotify P0F2K",
-        "amount": 9.99,
-        "next_date": "2026-09-08",
-        "frequency": "monthly"
-      },
-      {
         "service": "Subscription ADOBE *CREATIVE CLD",
         "amount": 54.99,
         "next_date": "2026-09-14",
@@ -159,11 +147,6 @@
     "top3_largest": {
       "USD": [
         {
-          "date": "2026-02-23",
-          "description": "Booking.com",
-          "amount": -596.0
-        },
-        {
           "date": "2026-02-22",
           "description": "Google Ads",
           "amount": -302.13
@@ -172,6 +155,11 @@
           "date": "2026-02-15",
           "description": "Subscription ADOBE *CREATIVE CLD",
           "amount": -54.99
+        },
+        {
+          "date": "2026-02-20",
+          "description": "Old card",
+          "amount": -41.2
         }
       ]
     }
