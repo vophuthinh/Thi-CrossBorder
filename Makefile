@@ -1,16 +1,13 @@
-.PHONY: dev clean test findings evaluate setup
+.PHONY: dev clean clean-all test findings evaluate setup
 
 # === Quick Start ===
 setup:
-	pip install -r requirements.txt
+	cd backend && pip install -r requirements.txt
 
 dev:
-	@echo "Starting backend..."
-	cd backend && python3 main.py &
-	@sleep 2
-	@echo "Starting frontend..."
-	cd frontend && streamlit run app.py &
-	@echo "✅ Backend: http://localhost:8000  |  Frontend: http://localhost:8501"
+	@echo "Starting backend + frontend (single process)..."
+	cd backend && python3 main.py
+	@echo "✅ Dashboard: http://localhost:8000"
 
 # === Testing ===
 test:
@@ -25,16 +22,16 @@ evaluate:
 # === Security: Clean data after contest ===
 clean:
 	@echo "🧹 Cleaning sample data & logs..."
-	rm -f backend/data/audit_log.json
-	rm -f backend/data/audit_log.jsonl
+	rm -f backend/data/audit_log_export.json backend/data/audit_log_export.jsonl
 	rm -f backend/out/*.json
+	rm -f backend/gmail_token.json
 	rm -rf backend/__pycache__ backend/agents/__pycache__
-	rm -rf frontend/__pycache__
 	@echo "✅ Done. Sample data retained (required for demo)."
 
 clean-all: clean
 	@echo "🧹 Deep clean — removing sample data..."
+	rm -f backend/data/audit_log.json
 	rm -f backend/data/*.csv
-	rm -f backend/data/*.json
+	rm -f backend/data/wallet_balance.json backend/data/domain_whitelist.json
 	rm -rf backend/data/emails/
 	@echo "✅ All sample data removed."
