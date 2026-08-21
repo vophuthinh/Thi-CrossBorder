@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════
    Wealify Smart Finance — Light Theme
-   Tokens referenced from Wealify's own dashboard: pale gray
-   page, white cards, bold black figures, sentence-case gray
-   labels, coral action color.
+   Tokens match the Setup Wizard's Stitch design system: pale
+   gray page, white cards, bold black figures, sentence-case
+   gray labels, deep navy action color (#00236F).
    ═══════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -15,14 +15,14 @@
   --bg-card-hover: #FAFAFB;
   --bg-sidebar: #FFFFFF;
   --border-subtle: #E7E8EC;
-  --border-glow: rgba(255, 106, 69, 0.35);
+  --border-glow: rgba(0, 35, 111, 0.35);
   --text-primary: #14161A;
   --text-secondary: #6B7280;
   --text-muted: #9CA3AF;
 
-  --accent: #FF6A45;
-  --accent-strong: #E85A38;
-  --accent-soft: #FFEBE3;
+  --accent: #00236F;
+  --accent-strong: #1E3A8A;
+  --accent-soft: #DCE1FF;
 
   --accent-blue: #2563EB;
   --accent-purple: #7C3AED;
@@ -31,9 +31,9 @@
   --accent-yellow: #D97706;
   --accent-cyan: #0891B2;
 
-  --gradient-hero: linear-gradient(135deg, #FF6A45, #FF9466);
+  --gradient-hero: linear-gradient(135deg, #00236F, #1E3A8A);
   --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --shadow-glow: 0 8px 20px rgba(255, 106, 69, 0.16);
+  --shadow-glow: 0 8px 20px rgba(0, 35, 111, 0.16);
   --radius: 16px;
   --radius-sm: 10px;
   --radius-xs: 6px;
@@ -87,7 +87,7 @@ body {
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   font-size: 20px;
-  box-shadow: 0 4px 12px rgba(255, 106, 69, 0.28);
+  box-shadow: 0 4px 12px rgba(0, 35, 111, 0.28);
 }
 
 .sidebar-brand .brand-text {
@@ -118,7 +118,7 @@ body {
 .nav-item.active {
   background: var(--accent-soft);
   color: var(--accent-strong);
-  border-color: rgba(255, 106, 69, 0.18);
+  border-color: rgba(0, 35, 111, 0.18);
 }
 
 .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; }
@@ -144,7 +144,7 @@ body {
 
 .sidebar-btn:hover {
   background: var(--accent-soft);
-  border-color: rgba(255, 106, 69, 0.25);
+  border-color: rgba(0, 35, 111, 0.25);
   color: var(--accent-strong);
 }
 
@@ -223,7 +223,7 @@ body {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 14px;
   background: var(--accent-soft);
-  border: 1px solid rgba(255, 106, 69, 0.2);
+  border: 1px solid rgba(0, 35, 111, 0.2);
   border-radius: 20px;
   color: var(--accent-strong);
   font-size: 12px; font-weight: 600;
@@ -485,7 +485,7 @@ body {
 .chat-msg.user {
   align-self: flex-end;
   background: var(--accent-soft);
-  border: 1px solid rgba(255, 106, 69, 0.2);
+  border: 1px solid rgba(0, 35, 111, 0.2);
   color: var(--text-primary);
 }
 
@@ -516,7 +516,7 @@ body {
 
 .quick-btn:hover {
   background: var(--accent-soft);
-  border-color: rgba(255, 106, 69, 0.25);
+  border-color: rgba(0, 35, 111, 0.25);
   color: var(--accent-strong);
 }
 
@@ -541,7 +541,7 @@ body {
 
 .chat-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 106, 69, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 35, 111, 0.12);
 }
 
 .chat-send-btn {
