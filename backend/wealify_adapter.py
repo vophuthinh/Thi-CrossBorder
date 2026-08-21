@@ -288,6 +288,14 @@ def adapt_to_wallet_balance(
         # 214 real card charges).
         if txn_type not in ("TOP_UP", "PAYMENT"):
             continue
+        # SUCCESS only — matches adapt_va_to_account_statement's filter.
+        # This was missing here, so this total included PENDING/PROCESSING
+        # transactions while the account_statement build didn't, making
+        # /dashboard/wallet's total_transferred_to_card disagree with a
+        # from-scratch recomputation off the same raw data (~$981 gap
+        # found by cross-checking the two).
+        if txn.get("transaction_vc_status") != "SUCCESS":
+            continue
         amount = float(txn.get("amount", 0))
         cur = "USD"
         if isinstance(txn.get("currency"), dict):

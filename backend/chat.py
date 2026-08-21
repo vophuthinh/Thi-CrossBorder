@@ -259,6 +259,22 @@ class ChatOrchestrator:
         if _extract_month_key(message) is not None:
             return "overview"
 
+        # A plain "what's my balance" question shares the word "số dư"
+        # with reconcile's keyword list (meant for "số dư ví không khớp"
+        # mismatch questions) and always lost to it outright — the
+        # reconciliation discrepancy dump was never actually answering the
+        # question asked. Route to a direct answer instead, unless the
+        # message actually names a reconciliation-specific signal.
+        has_balance_question = bool(
+            re.search(r"số dư.*(hiện tại|bao nhiêu)|(hiện tại|bao nhiêu).*số dư", lower)
+        ) or "wallet balance" in lower or "current balance" in lower
+        has_reconcile_signal = _has_any(
+            ["lệch", "chưa lên thẻ", "rời tài khoản", "3 nguồn", "mismatch", "discrepancy"],
+            lower,
+        )
+        if has_balance_question and not has_reconcile_signal:
+            return "wallet_balance"
+
         intents = {
             "overview": [
                 "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
@@ -328,6 +344,7 @@ class ChatOrchestrator:
             "scheduled_check": self._handle_scheduled_check,
             "unknown_merchant": self._handle_unknown_merchant,
             "audit_log": self._handle_audit_log,
+            "wallet_balance": self._handle_wallet_balance,
             "general": self._handle_general,
         }
         handler = handlers.get(intent, self._handle_general)
@@ -367,6 +384,31 @@ class ChatOrchestrator:
         return self._cache[cache_key]
 
     # --- Intent handlers ---
+
+    def _handle_wallet_balance(self, message: str, lang: str) -> dict[str, Any]:
+        """Direct answer to "what's my current balance" — previously lost
+        the intent-routing competition to "reconcile" (both match "số dư")
+        and got a 3-source discrepancy dump instead of an actual balance."""
+        wallet = self.data["wallet_balance"]
+        currency = wallet.get("currency", "VND")
+        sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+        balance = wallet.get("wallet_balance", 0)
+        balance_text = f"{balance:,.0f} {currency}" if currency == "VND" else f"{sym}{balance:,.2f}"
+
+        if lang == "en":
+            parts = [f"💰 **Current wallet balance:** {balance_text}"]
+        else:
+            parts = [f"💰 **Số dư ví hiện tại:** {balance_text}"]
+
+        card_totals = wallet.get("card_totals_by_currency", {})
+        if card_totals:
+            parts.append("")
+            parts.append("**Card balances:**" if lang == "en" else "**Số dư thẻ:**")
+            for cur, v in card_totals.items():
+                csym = CURRENCY_SYMBOLS.get(cur, cur + " ")
+                parts.append(f"- {cur}: {csym}{v.get('balance', 0):,.2f}")
+
+        return {"response": NL.join(parts), "type": "wallet_balance", "data": wallet}
 
     def _handle_month_overview(self, month_key: str, lang: str) -> dict[str, Any] | None:
         """Answer using report_cache's pre-generated per-month report (Nhiệm
