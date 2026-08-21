@@ -37,7 +37,7 @@ WEALIFY_API_URL = os.getenv("WEALIFY_API_URL", "https://dev-api.wealify.com/api"
 WEALIFY_VC_API_URL = os.getenv("WEALIFY_VC_API_URL", "https://dev-api.virtual-card.wealify.com/api")
 WEALIFY_EMAIL = os.getenv("WEALIFY_EMAIL", "")
 WEALIFY_PASSWORD = os.getenv("WEALIFY_PASSWORD", "")
-USE_LIVE_WEALIFY = os.getenv("USE_LIVE_WEALIFY", "false").lower() == "true"
+USE_LIVE_WEALIFY = os.getenv("USE_LIVE_WEALIFY", "true").lower() == "true"
 
 # --- Gmail API (read-only inbox for email reconciliation) ---
 USE_GMAIL_API = os.getenv("USE_GMAIL_API", "false").lower() == "true"

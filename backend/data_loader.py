@@ -175,9 +175,8 @@ def _calc_dispute_deadline(date_str: str) -> str:
 def get_all_data() -> dict[str, Any]:
     """
     Load all data sources at once.
-    If USE_LIVE_WEALIFY=true, fetches live data from Wealify API.
-    Otherwise, loads from local CSV/JSON files (mock data).
-    Falls back to local data if API fails.
+    Always uses LIVE Wealify API data. No mock/fake data fallback.
+    Local CSV files are only used if USE_LIVE_WEALIFY is explicitly set to false.
     """
     from config import USE_LIVE_WEALIFY
 
@@ -190,18 +189,22 @@ def get_all_data() -> dict[str, Any]:
             raw_data = client.get_all_data()
             adapted = adapt_all(raw_data)
 
-            # Merge local emails (Wealify API doesn't have email data)
+            # Merge emails (from Gmail API or local files)
             adapted["emails"] = load_emails()
 
             print("[data_loader] ✅ Loaded LIVE data from Wealify API")
             return adapted
         except Exception as e:
-            print(f"[data_loader] ⚠️ Wealify API failed ({e}), falling back to local data")
+            print(f"[data_loader] ❌ Wealify API FAILED: {e}")
+            print("[data_loader] ❌ NO fallback to fake data — fix API connection!")
+            raise RuntimeError(f"Wealify API unavailable: {e}") from e
 
-    # Default: load from local CSV/JSON files
+    # Only reach here if USE_LIVE_WEALIFY=false (explicitly disabled)
+    print("[data_loader] ⚠️ Using LOCAL mock data (USE_LIVE_WEALIFY=false)")
     return {
         "account_statement": load_account_statement(),
         "card_statement": load_card_statement(),
         "wallet_balance": load_wallet_balance(),
         "emails": load_emails(),
     }
+

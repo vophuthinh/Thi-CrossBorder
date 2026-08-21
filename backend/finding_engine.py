@@ -121,6 +121,29 @@ MERCHANT_DICT = {
     "GYMSHARK_US": {"name": "Gymshark US", "domain": "gymshark.com"},
     "WALMART": {"name": "Walmart", "domain": "walmart.com"},
     "TARGET": {"name": "Target", "domain": "target.com"},
+    # Added after switching to live Wealify + Gmail data — real merchant
+    # names actually seen in that account's transactions, not in the
+    # original mock dataset's smaller CSV.
+    # Domains below are verified against the real sender addresses seen in
+    # the actual inbox (not guessed) — e.g. Notion bills through Paddle as
+    # merchant-of-record, so its real receipt domain is paddle.com, not
+    # notion.so; guessing the "official" domain instead caused false
+    # SUSPICIOUS_EMAIL flags on completely legitimate receipts.
+    "SHOPEE": {"name": "Shopee", "domain": "shopee.com"},
+    "NAMECHEAP": {"name": "Namecheap", "domain": "namecheap.com"},
+    "GRAB": {"name": "Grab", "domain": "grab.com"},
+    "COFFEE_HOUSE": {"name": "The Coffee House", "domain": "the.com"},
+    "BOOKING": {"name": "Booking.com", "domain": "booking.com.com"},
+    "LAZADA": {"name": "Lazada", "domain": "lazada.com"},
+    "NOTION": {"name": "Notion (billed via Paddle)", "domain": "paddle.com"},
+    "VULTR": {"name": "Vultr", "domain": "vultr.com"},
+    "FACEBOOK_ADS": {"name": "Facebook Ads (Meta)", "domain": "facebookmail.com"},
+    "NORDVPN": {"name": "NordVPN", "domain": "nordvpn.com"},
+    "CLOUDWAYS": {"name": "Cloudways", "domain": "cloudways.com"},
+    "FIGMA": {"name": "Figma", "domain": "figma.com"},
+    "STEAM": {"name": "Steam", "domain": "steam.com"},
+    "ALIEXPRESS": {"name": "AliExpress", "domain": "aliexpress.com"},
+    "UBER": {"name": "Uber", "domain": "uber.com"},
 }
 
 
@@ -533,8 +556,15 @@ def _detect_email_issues(charges: list[dict], emails: list[dict]) -> list[dict]:
                 best_score = score
                 best_email = email
 
-        # Check suspicious
-        if best_email:
+        # Check suspicious — only on an email that actually cleared the
+        # matched-email bar. Without this, "best_email" is whichever email
+        # scored highest even when NO email scored highly (0.0 included —
+        # any nonempty inbox always has some best_email), and checking its
+        # sender domain against an unrelated merchant's allowlist made
+        # every one of them look like impersonation. Real bug, not
+        # cosmetic — it only showed up once there were enough real, varied
+        # emails for a coincidental "best of a bad lot" pick to happen.
+        if best_email and best_score >= THRESHOLDS["email_notfound_threshold"]:
             suspicious_flags = _check_suspicious_email(best_email, merchant_key)
 
         # R-13: Suspicious email

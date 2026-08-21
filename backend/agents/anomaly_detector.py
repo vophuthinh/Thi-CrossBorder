@@ -38,6 +38,22 @@ MERCHANT_EXPLANATIONS = {
     "WALMART": "Walmart — chuỗi bán lẻ Mỹ, mua sắm trực tuyến trên Walmart.com",
     "TARGET": "Target — chuỗi bán lẻ Mỹ, mua sắm trực tuyến trên Target.com",
     "DG MEMBERSHIP": "DoorDash DashPass / DG Membership — gói thành viên giao đồ ăn",
+    # Real merchants seen after switching to live Wealify + Gmail data.
+    "SHOPEE": "Shopee — sàn thương mại điện tử Đông Nam Á",
+    "NAMECHEAP": "Namecheap — dịch vụ đăng ký tên miền",
+    "GRAB": "Grab — gọi xe / giao đồ ăn Đông Nam Á",
+    "COFFEE HOUSE": "The Coffee House — chuỗi cà phê Việt Nam",
+    "BOOKING": "Booking.com — đặt phòng khách sạn trực tuyến",
+    "LAZADA": "Lazada — sàn thương mại điện tử Đông Nam Á",
+    "NOTION": "Notion — công cụ ghi chú / quản lý công việc (thanh toán qua Paddle.net)",
+    "VULTR": "Vultr — dịch vụ máy chủ đám mây (VPS)",
+    "FACEBOOK ADS": "Facebook Ads — quảng cáo trên Meta/Facebook",
+    "NORDVPN": "NordVPN — dịch vụ VPN bảo mật",
+    "CLOUDWAYS": "Cloudways — dịch vụ hosting đám mây",
+    "FIGMA": "Figma — công cụ thiết kế giao diện",
+    "STEAM": "Steam — nền tảng phân phối game",
+    "ALIEXPRESS": "AliExpress — sàn thương mại điện tử quốc tế",
+    "UBER": "Uber — đi xe / giao đồ ăn qua ứng dụng Uber",
 }
 
 
@@ -156,12 +172,20 @@ def _detect_unknown_merchants(charges: list[dict[str, Any]]) -> list[dict[str, A
         code = txn.get("merchant_code", "")
         desc = txn.get("description", "")
 
-        if code.startswith("UNKNOWN") or (code and code not in MERCHANT_EXPLANATIONS):
+        # Live-data charges often have merchant_code == "" (the adapter's
+        # keyword guesser doesn't recognize the merchant) — that used to
+        # skip this check entirely (empty string is falsy), so real unknown
+        # merchants with no code silently never got flagged. `not code`
+        # catches that case; mock data's codes are never empty, so this
+        # doesn't change existing behavior there.
+        if not code or code.startswith("UNKNOWN") or code not in MERCHANT_EXPLANATIONS:
             explanation = MERCHANT_EXPLANATIONS.get(code, "")
             if not explanation:
-                # Try partial match
+                # Try partial match — case-insensitive, since live merchant
+                # descriptions ("The Coffee House", "NORDVPN *MONTHLY") mix
+                # case in ways the dict keys don't necessarily match exactly.
                 for key, exp in MERCHANT_EXPLANATIONS.items():
-                    if key in desc:
+                    if key.upper() in desc.upper():
                         explanation = exp
                         break
 
