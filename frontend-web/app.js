@@ -35,6 +35,7 @@ const I18N = {
         flag_duplicate: 'Duplicate charges',
         flag_unrecognized: 'Unrecognized / no receipt',
         flag_audit: 'Needs your confirmation',
+        flag_email_audit: 'Email reconciliation needed',
 
         block_radar: 'Subscription radar',
         sub_price: 'Price increased',
@@ -103,6 +104,7 @@ const I18N = {
         flag_duplicate: 'Giao dịch trùng lặp',
         flag_unrecognized: 'Chưa nhận diện / không có biên lai',
         flag_audit: 'Cần bạn tự xác nhận',
+        flag_email_audit: 'Cần đối soát email',
 
         block_radar: 'Radar gói đăng ký',
         sub_price: 'Gói tăng giá',
@@ -187,6 +189,7 @@ function renderMarkdown(text) {
 // ─── Live data, fetched once per load/refresh ───────────────────────
 let allFindings = [];
 let walletData = null;
+let emailAuditItems = [];
 
 async function apiGet(path) {
     try {
@@ -247,10 +250,57 @@ const FLAG_TITLE_KEY = {
     unused: 'sub_unused',
 };
 
+// Email reconciliation needed — two real sources, normalized into the same
+// finding-like shape buildDetailItem already renders: (1) phishing/lookalike
+// sender domains (check_suspicious_domains), (2) receipt emails that
+// matched a Wealify transaction but not cleanly (match_outbound_emails,
+// excluding "matched_success" — those are fine, nothing to review).
+function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
+    const items = [];
+    for (const it of (suspiciousRes && suspiciousRes.items) || []) {
+        items.push({
+            finding_id: `SUSPICIOUS-${it.email_from}`,
+            title_vi: it.email_subject || it.email_from,
+            title_en: it.email_subject || it.email_from,
+            explanation_vi: it.detail,
+            explanation_en: it.detail,
+            label: 'CAN_BAN_TU_XAC_NHAN',
+            label_vi: it.label,
+            label_en: it.label,
+            amount_cents: 0,
+            currency: 'USD',
+            occurred_at: (it.email_date || '').split(' ')[0],
+        });
+    }
+    for (const it of (outboundRes && outboundRes.items) || []) {
+        if (it.category === 'matched_success') continue;
+        items.push({
+            finding_id: `OUTBOUND-${it.email_ref}`,
+            title_vi: it.email_subject || it.email_ref,
+            title_en: it.email_subject || it.email_ref,
+            explanation_vi: it.detail,
+            explanation_en: it.detail,
+            label: 'CAN_BAN_TU_XAC_NHAN',
+            label_vi: it.label,
+            label_en: it.label,
+            amount_cents: Math.round((it.wealify_amount ?? it.email_amount ?? 0) * 100),
+            currency: 'USD',
+            occurred_at: (it.email_date || '').split(' ')[0],
+        });
+    }
+    return items;
+}
+
 async function loadAll() {
-    const [findingsRes, wallet] = await Promise.all([apiGet('/findings'), apiGet('/dashboard/wallet')]);
+    const [findingsRes, wallet, suspiciousRes, outboundRes] = await Promise.all([
+        apiGet('/findings'),
+        apiGet('/dashboard/wallet'),
+        apiGet('/dashboard/suspicious-domains'),
+        apiGet('/dashboard/outbound-reconciliation'),
+    ]);
     allFindings = (findingsRes && findingsRes.findings) || [];
     walletData = wallet;
+    emailAuditItems = normalizeEmailAuditItems(suspiciousRes, outboundRes);
 
     renderReconciliation();
     renderCommandCenterCounts();
@@ -331,7 +381,7 @@ function renderReconciliation() {
 function renderCommandCenterCounts() {
     document.querySelectorAll('[data-flag]').forEach((el) => {
         const flag = el.dataset.flag;
-        const count = allFindings.filter(FLAG_FILTERS[flag]).length;
+        const count = flag === 'email-audit' ? emailAuditItems.length : allFindings.filter(FLAG_FILTERS[flag]).length;
         const badge = el.querySelector('.badge, .pill');
         if (badge) badge.textContent = String(count);
         const sub = el.querySelector('.flag-sub');
@@ -532,15 +582,15 @@ function paintDetails(items) {
 }
 
 function renderDetails(flag, { instant = false } = {}) {
-    const filter = FLAG_FILTERS[flag];
-    if (!filter) return;
+    const isEmailAudit = flag === 'email-audit';
+    if (!isEmailAudit && !FLAG_FILTERS[flag]) return;
 
     if (flag !== activeFlag) openIndex = null;
     activeFlag = flag;
 
-    const items = allFindings.filter(filter);
+    const items = isEmailAudit ? emailAuditItems : allFindings.filter(FLAG_FILTERS[flag]);
 
-    detailTitle.textContent = t(FLAG_TITLE_KEY[flag]);
+    detailTitle.textContent = t(isEmailAudit ? 'flag_email_audit' : FLAG_TITLE_KEY[flag]);
     detailCount.textContent = t('count_items')(items.length);
 
     document.querySelectorAll('[data-flag]').forEach((el) => {
