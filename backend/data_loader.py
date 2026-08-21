@@ -94,7 +94,23 @@ def load_wallet_balance(path: Path | None = None) -> dict[str, Any]:
 
 
 def load_emails(email_dir: Path | None = None) -> list[dict[str, str]]:
-    """Parse all email text files from directory."""
+    """
+    Load emails for reconciliation. If USE_GMAIL_API=true, reads the real
+    demo inbox via the Gmail API (read-only). Falls back to local .txt
+    mock files on any failure or when disabled.
+    """
+    from config import USE_GMAIL_API
+
+    if USE_GMAIL_API:
+        try:
+            from gmail_client import fetch_emails
+
+            emails = fetch_emails()
+            print(f"[data_loader] ✅ Loaded {len(emails)} emails from Gmail API")
+            return emails
+        except Exception as e:
+            print(f"[data_loader] ⚠️ Gmail API failed ({e}), falling back to local .txt files")
+
     email_dir = email_dir or EMAILS_DIR
     emails = []
     if not email_dir.exists():

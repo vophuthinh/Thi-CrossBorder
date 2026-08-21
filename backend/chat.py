@@ -767,7 +767,10 @@ class ChatOrchestrator:
                     f"Subscriptions: {len(anomalies.get('subscriptions', []))} active\n"
                     f"Price hikes: {len(anomalies.get('price_hikes', []))} detected"
                 )
-                llm_response = call_llm(prompt, system=system, max_tokens=600)
+                # DeepSeek V4 Flash is a reasoning model — its "thinking" tokens
+                # count against this budget before the final answer, so keep
+                # plenty of headroom or replies get cut off mid-thought.
+                llm_response = call_llm(prompt, system=system, max_tokens=1500)
                 return {"response": llm_response, "type": "llm_response"}
             except Exception as e:
                 print(f"[Chat] LLM fallback failed: {e}")

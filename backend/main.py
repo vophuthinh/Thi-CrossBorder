@@ -321,7 +321,7 @@ def scheduled_check():
 @app.post("/ai/insight")
 def ai_insight(req: InsightRequest):
     """
-    Generate AI insight using BytePlus Seed 2.0.
+    Generate AI insight using BytePlus ModelArk — DeepSeek V4 Flash.
     Falls back to cached insight if no API key.
     """
     analysis = analyze_statement(_data["account_statement"], "vi")
@@ -373,11 +373,14 @@ Yêu cầu:
                 "Respond in Vietnamese. Be concise, actionable, and data-driven. "
                 "Never make definitive safety claims. Always say 'khuyến nghị' not 'phải làm'."
             )
-            insight_text = call_llm(prompt, system=system, max_tokens=800)
+            # DeepSeek V4 Flash is a reasoning model — its "thinking" tokens
+            # count against this budget before the final answer, so keep
+            # plenty of headroom or replies get cut off mid-thought.
+            insight_text = call_llm(prompt, system=system, max_tokens=1500)
             return {
                 "insight": insight_text,
-                "source": "byteplus_seed_2.0",
-                "powered_by": "BytePlus Seed 2.0",
+                "source": "byteplus_deepseek_v4_flash",
+                "powered_by": "BytePlus ModelArk — DeepSeek V4 Flash",
             }
         except Exception as e:
             print(f"[AI] LLM call failed: {e}, using cached insight")
@@ -387,7 +390,7 @@ Yêu cầu:
     return {
         "insight": insight,
         "source": "cached",
-        "powered_by": "BytePlus Seed 2.0 (demo mode)",
+        "powered_by": "BytePlus ModelArk — DeepSeek V4 Flash (demo mode)",
     }
 
 
@@ -572,7 +575,7 @@ def dashboard_wealify_accounts():
                 "active_va": sum(1 for va in va_accounts if va.get("status") == "ACTIVE"),
                 "active_vc": sum(1 for vc in vc_cards if vc.get("card_status") == "ACTIVE"),
             },
-            "powered_by": "Wealify × BytePlus Seed 2.0",
+            "powered_by": "Wealify × BytePlus ModelArk — DeepSeek V4 Flash",
         }
     except Exception as e:
         return {
@@ -617,7 +620,7 @@ def dashboard_wealify_transactions():
             "status": "live",
             "total": len(transactions),
             "transactions": transactions,
-            "powered_by": "Wealify × BytePlus Seed 2.0",
+            "powered_by": "Wealify × BytePlus ModelArk — DeepSeek V4 Flash",
         }
     except Exception as e:
         return {
@@ -625,6 +628,55 @@ def dashboard_wealify_transactions():
             "error": str(e),
             "transactions": [],
         }
+
+
+@app.get("/dashboard/outbound-reconciliation")
+def dashboard_outbound_reconciliation():
+    """
+    Luồng Tiền ra: match card-payment receipt emails (Gmail) against real
+    Wealify VC transactions by the "Ref: CD-XXXX" printed in each email.
+    """
+    try:
+        from gmail_client import fetch_emails
+        from wealify_client import get_wealify_client
+        from agents.outbound_reconciler import match_outbound_emails
+        from config import WEALIFY_EMAIL
+
+        emails = fetch_emails()
+        if WEALIFY_EMAIL:
+            emails = [e for e in emails if e.get("to") == WEALIFY_EMAIL]
+
+        client = get_wealify_client()
+        vc_txns = client.get_vc_transactions()
+
+        result = match_outbound_emails(emails, vc_txns, lang="vi")
+        result["status"] = "live"
+        return result
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e), "items": []}
+
+
+@app.get("/dashboard/inbound-reconciliation")
+def dashboard_inbound_reconciliation():
+    """
+    Luồng Tiền vào: check bank-payout emails (Gmail) against Wealify.
+    Honestly labeled "Chưa đủ dữ liệu" — the VA-transactions API needed to
+    verify these is broken on the dev sandbox (confirmed, not guessed).
+    """
+    try:
+        from gmail_client import fetch_emails
+        from agents.inbound_reconciler import check_inbound_emails
+        from config import WEALIFY_EMAIL
+
+        emails = fetch_emails()
+        if WEALIFY_EMAIL:
+            emails = [e for e in emails if e.get("to") == WEALIFY_EMAIL]
+
+        result = check_inbound_emails(emails, lang="vi")
+        result["status"] = "live"
+        return result
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e), "items": []}
 
 
 # ─── Serve Frontend ─────────────────────────────────────

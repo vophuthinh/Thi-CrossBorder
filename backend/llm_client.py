@@ -102,7 +102,7 @@ def call_llm(
 ) -> str:
     """
     Call LLM with retry + exponential backoff.
-    Powered by BytePlus Seed 2.0.
+    Powered by BytePlus ModelArk — DeepSeek V4 Flash.
 
     Args:
         prompt: User prompt

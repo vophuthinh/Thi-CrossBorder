@@ -30,3 +30,7 @@ Thumbs.db
 
 # Cached outputs
 cached_outputs/
+
+# Gmail OAuth credentials/tokens
+backend/gmail_credentials.json
+backend/gmail_token.json

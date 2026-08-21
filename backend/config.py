@@ -6,6 +6,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load ../.env (project root) — every os.getenv() below depends on this
+# actually having run first, so it must be the first thing this module does.
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 # --- Mode ---
 DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 
@@ -32,6 +38,9 @@ WEALIFY_VC_API_URL = os.getenv("WEALIFY_VC_API_URL", "https://dev-api.virtual-ca
 WEALIFY_EMAIL = os.getenv("WEALIFY_EMAIL", "")
 WEALIFY_PASSWORD = os.getenv("WEALIFY_PASSWORD", "")
 USE_LIVE_WEALIFY = os.getenv("USE_LIVE_WEALIFY", "false").lower() == "true"
+
+# --- Gmail API (read-only inbox for email reconciliation) ---
+USE_GMAIL_API = os.getenv("USE_GMAIL_API", "false").lower() == "true"
 
 # --- Paths ---
 BASE_DIR = Path(__file__).parent
