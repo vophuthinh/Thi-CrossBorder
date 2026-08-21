@@ -149,14 +149,22 @@ def adapt_vc_to_card_statement(
         created_at = txn.get("created_at", "")
         status = txn.get("transaction_vc_status", "SUCCESS")
 
-        # Only include card spending (not top-ups)
-        if txn_type in ("PAYMENT", "REFUND"):
+        # Include both spending (PAYMENT/REFUND) and top-ups (TOP_UP).
+        # TOP_UP has to be here — it's the "money arrived on the card" side
+        # of a wallet-to-card transfer, which is exactly what R-10 (transfer
+        # reconciliation) checks the card statement for. Leaving it out meant
+        # every transfer looked like it never reached the card, regardless
+        # of whether it actually had.
+        if txn_type in ("PAYMENT", "REFUND", "TOP_UP"):
             if txn_type == "PAYMENT":
                 amount = -abs(amount)
                 category = "spending"
-            else:
+            elif txn_type == "REFUND":
                 amount = abs(amount)
                 category = "refund"
+            else:  # TOP_UP
+                amount = abs(amount)
+                category = "top_up"
 
             statements.append({
                 "date": _parse_date(created_at),

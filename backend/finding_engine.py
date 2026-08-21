@@ -4,6 +4,7 @@ Implements all detectors D1-D7 per PDF spec and assigns labels via rule table.
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from statistics import median
@@ -508,13 +509,26 @@ def _detect_email_issues(charges: list[dict], emails: list[dict]) -> list[dict]:
         ref = txn.get("reference", "")
         merchant_key = _resolve_merchant(txn)
 
-        # Score each email per PDF formula
+        # Score each email per PDF formula. A "Ref: <id>" printed in the
+        # email body (a real, visible receipt field — not a peek at any
+        # hidden answer key) is stronger evidence than amount/date/token
+        # fuzzy-matching, so treat an exact reference match as decisive.
+        # Must match the full "<PREFIX>-<number>" (e.g. "CD-0038"), not
+        # just the trailing digits — CD-0038 and VA-0038 are unrelated
+        # transactions that happen to share a number.
+        ref_parts = ref.split("-")
+        ref_code = "-".join(ref_parts[-2:]) if len(ref_parts) >= 2 and ref_parts[-1].isdigit() else None
+        ref_pattern = re.compile(rf"Ref:\s*{re.escape(ref_code)}\b") if ref_code else None
+
         best_score = 0.0
         best_email = None
         suspicious_flags = []
 
         for email in emails:
-            score = _score_email_match(txn, email)
+            if ref_pattern and ref_pattern.search(email.get("body", "")):
+                score = 1.0
+            else:
+                score = _score_email_match(txn, email)
             if score > best_score:
                 best_score = score
                 best_email = email
