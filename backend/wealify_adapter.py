@@ -48,6 +48,8 @@ def adapt_va_to_account_statement(
         status = txn.get("transaction_status", "APPROVED")
         if status not in ("APPROVED", "SUCCESS"):
             continue
+        if "DUPLICATE" in str(txn.get("note", "")).upper():
+            continue
             
         amount = float(txn.get("amount", 0))
         direction = txn.get("direction", "IN")
@@ -86,6 +88,9 @@ def adapt_va_to_account_statement(
 
     # Build transactions from VC card spending
     for txn in vc_transactions:
+        if "DUPLICATE" in str(txn.get("remark", "")).upper():
+            continue
+            
         amount = float(txn.get("amount", 0))
         txn_type = txn.get("transaction_vc_type", "UNKNOWN")
         detail_type = txn.get("vc_detail_transaction_type", "")
@@ -165,6 +170,9 @@ def adapt_vc_to_card_statement(
     statements = []
 
     for txn in vc_transactions:
+        if "DUPLICATE" in str(txn.get("remark", "")).upper():
+            continue
+            
         amount = float(txn.get("amount", 0))
         txn_type = txn.get("transaction_vc_type", "")
         remark = txn.get("remark", "")
@@ -269,6 +277,9 @@ def adapt_to_wallet_balance(
             card_last4 = card.get("last_four", "")
 
     for txn in vc_transactions:
+        if "DUPLICATE" in str(txn.get("remark", "")).upper():
+            continue
+            
         txn_type = txn.get("transaction_vc_type", "")
         # "Spending" is PAYMENT — real purchases, matching card_statement's
         # own charge classification (adapt_vc_to_card_statement). WITHDRAW
