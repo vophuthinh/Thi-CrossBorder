@@ -287,18 +287,18 @@ ol {
 }
 
 .panel-left {
-    flex: 0 0 25%;
-    max-width: 25%;
+    flex: 0 0 28%;
+    max-width: 28%;
 }
 
 .panel-center {
-    flex: 1 1 50%;
+    flex: 1 1 44%;
     background: var(--surface);
 }
 
 .panel-right {
-    flex: 0 0 25%;
-    max-width: 25%;
+    flex: 0 0 28%;
+    max-width: 28%;
 }
 
 .panel-head {

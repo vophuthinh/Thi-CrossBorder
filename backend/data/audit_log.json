@@ -1816,5 +1816,23 @@
     "label": "Cần bạn tự xác nhận",
     "source": "reconciler",
     "details": "Số dư thẻ lệch: tổng chuyển sang thẻ = $16486.02, tổng chi trên thẻ = $30685.97, số dư thẻ kỳ vọng = $-14199.95, số dư thẻ thực tế = $1619.91. Lệch $15819.86, chưa xác định nguyên nhân."
+  },
+  {
+    "timestamp": "2026-08-21T21:42:20.252169Z",
+    "transaction_ref": "WLF15-CD-0216",
+    "reason": "duplicate_charge",
+    "confidence": "high",
+    "label": "Cần bạn tự xác nhận",
+    "source": "anomaly_detector",
+    "details": "Duplicate of WLF15-CD-0217"
+  },
+  {
+    "timestamp": "2026-08-21T21:42:20.257580Z",
+    "transaction_ref": "wallet_card_mismatch|2836.2",
+    "reason": "wallet_card_mismatch",
+    "confidence": "medium",
+    "label": "Cần bạn tự xác nhận",
+    "source": "reconciler",
+    "details": "Số dư thẻ lệch: tổng chuyển sang thẻ = $101726.95, tổng chi trên thẻ = $97270.84, số dư thẻ kỳ vọng = $4456.11, số dư thẻ thực tế = $1619.91. Lệch $2836.20, chưa xác định nguyên nhân."
   }
 ]
