@@ -1,136 +1,228 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Wealify Smart Finance — AI Dashboard soi sao kê, quản lý chi tiêu & an toàn giao dịch cho Seller Cross-Border">
-  <title>Wealify Smart Finance — AI Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-<div class="app-layout">
-  <!-- ═══ Sidebar ═══ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">🛡️</div>
-      <span class="brand-text">Wealify</span>
-    </div>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Wealify Scout — AI financial review assistant for cross-border sellers" />
+        <title>Wealify Scout — AI Financial Assistant</title>
 
-    <nav class="sidebar-nav">
-      <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
-        <span class="nav-icon">📊</span> <span data-i18n="nav_overview">Tổng quan</span>
-      </div>
-      <div class="nav-item" data-tab="reconcile" onclick="switchTab('reconcile')">
-        <span class="nav-icon">🔍</span> <span data-i18n="nav_reconcile">Đối chiếu</span>
-      </div>
-      <div class="nav-item" data-tab="safety" onclick="switchTab('safety')">
-        <span class="nav-icon">🛡️</span> <span data-i18n="nav_safety">An toàn</span>
-      </div>
-      <div class="nav-item" data-tab="findings" onclick="switchTab('findings')">
-        <span class="nav-icon">🎯</span> <span data-i18n="nav_findings">Findings</span>
-      </div>
-      <div class="nav-item" data-tab="chat" onclick="switchTab('chat')">
-        <span class="nav-icon">💬</span> <span>Chat AI</span>
-      </div>
-    </nav>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111827'/%3E%3Ctext x='16' y='22' font-family='Inter,Helvetica,sans-serif' font-size='16' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E"
+        />
 
-    <div class="sidebar-actions">
-      <button class="sidebar-btn" onclick="runScheduledCheck()">
-        🔍 <span data-i18n="btn_scan">Rà soát định kỳ</span>
-      </button>
-      <button class="sidebar-btn" onclick="exportAuditLog()">
-        📝 <span data-i18n="btn_export">Xuất nhật ký</span>
-      </button>
-      <button class="sidebar-btn" onclick="refreshData()">
-        🔄 <span data-i18n="btn_refresh">Làm mới dữ liệu</span>
-      </button>
-    </div>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+        <link rel="stylesheet" href="/static/styles.css" />
+    </head>
+    <body>
+        <!-- ═══ Top Navbar ═══ -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-mark">W</div>
+                <div>
+                    <div class="brand-name">Wealify Scout</div>
+                    <div class="brand-sub" data-i18n="brand_sub">AI financial review</div>
+                </div>
+            </div>
 
-    <div class="lang-toggle">
-      <button class="active" onclick="setLang('vi')">VN</button>
-      <button onclick="setLang('en')">EN</button>
-    </div>
+            <div class="nav-right">
+                <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
+                    <button class="lang-btn is-active" type="button" data-lang="en">EN</button>
+                    <button class="lang-btn" type="button" data-lang="vi">VI</button>
+                </div>
 
-    <div class="sidebar-footer">
-      <small>Built with <strong>BytePlus ModelArk — DeepSeek V4 Flash</strong><br>AI Cross-Border Hackathon 2026</small>
-      <br><span class="status-dot online"></span> <small>Backend Online</small>
-    </div>
-  </aside>
+                <div class="profile">
+                    <div class="profile-meta">
+                        <div class="profile-name">TienNX</div>
+                        <div class="profile-card num" data-i18n="profile_card">Card 4218 · 7734</div>
+                    </div>
+                    <div class="avatar">TN</div>
+                </div>
+            </div>
+        </header>
 
-  <!-- ═══ Main Content ═══ -->
-  <main class="main-content">
-    <!-- Hero -->
-    <header class="hero">
-      <div class="hero-top">
-        <div>
-          <h1>🛡️ Wealify Smart Finance</h1>
-          <p class="hero-subtitle" data-i18n="hero_subtitle">AI Dashboard soi sao kê · Quản lý chi tiêu & An toàn giao dịch cho Seller Cross-Border</p>
-        </div>
-        <span class="hero-badge">⚡ Powered by BytePlus ModelArk — DeepSeek V4 Flash</span>
-      </div>
-    </header>
+        <!-- ═══ Main 3-Column Container ═══ -->
+        <main class="workspace">
+            <!-- ─── Left Panel: Command Center ─── -->
+            <aside class="panel panel-left">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel_command">Command Center</h2>
+                    <span class="panel-hint" data-i18n="panel_hint_live">Live review</span>
+                </div>
 
-    <!-- Metrics -->
-    <div class="metrics-grid" id="metricsGrid">
-      <div class="metric-card income">
-        <div class="metric-icon">💰</div>
-        <div class="metric-label" data-i18n="metric_income">TỔNG TIỀN VÀO</div>
-        <div class="metric-value green" id="metricIncome">—</div>
-      </div>
-      <div class="metric-card spending">
-        <div class="metric-icon">🛒</div>
-        <div class="metric-label" data-i18n="metric_spending">TỔNG CHI TIÊU</div>
-        <div class="metric-value red" id="metricSpending">—</div>
-      </div>
-      <div class="metric-card fees">
-        <div class="metric-icon">🏷️</div>
-        <div class="metric-label" data-i18n="metric_fees">TỔNG PHÍ</div>
-        <div class="metric-value yellow" id="metricFees">—</div>
-      </div>
-      <div class="metric-card risk">
-        <div class="metric-icon">⚠️</div>
-        <div class="metric-label">RISK SCORE</div>
-        <div class="metric-value red" id="metricRisk">—</div>
-        <div class="metric-change" id="metricRiskLevel"></div>
-      </div>
-    </div>
+                <div class="panel-body">
+                    <!-- Section 1: Reconciliation -->
+                    <section class="block">
+                        <h3 class="block-title" data-i18n="block_reconciliation">Reconciliation</h3>
 
-    <!-- Disclaimer -->
-    <div style="padding: 16px 40px 0;">
-      <div class="disclaimer-bar" id="disclaimerBar"></div>
-    </div>
+                        <ol class="flow">
+                            <li class="flow-node">
+                                <span class="flow-label" data-i18n="flow_bank">Bank account</span>
+                                <span class="flow-value num">$1,042.60</span>
+                            </li>
+                            <li class="flow-node">
+                                <span class="flow-label" data-i18n="flow_wallet">Wealify wallet</span>
+                                <span class="flow-value num">$214.35</span>
+                            </li>
+                            <li class="flow-node is-gap">
+                                <span class="flow-label" data-i18n="flow_card">Card statement</span>
+                                <span class="flow-value num">$778.20</span>
+                            </li>
+                        </ol>
 
-    <!-- Tab Contents -->
-    <div class="content-area">
-      <!-- TAB: OVERVIEW -->
-      <div class="tab-content active" id="tab-overview"></div>
+                        <div class="note note-caution">
+                            <i class="ph ph-warning-circle" aria-hidden="true"></i>
+                            <div>
+                                <strong data-i18n="alert_mismatch">$50.05 unaccounted for</strong>
+                                <div class="note-sub" data-i18n="alert_mismatch_sub">
+                                    Left the account, not yet on the card
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
-      <!-- TAB: RECONCILE -->
-      <div class="tab-content" id="tab-reconcile"></div>
+                    <!-- Section 2: Urgent Flags -->
+                    <section class="block">
+                        <h3 class="block-title" data-i18n="block_urgent">Urgent flags</h3>
 
-      <!-- TAB: SAFETY -->
-      <div class="tab-content" id="tab-safety"></div>
+                        <button class="flag-card" data-flag="duplicate" type="button">
+                            <span class="flag-icon flag-icon-danger">
+                                <i class="ph ph-copy-simple" aria-hidden="true"></i>
+                            </span>
+                            <span class="flag-text">
+                                <span class="flag-name" data-i18n="flag_duplicate">Duplicate charges</span>
+                                <span class="flag-sub" data-i18n="flag_duplicate_sub">3 transactions</span>
+                            </span>
+                            <span class="badge badge-danger num">3</span>
+                        </button>
 
-      <!-- TAB: FINDINGS -->
-      <div class="tab-content" id="tab-findings"></div>
+                        <button class="flag-card" data-flag="unrecognized" type="button">
+                            <span class="flag-icon flag-icon-muted">
+                                <i class="ph ph-question" aria-hidden="true"></i>
+                            </span>
+                            <span class="flag-text">
+                                <span class="flag-name" data-i18n="flag_unrecognized">Unrecognized</span>
+                                <span class="flag-sub" data-i18n="flag_unrecognized_sub">5 transactions</span>
+                            </span>
+                            <span class="badge badge-muted num">5</span>
+                        </button>
+                    </section>
 
-      <!-- TAB: CHAT -->
-      <div class="tab-content" id="tab-chat">
-        <div class="chat-container">
-          <div class="chat-quick-btns" id="chatQuickBtns"></div>
-          <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg bot">👋 Xin chào! Mình là trợ lý rà soát tài chính Wealify. Hỏi mình bất kỳ điều gì về sao kê của bạn!</div>
-          </div>
-          <div class="chat-input-area">
-            <input class="chat-input" id="chatInput" placeholder="Nhập câu hỏi..." onkeydown="if(event.key==='Enter')sendChat()">
-            <button class="chat-send-btn" onclick="sendChat()" data-i18n="btn_send">Gửi</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-</div>
+                    <!-- Section 3: Subscription Radar -->
+                    <section class="block">
+                        <h3 class="block-title" data-i18n="block_radar">Subscription radar</h3>
 
-<script src="/static/app.js"></script>
-</body>
+                        <ul class="sub-list">
+                            <li>
+                                <button class="sub-item" data-flag="price-hike" type="button">
+                                    <span class="sub-name" data-i18n="sub_price">Price increased</span>
+                                    <span class="pill pill-caution num">2</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button class="sub-item" data-flag="active-subs" type="button">
+                                    <span class="sub-name" data-i18n="sub_active">Active subscriptions</span>
+                                    <span class="pill num">7</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button class="sub-item" data-flag="trial" type="button">
+                                    <span class="sub-name" data-i18n="sub_trial">Trials ending soon</span>
+                                    <span class="pill num">1</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button class="sub-item" data-flag="unused" type="button">
+                                    <span class="sub-name" data-i18n="sub_unused">Unused 60+ days</span>
+                                    <span class="pill num">3</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </section>
+                </div>
+            </aside>
+
+            <!-- ─── Center Panel: AI Chat ─── -->
+            <section class="panel panel-center">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel_chat">AI Chat Assistant</h2>
+                    <span class="status-chip"
+                        ><span class="dot"></span> <span data-i18n="status_online">Online</span></span
+                    >
+                </div>
+
+                <div class="chat-history" id="chatHistory">
+                    <div class="msg msg-ai">
+                        <div class="msg-avatar">AI</div>
+                        <div class="bubble bubble-ai" data-i18n="chat_greeting">
+                            Hi TienNX, I've cross-checked your card statements, wallet, and emails. Where should we
+                            start?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-footer">
+                    <div class="chips" id="suggestionChips">
+                        <button class="chip" type="button" data-i18n="chip_top3">Top 3 expenses?</button>
+                        <button class="chip" type="button" data-i18n="chip_duplicate">Any duplicate charges?</button>
+                        <button class="chip" type="button" data-i18n="chip_subs">Which subscriptions increased?</button>
+                        <button class="chip" type="button" data-i18n="chip_report">Draft monthly report</button>
+                    </div>
+
+                    <form class="chat-input" id="chatForm" autocomplete="off">
+                        <input
+                            id="chatInput"
+                            type="text"
+                            placeholder="Ask about your transactions"
+                            data-i18n-placeholder="chat_placeholder"
+                            aria-label="Chat message"
+                        />
+                        <button class="send-btn" type="submit" aria-label="Send message">
+                            <i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>
+                        </button>
+                    </form>
+
+                    <p class="readonly-note">
+                        <i class="ph ph-lock-simple" aria-hidden="true"></i>
+                        <span data-i18n="readonly_note">Read-only access mode</span>
+                    </p>
+                </div>
+            </section>
+
+            <!-- ─── Right Panel: Detail View ─── -->
+            <aside class="panel panel-right">
+                <div class="panel-head">
+                    <h2 class="panel-title" id="detailTitle">Detail view</h2>
+                    <span class="panel-hint num" id="detailCount"></span>
+                </div>
+
+                <div class="panel-body" id="detailBody">
+                    <div class="empty-state">
+                        <i class="ph ph-tray empty-icon" aria-hidden="true"></i>
+                        <p class="empty-title" data-i18n="empty_title">Nothing selected</p>
+                        <p class="empty-sub" data-i18n="empty_sub">
+                            Pick a flag in the Command Center to inspect the underlying transactions.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- ═══ Bottom Disclaimer Banner ═══ -->
+        <footer class="disclaimer">
+            <span class="disclaimer-chip" data-i18n="disclaimer_label">Disclaimer</span>
+            <span data-i18n="disclaimer_text">
+                This tool only assists in financial review. Results are for reference only. If you see strange
+                transactions, contact support immediately. US dispute timeframe is 60 days from the statement date.
+            </span>
+        </footer>
+
+        <script src="/static/app.js"></script>
+    </body>
 </html>
