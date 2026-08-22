@@ -36,7 +36,7 @@ class ReminderCheckerTests(unittest.TestCase):
                 "body": "Ref: VA-123\nWe received USD 100.00",
             }
         ]
-        flagged = reminder_checker.check_stale_unverified_inbound_emails(emails, 1)
+        flagged = reminder_checker.check_stale_unverified_inbound_emails(emails, None, 1)
         self.assertEqual([item["email_ref"] for item in flagged], ["VA-123"])
 
 

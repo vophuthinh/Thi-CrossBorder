@@ -453,6 +453,20 @@ class ChatOrchestrator:
         if has_amount and asks_what_is:
             return "unknown_merchant"
 
+        # "Gửi báo cáo tháng này vào email của tôi" (spec sample scenario #6,
+        # verbatim) has both a month mention AND a send-report request — the
+        # month-key check right below used to win unconditionally, showing
+        # an overview instead of ever drafting/sending anything. Sending
+        # isn't month-scoped today (_handle_send_report always drafts the
+        # full-period report), but that's a real report + real email action,
+        # which answers the actual request; a month-scoped overview with no
+        # email step doesn't.
+        has_send_report_signal = _has_any(
+            ["gửi báo cáo", "gửi email", "send report", "email report", "gửi vào email"], lower,
+        ) or "send to my email" in lower
+        if has_send_report_signal:
+            return "send_report"
+
         # A message naming a specific month ("tháng 2", "February") always
         # routes to _handle_overview's month-specific path — otherwise this
         # can lose the keyword-score competition and fall through to the
