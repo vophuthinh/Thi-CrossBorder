@@ -695,6 +695,11 @@ class ChatOrchestrator:
         overview = cached["report"].get("overview", {})
         if not overview:
             return None
+        # Cached alongside overview by the same generate_report() call
+        # (report_cache._build_report) — was already computed and sitting
+        # right here, just never rendered, so "3 khoản lớn nhất tháng này?"
+        # got the totals with no answer to the actual question asked.
+        top3_by_currency = cached["report"].get("top3_largest", {})
 
         header = f"📊 **Tổng quan tháng {month_key}**" if lang == "vi" else f"📊 **Overview for {month_key}**"
         parts = [header]
@@ -703,6 +708,12 @@ class ChatOrchestrator:
             parts.append(f"\n**[{currency}]**")
             for k, v in group.items():
                 parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+            top3 = top3_by_currency.get(currency, [])
+            if top3:
+                top3_header = "**Top 3 Largest Charges:**" if lang == "en" else "**3 khoản lớn nhất:**"
+                parts.append(top3_header)
+                for i, t in enumerate(top3, 1):
+                    parts.append(f"{i}. `{t['description']}` — `{sym}{abs(t['amount']):,.2f}` ({t['date']})")
 
         return {"response": NL.join(parts), "type": "month_overview", "data": cached}
 
@@ -724,6 +735,7 @@ class ChatOrchestrator:
         summary = analysis.get("summary", {})
         if not summary:
             return None
+        top3_by_currency = analysis.get("top3_largest", {})
 
         header = f"📊 **Tổng quan quý {quarter}/{now.year}**" if lang == "vi" else f"📊 **Overview for Q{quarter}/{now.year}**"
         parts = [header]
@@ -732,6 +744,12 @@ class ChatOrchestrator:
             parts.append(f"\n**[{currency}]**")
             for k, v in group.items():
                 parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+            top3 = top3_by_currency.get(currency, [])
+            if top3:
+                top3_header = "**Top 3 Largest Charges:**" if lang == "en" else "**3 khoản lớn nhất:**"
+                parts.append(top3_header)
+                for i, t in enumerate(top3, 1):
+                    parts.append(f"{i}. `{t['description']}` — `{sym}{abs(t['amount']):,.2f}` ({t['date']})")
 
         return {"response": NL.join(parts), "type": "quarter_overview", "data": analysis}
 
