@@ -106,6 +106,12 @@ class WealifyClient:
                 if not items:
                     break
                     
+                for va in items:
+                    if "account_number" in va and isinstance(va["account_number"], str):
+                        acct = va["account_number"]
+                        if len(acct) > 4:
+                            va["account_number"] = f"****{acct[-4:]}"
+                            
                 all_items.extend(items)
                 
                 next_page = data.get("next_page")
@@ -132,7 +138,13 @@ class WealifyClient:
             )
             resp.raise_for_status()
             data = resp.json()
-            return data.get("data", [])
+            items = data.get("data", [])
+            for va in items:
+                if "account_number" in va and isinstance(va["account_number"], str):
+                    acct = va["account_number"]
+                    if len(acct) > 4:
+                        va["account_number"] = f"****{acct[-4:]}"
+            return items
         except Exception as e:
             logger.warning("Failed to fetch VA list v1: %s", e)
             return []
@@ -182,6 +194,8 @@ class WealifyClient:
                     
                 for card in items:
                     card.pop("cvv", None)
+                    if "card_number" in card and "last_four" in card:
+                        card["card_number"] = f"****{card['last_four']}"
                 all_items.extend(items)
                 
                 next_page = data.get("next_page")

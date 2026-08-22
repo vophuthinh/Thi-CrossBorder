@@ -1,10 +1,16 @@
 """
-Gmail API Client — Read the demo inbox for email reconciliation.
+Gmail API Client — reads the demo inbox for email reconciliation and sends
+self-notify reports.
 
-Read-only for the app's normal operation (gmail.readonly). The insert
-scope is only ever used by the one-time import_test_emails.py script to
-seed the demo inbox with the organizer's sample dataset — never called
-by the running app itself.
+Scoped to exactly the two things WLF-01 permits: gmail.readonly (read the
+inbox to reconcile) and gmail.send (send — never insert/modify/delete —
+and only ever to the user's own address, see email_sender.py). No
+gmail.insert or gmail.modify: the mailbox was already seeded once via
+import_test_emails.py, which needed insert at the time but isn't part of
+this app's runtime. Per WLF-01's "chìa khoá chỉ đọc, chặn từ khâu cấp
+quyền" for money/account actions and "chỉ GỬI CHO CHÍNH NGƯỜI DÙNG" for
+email — enforced by the OAuth grant itself, not just by the app never
+calling other write endpoints.
 """
 from __future__ import annotations
 
@@ -26,8 +32,7 @@ TOKEN_PATH = BASE_DIR / "gmail_token.json"
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.insert",
-    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 
@@ -157,6 +162,21 @@ def _extract_body(payload: dict) -> str:
     if data:
         return base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
     return ""
+
+
+def send_email(to: str, subject: str, body: str) -> None:
+    """
+    Send a plain-text email via the Gmail API (messages().send — never
+    insert/modify). Caller is responsible for only ever passing the user's
+    own address; see email_sender.py, which chat.py's self-notify flow
+    goes through exclusively.
+    """
+    service = get_gmail_service()
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["to"] = to
+    msg["subject"] = subject
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    service.users().messages().send(userId="me", body={"raw": raw}).execute()
 
 
 def import_test_emails(emails: list[dict[str, Any]]) -> int:

@@ -2,7 +2,7 @@
 ### AI-powered Dashboard for Expense Management & Transaction Safety — Cross-Border Sellers
 
 > **WLF-01** — AI Cross-Border Hackathon 2026  
-> Built with **BytePlus Seed 2.0** × **Wealify**
+> Built with **BytePlus ModelArk (DeepSeek V4 Flash)** × **Wealify**
 
 ---
 
@@ -51,15 +51,17 @@ Input: Dữ liệu giao dịch seller (CSV + Email + JSON)
 │  MATCH EMAIL  │   3 nguồn     │   DETECT      │   SCORER      │
 └──────────────┴──────────────┴──────────────┴──────────────┘
       ↓
-   Dashboard (HTML/CSS/JS) + AI Insight (BytePlus Seed 2.0)
+   Dashboard (HTML/CSS/JS) + AI Insight (BytePlus ModelArk (DeepSeek V4 Flash))
 ```
 
 **Tech Stack:**
 - **Backend**: Python + FastAPI (also serves the frontend, single process/port)
-- **AI**: BytePlus Seed 2.0 (Omni — multi-modal LLM)
-- **Frontend**: Static HTML/CSS/JS dashboard, served by FastAPI at `/`
+- **AI**: BytePlus ModelArk — DeepSeek V4 Flash (Responses API)
+- **Frontend**: Chat-first workspace (HTML/CSS/JS), served by FastAPI at `/`
 - **Safety**: Guardrails, trap detection, mandatory disclaimers
-- **Design**: Dashboard-first (không phải chatbot)
+- **Design**: Trợ lý trò chuyện (chat AI làm trung tâm), không phải ô tìm kiếm/bảng lọc bấm chọn
+
+> 📄 **Hướng dẫn cài đặt ngắn gọn (1-2 trang, chạy trong 10 phút):** [HUONG_DAN_CAI_DAT.md](HUONG_DAN_CAI_DAT.md)
 
 ## 🚀 Quick Start (~2 phút)
 
@@ -113,7 +115,7 @@ python main.py
 | 3-Source Reconciliation | Đối chiếu Account ↔ Card ↔ Wallet |
 | Email Matching | Tự động khớp giao dịch với biên lai email |
 | Subscription Tracking | Phát hiện gói quên huỷ, tăng giá âm thầm |
-| AI Insight | BytePlus Seed 2.0 phân tích & gợi ý |
+| AI Insight | BytePlus ModelArk (DeepSeek V4 Flash) phân tích & gợi ý |
 | Song ngữ | Tiếng Việt / English |
 
 ## 🔑 Environment Variables
@@ -163,7 +165,7 @@ hackathon/
 │   ├── finding_engine.py           # Sinh Finding chuẩn hoá theo rule R-01→R-15
 │   ├── finding_schema.py           # Schema + nhãn 3 mức + fingerprint
 │   ├── chat.py                     # Chat orchestrator
-│   ├── llm_client.py               # BytePlus Seed 2.0 wrapper
+│   ├── llm_client.py               # BytePlus ModelArk (DeepSeek V4 Flash) wrapper
 │   ├── safety.py                   # Guardrails & trap detection
 │   ├── data_loader.py              # Data parsing + masking (mock CSV/JSON)
 │   ├── wealify_client.py           # Live Wealify API client (optional, read-only)
@@ -204,7 +206,7 @@ hackathon/
 | GET | `/dashboard/reminders` | Nhiệm vụ 7 — khoản cần nhắc: email chưa xác nhận / giao dịch treo processing, theo ngưỡng ở `/reminders` |
 | GET | `/dashboard/suspicious-domains` | Quét domain giả mạo/lookalike trong toàn bộ hộp thư (cần Gmail) |
 | GET | `/setup` | Setup Wizard 3 bước (Gmail / Wealify / whitelist) |
-| POST | `/ai/insight` | AI Insight (BytePlus Seed 2.0) |
+| POST | `/ai/insight` | AI Insight (BytePlus ModelArk (DeepSeek V4 Flash)) |
 | POST | `/chat` | Chat AI |
 | POST | `/scheduled-check` | Gọi tay 1 lần cơ chế rà soát định kỳ (xem mục dưới) |
 | GET | `/audit-log` | Xem nhật ký cảnh báo |
@@ -240,4 +242,4 @@ Toàn bộ dữ liệu mẫu và nhật ký được tạo/lưu trong lúc chạ
 ---
 
 > 🛡️ **Wealify Smart Finance** — AI Cross-Border Hackathon 2026  
-> Powered by **BytePlus Seed 2.0**
+> Powered by **BytePlus ModelArk (DeepSeek V4 Flash)**

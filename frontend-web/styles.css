@@ -1796,8 +1796,9 @@ ol {
 /* ─── Bottom disclaimer banner ─────────────────────── */
 
 .disclaimer {
-    position: relative;
-    z-index: var(--z-footer);
+    position: sticky;
+    bottom: 0;
+    z-index: 9999;
     flex: 0 0 auto;
     display: flex;
     align-items: center;

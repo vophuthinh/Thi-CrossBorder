@@ -66,13 +66,15 @@ def classify_emails(emails: list[dict[str, str]]) -> list[dict[str, str]]:
 
     from config import BYTEPLUS_API_KEY
 
-    if not BYTEPLUS_API_KEY:
-        return [{**e, "is_promotional": False} for e in emails]
-
+    # Cache is read regardless of whether a key is currently configured —
+    # if BYTEPLUS_API_KEY goes missing later (env reset, key rotation),
+    # previously-classified emails must keep their real label instead of
+    # silently reverting to "unclassified". Only genuinely new emails need
+    # the LLM call, and only run it when a key is actually available.
     cache = _load_cache()
     to_classify = [e for e in emails if e.get("filename", "") not in cache]
 
-    if to_classify:
+    if to_classify and BYTEPLUS_API_KEY:
         newly_classified: list[dict[str, str]] = []
         for start in range(0, len(to_classify), _BATCH_SIZE):
             batch = to_classify[start : start + _BATCH_SIZE]

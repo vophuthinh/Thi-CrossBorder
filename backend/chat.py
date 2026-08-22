@@ -9,7 +9,7 @@ for proper line breaks.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from data_loader import get_all_data
@@ -69,15 +69,30 @@ _EN_MONTH_NUM = {
 }
 
 
+_THIS_MONTH_RE = re.compile(
+    r"th[aá]ng\s*(n[aà]y|hi[eệ]n\s*t[aạ]i)|(this|current)\s*month", re.IGNORECASE
+)
+
+
 def _extract_month_key(message: str, year: int = 2026) -> str | None:
     """
-    Detect an explicit month mention ("tháng 2", "February") so questions
-    about one month get that month's real numbers instead of silently
-    falling back to the full-period total — that's what produced a wrong
-    "617 transactions in February" (the full Jan-Aug count) earlier.
-    Hardcodes the current data's year (2026) rather than trying to detect
-    one — there's only one year of data to ask about right now.
+    Detect a month reference — explicit ("tháng 2", "February") or relative
+    ("tháng này", "this month") — so questions about one month get that
+    month's real numbers instead of silently falling back to the
+    full-period total. Two real bugs this fixes:
+    - explicit: "617 transactions in February" (the full Jan-Aug count)
+    - relative: sample scenario #1 ("Tháng này tôi chi bao nhiêu... 3 khoản
+      lớn nhất?") answered with the whole period's top-3, not August's.
+    "tháng này" resolves to the real current month (UTC, matching
+    report_cache.py's own definition of "current month") rather than a
+    hardcoded value, so it stays correct as the demo clock moves forward.
+    Hardcodes the current data's year (2026) for explicit mentions rather
+    than trying to detect one — there's only one year of data to ask about
+    right now.
     """
+    if _THIS_MONTH_RE.search(message):
+        now = datetime.now(timezone.utc)
+        return f"{now.year}-{now.month:02d}"
     m = _VN_MONTH_RE.search(message)
     if m:
         month = int(m.group(1))
@@ -275,6 +290,21 @@ class ChatOrchestrator:
         if has_balance_question and not has_reconcile_signal:
             return "wallet_balance"
 
+        # "Tiền vào"/inbound wording ("nhận tiền", "báo có", "tiền vào") +
+        # an email signal routes to the VA/wallet-side inbound cross-check
+        # (check_inbound_emails) instead of email_match's card-charge-only
+        # matching — the two check completely different data (VA deposits
+        # vs card spending) and share the generic "email"/"khớp" keywords,
+        # so this needs to win before the keyword-score competition.
+        has_inbound_signal = _has_any(
+            ["tiền vào", "nhận tiền", "báo có", "nạp tiền", "chuyển vào", "inbound"], lower,
+        )
+        has_email_signal = _has_any(
+            ["email", "khớp", "biên lai", "receipt", "xác nhận", "match"], lower,
+        )
+        if has_inbound_signal and has_email_signal:
+            return "inbound_match"
+
         intents = {
             "overview": [
                 "chi bao nhiêu", "phí bao nhiêu", "tổng", "summary", "tổng hợp",
@@ -336,6 +366,7 @@ class ChatOrchestrator:
         handlers = {
             "overview": self._handle_overview,
             "email_match": self._handle_email_match,
+            "inbound_match": self._handle_inbound_match,
             "reconcile": self._handle_reconcile,
             "subscriptions": self._handle_subscriptions,
             "duplicates": self._handle_duplicates,
@@ -563,6 +594,56 @@ class ChatOrchestrator:
             parts.append(line)
 
         return {"response": NL.join(parts), "type": "email_match", "data": matches}
+
+    def _handle_inbound_match(self, message: str, lang: str) -> dict[str, Any]:
+        """Đối soát email tiền vào (VA/ví) ↔ giao dịch VA thật trên Wealify.
+        Was backend-only (only /dashboard/inbound-reconciliation, no chat
+        or UI surface) — check_inbound_emails' real matched_success/
+        matched_pending/amount_mismatch/matched_failed/not_found_on_wealify
+        results were invisible to anyone not reading the API directly."""
+        from agents.inbound_reconciler import check_inbound_emails
+        from config import WEALIFY_EMAIL
+
+        cache_key = f"inbound_match_{lang}"
+        if cache_key not in self._cache:
+            emails = self.data.get("emails", [])
+            if WEALIFY_EMAIL:
+                emails = [e for e in emails if e.get("to") == WEALIFY_EMAIL]
+            va_transactions = self.data.get("_wealify_raw", {}).get("va_transactions", [])
+            self._cache[cache_key] = check_inbound_emails(emails, va_transactions, lang)
+        result = self._cache[cache_key]
+        items = result["items"]
+
+        icon_by_cat = {
+            "matched_success": "✅", "matched_pending": "⏳",
+            "amount_mismatch": "⚠️", "matched_failed": "❌",
+            "not_found_on_wealify": "❓",
+        }
+
+        if lang == "en":
+            parts = [f"📥 **Inbound money ↔ email cross-check** — {result['total_checked']} email(s) checked"]
+            for cat, count in result["by_category"].items():
+                parts.append(f"- **{cat}:** {count}")
+        else:
+            parts = [f"📥 **Đối soát email tiền vào ↔ Wealify** — {result['total_checked']} email đã kiểm tra"]
+            for cat, count in result["by_category"].items():
+                parts.append(f"- **{cat}:** {count}")
+
+        # Most actionable first: not found, then mismatch/failed, then pending, then success.
+        order = ["not_found_on_wealify", "amount_mismatch", "matched_failed", "matched_pending", "matched_success"]
+        for cat in order:
+            cat_items = [it for it in items if it["category"] == cat]
+            if not cat_items:
+                continue
+            parts.append("")
+            for it in cat_items:
+                icon = icon_by_cat.get(cat, "❓")
+                amt = it.get("email_amount")
+                amt_text = f"${amt:,.2f}" if amt is not None else "—"
+                parts.append(f"{icon} `{it.get('email_ref') or it.get('email_subject', '')}` — {amt_text} → **{it.get('label', '')}**")
+                parts.append(f"  > {it.get('detail', '')}")
+
+        return {"response": NL.join(parts), "type": "inbound_match", "data": items}
 
     def _handle_reconcile(self, message: str, lang: str) -> dict[str, Any]:
         recon = self._get_reconciliation(lang)
@@ -982,7 +1063,9 @@ class ChatOrchestrator:
                     "You are Wealify — a financial review assistant for cross-border sellers. "
                     "You are READ-ONLY: never offer to cancel services, transfer money, or send emails to third parties. "
                     "Always use one of these 3 labels: 'Định kỳ đã xác định' / 'Cần bạn tự xác nhận' / 'Chưa đủ dữ liệu'. "
-                    "Never say 'your account is safe' or 'nothing unusual'. "
+                    "TUYỆT ĐỐI KHÔNG BAO GIỜ nói rằng 'tài khoản của bạn an toàn' hoặc 'không có gì bất thường'. "
+                    "Nếu không tìm thấy vấn đề, chỉ được nói 'Hiện tại tôi không tìm thấy khoản nào khớp với dữ liệu sẵn có', cấm dùng từ 'an toàn'. "
+                    "Never determine or guarantee the security status of the account. "
                     f"Respond in {'Vietnamese' if lang == 'vi' else 'English'}. Be concise."
                 )
                 prompt = (

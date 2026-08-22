@@ -32,12 +32,16 @@ def generate_all_findings(
 
     charges = [t for t in account_statement if t.get("type") == "charge"]
     fees = [t for t in account_statement if t.get("type") == "fee"]
-    # On live data this is always []: Wealify's VA deposit-history API is
-    # broken (always returns no data — see wealify_adapter.py), so no dated
-    # "payin" transactions can be reconstructed. That means R-09 (duplicate
-    # payins, below) never fires for live data — expected, not a bug; don't
-    # fabricate payin events just to keep that detector "active".
     payins = [t for t in account_statement if t.get("type") == "payin"]
+    # "payout" (VA WITHDRAWAL — cash withdrawn to an external bank account)
+    # used to be included here too, but that's a category error: a
+    # withdrawal was never headed to a card in the first place, so it can
+    # never have a matching card top_up. Every VND withdrawal (this
+    # account's card is USD/EUR-only) was a guaranteed false positive —
+    # "Chuyển $48003000.00 ... chưa lên thẻ" for a ₫48,003,000 bank
+    # withdrawal, found by comparing the dashboard to real numbers.
+    # "transfer" (wallet→card top_up) is the only type this check should
+    # ever see.
     transfers = [t for t in account_statement if t.get("type") == "transfer"]
 
     # D2: Detect recurring subscriptions → R-01 / R-02
@@ -77,14 +81,17 @@ def generate_all_findings(
         if ref and ref not in recognized_refs:
             merchant_key = _resolve_merchant(txn)
             if merchant_key is None:
+                curr = txn.get("_currency", "USD")
+                sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
                 findings.append(make_finding(
                     finding_type="UNRECOGNIZED_CHARGE",
                     label_rule_id="R-15",
-                    title_vi=f"Khoản lạ {txn['description']} ${abs(txn['amount']):.2f}",
-                    title_en=f"Unrecognized charge {txn['description']} ${abs(txn['amount']):.2f}",
+                    title_vi=f"Khoản lạ {txn['description']} {sym}{abs(txn['amount']):.2f}",
+                    title_en=f"Unrecognized charge {txn['description']} {sym}{abs(txn['amount']):.2f}",
                     explanation_vi="Khoản chi không thuộc chuỗi định kỳ nào, không có email khớp, chưa xác định được cửa hàng.",
                     explanation_en="Charge not part of any recurring series, no matching email, merchant unidentified.",
                     amount_cents=int(abs(txn["amount"]) * 100),
+                    currency=curr,
                     occurred_at=txn["date"],
                     evidence_refs=[ref],
                     evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -217,16 +224,19 @@ def _detect_recurring(charges: list[dict]) -> list[dict]:
         next_date = dates[-1] + timedelta(days=int(med))
 
         # Store as finding + keep metadata for price hike detection
+        curr = latest.get("_currency", "USD")
+        sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
         findings.append(make_finding(
             finding_type="RECURRING_SUBSCRIPTION",
             label_rule_id=rule_id,
             title_vi=f"Gói {info.get('name', merchant_key)} ({cadence})",
             title_en=f"{info.get('name', merchant_key)} subscription ({cadence})",
             explanation_vi=f"Phát hiện {len(txns)} lần trừ tiền, chu kỳ {cadence}, "
-                           f"giá hiện tại ${amounts[-1]:.2f}. Kỳ trừ kế tiếp: {next_date.strftime('%Y-%m-%d')}.",
+                           f"giá hiện tại {sym}{amounts[-1]:.2f}. Kỳ trừ kế tiếp: {next_date.strftime('%Y-%m-%d')}.",
             explanation_en=f"Detected {len(txns)} charges, {cadence} cadence, "
-                           f"current price ${amounts[-1]:.2f}. Next charge: {next_date.strftime('%Y-%m-%d')}.",
+                           f"current price {sym}{amounts[-1]:.2f}. Next charge: {next_date.strftime('%Y-%m-%d')}.",
             amount_cents=int(amounts[-1] * 100),
+            currency=curr,
             occurred_at=latest["date"],
             evidence_refs=[t.get("reference", "") for t in sorted_txns],
             evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -276,15 +286,18 @@ def _detect_price_hikes(sub_findings: list[dict], charges: list[dict]) -> list[d
 
                 merchant_key = sf.get("merchant_key")
                 info = MERCHANT_DICT.get(merchant_key, {})
+                curr = sf.get("currency", "USD")
+                sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
 
                 findings.append(make_finding(
                     finding_type="SILENT_PRICE_INCREASE",
                     label_rule_id=rule_id,
-                    title_vi=f"{info.get('name', merchant_key)} tăng giá ${old_price:.2f} → ${new_price:.2f}",
-                    title_en=f"{info.get('name', merchant_key)} price increase ${old_price:.2f} → ${new_price:.2f}",
-                    explanation_vi=f"Tăng +${increase:.2f} (+{pct}%). Tác động: +${annual_impact:.2f}/năm.",
-                    explanation_en=f"Increased +${increase:.2f} (+{pct}%). Impact: +${annual_impact:.2f}/year.",
+                    title_vi=f"{info.get('name', merchant_key)} tăng giá {sym}{old_price:.2f} → {sym}{new_price:.2f}",
+                    title_en=f"{info.get('name', merchant_key)} price increase {sym}{old_price:.2f} → {sym}{new_price:.2f}",
+                    explanation_vi=f"Tăng +{sym}{increase:.2f} (+{pct}%). Tác động: +{sym}{annual_impact:.2f}/năm.",
+                    explanation_en=f"Increased +{sym}{increase:.2f} (+{pct}%). Impact: +{sym}{annual_impact:.2f}/year.",
                     amount_cents=int(new_price * 100),
+                    currency=curr,
                     occurred_at=sf.get("occurred_at", ""),
                     evidence_refs=sf.get("evidence_refs", []),
                     evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -303,12 +316,15 @@ def _detect_duplicates(charges: list[dict]) -> list[dict]:
     findings = []
     window_hours = THRESHOLDS["duplicate_time_window_hours"]
 
-    # Group by amount
+    # Group by amount + currency — without currency, a USD charge and a
+    # EUR charge of the same numeric amount (this account has both) could
+    # collide into a false "duplicate".
     by_amount = defaultdict(list)
     for txn in charges:
-        by_amount[int(abs(txn["amount"]) * 100)].append(txn)
+        key = (int(abs(txn["amount"]) * 100), txn.get("_currency", "USD"))
+        by_amount[key].append(txn)
 
-    for amount_cents, txns in by_amount.items():
+    for (amount_cents, _group_currency), txns in by_amount.items():
         if len(txns) < 2:
             continue
         sorted_txns = sorted(txns, key=lambda x: x["date"])
@@ -339,15 +355,18 @@ def _detect_duplicates(charges: list[dict]) -> list[dict]:
                     rule_id = "R-06" if (m1 or m2) else "R-07"
                     merchant_key = m1 or m2
                     info = MERCHANT_DICT.get(merchant_key, {}) if merchant_key else {}
+                    curr = t2.get("_currency", "USD")
+                    sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
 
                     findings.append(make_finding(
                         finding_type="DUPLICATE_CHARGE",
                         label_rule_id=rule_id,
-                        title_vi=f"Hai khoản ${amount_cents/100:.2f} cùng ngày tại {info.get('name', t2['description'])}",
-                        title_en=f"Two charges of ${amount_cents/100:.2f} same day at {info.get('name', t2['description'])}",
+                        title_vi=f"Hai khoản {sym}{amount_cents/100:.2f} cùng ngày tại {info.get('name', t2['description'])}",
+                        title_en=f"Two charges of {sym}{amount_cents/100:.2f} same day at {info.get('name', t2['description'])}",
                         explanation_vi=f"Cùng cửa hàng, cùng số tiền, cách nhau {hours_diff:.0f} giờ, khác mã tham chiếu.",
                         explanation_en=f"Same merchant, same amount, {hours_diff:.0f} hours apart, different reference IDs.",
                         amount_cents=amount_cents,
+                        currency=curr,
                         occurred_at=t2["date"],
                         evidence_refs=[r1, r2],
                         evidence_sources=[
@@ -370,20 +389,25 @@ def _detect_double_fees(fees: list[dict]) -> list[dict]:
     findings = []
     by_key = defaultdict(list)
     for f in fees:
-        key = f"{f['date']}|{int(abs(f['amount'])*100)}"
+        # Currency in the key — a VND fee and a USD fee of the same numeric
+        # amount on the same day must not collide into a false "double fee".
+        key = f"{f['date']}|{int(abs(f['amount'])*100)}|{f.get('_currency', 'USD')}"
         by_key[key].append(f)
 
     for key, group in by_key.items():
         if len(group) >= 2:
             refs = [g.get("reference", "") for g in group]
+            curr = group[0].get("_currency", "USD")
+            sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
             findings.append(make_finding(
                 finding_type="DOUBLE_FEE",
                 label_rule_id="R-08",
-                title_vi=f"Phí kép ${abs(group[0]['amount']):.2f} ngày {group[0]['date']}",
-                title_en=f"Double fee ${abs(group[0]['amount']):.2f} on {group[0]['date']}",
+                title_vi=f"Phí kép {sym}{abs(group[0]['amount']):.2f} ngày {group[0]['date']}",
+                title_en=f"Double fee {sym}{abs(group[0]['amount']):.2f} on {group[0]['date']}",
                 explanation_vi=f"{len(group)} khoản phí cùng loại, cùng số tiền, cùng ngày.",
                 explanation_en=f"{len(group)} fee charges of same type, same amount, same day.",
                 amount_cents=int(abs(group[0]["amount"]) * 100),
+                currency=curr,
                 occurred_at=group[0]["date"],
                 evidence_refs=refs,
                 evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -399,7 +423,10 @@ def _detect_duplicate_payins(payins: list[dict]) -> list[dict]:
     findings = []
     by_key = defaultdict(list)
     for p in payins:
-        key = f"{p['date']}|{int(abs(p['amount'])*100)}"
+        # Currency in the key — payins are VA-side and mix VND/USD; without
+        # this, a VND payin and a USD payin of the same numeric amount on
+        # the same day could collide into a false "duplicate payin".
+        key = f"{p['date']}|{int(abs(p['amount'])*100)}|{p.get('_currency', 'USD')}"
         by_key[key].append(p)
 
     for key, group in by_key.items():
@@ -407,14 +434,17 @@ def _detect_duplicate_payins(payins: list[dict]) -> list[dict]:
             refs = [g.get("reference", "") for g in group]
             # Check different reference IDs
             if len(set(refs)) > 1:
+                curr = group[0].get("_currency", "USD")
+                sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
                 findings.append(make_finding(
                     finding_type="DUPLICATE_PAYIN",
                     label_rule_id="R-09",
-                    title_vi=f"Nạp trùng ${abs(group[0]['amount']):.2f} ngày {group[0]['date']}",
-                    title_en=f"Duplicate payin ${abs(group[0]['amount']):.2f} on {group[0]['date']}",
+                    title_vi=f"Nạp trùng {sym}{abs(group[0]['amount']):.2f} ngày {group[0]['date']}",
+                    title_en=f"Duplicate payin {sym}{abs(group[0]['amount']):.2f} on {group[0]['date']}",
                     explanation_vi=f"{len(group)} khoản nạp cùng số tiền, cùng ngày, khác mã tham chiếu.",
                     explanation_en=f"{len(group)} payins of same amount, same day, different reference IDs.",
                     amount_cents=int(abs(group[0]["amount"]) * 100),
+                    currency=curr,
                     occurred_at=group[0]["date"],
                     evidence_refs=refs,
                     evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -432,6 +462,10 @@ def _detect_transit(transfers: list[dict], card_statement: list[dict]) -> list[d
     tol = THRESHOLDS["in_transit_amount_tolerance"]
 
     for txn in transfers:
+        # Ignore transfers that are already from the card's data (VC top_ups)
+        if txn.get("_source") == "wealify_vc":
+            continue
+
         amount = abs(txn["amount"])
         try:
             txn_date = datetime.strptime(txn["date"], "%Y-%m-%d")
@@ -441,27 +475,40 @@ def _detect_transit(transfers: list[dict], card_statement: list[dict]) -> list[d
         # Look for matching credit on card statement
         found = False
         for card_txn in card_statement:
+            if card_txn.get("category") != "top_up":
+                continue
+                
             card_amount = abs(card_txn.get("amount", 0))
             try:
                 card_date = datetime.strptime(card_txn["date"], "%Y-%m-%d")
             except ValueError:
                 continue
 
-            if (card_amount > 0 and
-                abs(card_amount - amount) / amount <= tol and
-                0 <= (card_date - txn_date).days <= window):
-                found = True
-                break
+            if card_amount > 0 and 0 <= (card_date - txn_date).days <= window:
+                # If currencies differ, we can't do a simple amount match.
+                # Assume any top-up in the window is the match to avoid false positives.
+                txn_curr = txn.get("_currency", "USD")
+                card_curr = card_txn.get("_currency", "USD")
+                
+                if txn_curr != card_curr:
+                    found = True
+                    break
+                elif abs(card_amount - amount) / max(amount, 1) <= tol:
+                    found = True
+                    break
 
         if not found:
+            curr = txn.get("_currency", "USD")
+            sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
             findings.append(make_finding(
                 finding_type="IN_TRANSIT_NOT_ON_CARD",
                 label_rule_id="R-10",
-                title_vi=f"Chuyển ${amount:.2f} ngày {txn['date']} chưa lên thẻ",
-                title_en=f"Transfer ${amount:.2f} on {txn['date']} not on card",
-                explanation_vi=f"Chuyển sang thẻ ${amount:.2f} nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
-                explanation_en=f"Transfer to card ${amount:.2f} but no matching credit (±5%, within 7 days) found on card statement.",
+                title_vi=f"Chuyển {sym}{amount:.2f} ngày {txn['date']} chưa lên thẻ",
+                title_en=f"Transfer {sym}{amount:.2f} on {txn['date']} not on card",
+                explanation_vi=f"Chuyển sang thẻ {sym}{amount:.2f} nhưng không tìm thấy khoản ghi có tương ứng (±5%, trong 7 ngày) trên sao kê thẻ.",
+                explanation_en=f"Transfer to card {sym}{amount:.2f} but no matching credit (±5%, within 7 days) found on card statement.",
                 amount_cents=int(amount * 100),
+                currency=curr,
                 occurred_at=txn["date"],
                 evidence_refs=[txn.get("reference", "")],
                 evidence_sources=[
@@ -610,6 +657,7 @@ def _detect_email_issues(charges: list[dict], emails: list[dict]) -> list[dict]:
                 explanation_vi=f"Lý do: {'; '.join(suspicious_flags)}.",
                 explanation_en=f"Reasons: {'; '.join(suspicious_flags)}.",
                 amount_cents=int(amount * 100),
+                currency=txn.get("_currency", "USD"),
                 occurred_at=txn["date"],
                 evidence_refs=[ref],
                 evidence_sources=[
@@ -623,14 +671,17 @@ def _detect_email_issues(charges: list[dict], emails: list[dict]) -> list[dict]:
 
         # R-12: No matching email
         elif best_score < THRESHOLDS["email_notfound_threshold"]:
+            curr = txn.get("_currency", "USD")
+            sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
             findings.append(make_finding(
                 finding_type="NO_MATCHING_EMAIL",
                 label_rule_id="R-12",
-                title_vi=f"Không tìm thấy email cho {txn['description']} ${amount:.2f}",
-                title_en=f"No matching email for {txn['description']} ${amount:.2f}",
-                explanation_vi=f"Giao dịch ${amount:.2f} ngày {txn['date']} — điểm khớp email cao nhất {best_score:.2f} < 0.50.",
-                explanation_en=f"Charge ${amount:.2f} on {txn['date']} — best email match score {best_score:.2f} < 0.50.",
+                title_vi=f"Không tìm thấy email cho {txn['description']} {sym}{amount:.2f}",
+                title_en=f"No matching email for {txn['description']} {sym}{amount:.2f}",
+                explanation_vi=f"Giao dịch {sym}{amount:.2f} ngày {txn['date']} — điểm khớp email cao nhất {best_score:.2f} < 0.50.",
+                explanation_en=f"Charge {sym}{amount:.2f} on {txn['date']} — best email match score {best_score:.2f} < 0.50.",
                 amount_cents=int(amount * 100),
+                currency=curr,
                 occurred_at=txn["date"],
                 evidence_refs=[ref],
                 evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
@@ -728,6 +779,7 @@ def _detect_unknown_merchants(charges: list[dict]) -> list[dict]:
                 explanation_vi="Chưa xác định được.",
                 explanation_en="Unidentified.",
                 amount_cents=int(abs(txn["amount"]) * 100),
+                currency=txn.get("_currency", "USD"),
                 occurred_at=txn["date"],
                 evidence_refs=[txn.get("reference", "")],
                 evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
