@@ -105,22 +105,51 @@ def _extract_month_key(message: str, year: int = 2026) -> str | None:
     return None
 
 
+def _extract_all_months(message: str, year: int = 2026) -> list[str]:
+    """Every explicit month mentioned, in the order they appear — for
+    "so sánh chi tiêu tháng 7 và tháng 8" style comparison questions.
+    _extract_month_key's .search() only ever returns the first match, so a
+    two-month comparison silently got answered with just the first month
+    and no acknowledgment the second was ever asked about."""
+    months: list[str] = []
+    for m in _VN_MONTH_RE.finditer(message):
+        month = int(m.group(1))
+        if 1 <= month <= 12:
+            key = f"{year}-{month:02d}"
+            if key not in months:
+                months.append(key)
+    for m in _EN_MONTH_RE.finditer(message):
+        month = _EN_MONTH_NUM[m.group(1).lower()]
+        key = f"{year}-{month:02d}"
+        if key not in months:
+            months.append(key)
+    return months
+
+
 _THIS_QUARTER_RE = re.compile(
     r"qu[yý]\s*(n[aà]y|hi[eệ]n\s*t[aạ]i)|(this|current)\s*quarter", re.IGNORECASE
 )
+_VN_QUARTER_RE = re.compile(r"qu[yý]\s*([1-4])\b", re.IGNORECASE)
+_EN_QUARTER_RE = re.compile(r"\bq([1-4])\b|quarter\s*([1-4])\b", re.IGNORECASE)
 
 
 def _extract_this_quarter(message: str) -> int | None:
     """Same relative-period gap as "tháng này", one level up: "quý này"
     ("Chi tiêu quý này là bao nhiêu?") had no quarter equivalent of
     _extract_month_key and fell through to the full-period overview.
-    Explicit quarters ("quý 2", "Q3") aren't handled here — no cached
-    per-quarter report exists yet to answer them from, and building one
-    speculatively risked being the wrong scope for how it'd actually be
-    asked; "quý này" is the one the spec's own scenario needs answered now."""
+    Also handles explicit quarters ("quý 2", "Q3", "quarter 2") the same
+    way _extract_month_key handles explicit months — _handle_quarter_overview
+    already computes any quarter on demand from account_statement, so there
+    was no real reason to only answer "quý này" and not "quý 2"."""
     if _THIS_QUARTER_RE.search(message):
         now = datetime.now(timezone.utc)
         return (now.month - 1) // 3 + 1
+    m = _VN_QUARTER_RE.search(message)
+    if m:
+        return int(m.group(1))
+    m2 = _EN_QUARTER_RE.search(message)
+    if m2:
+        return int(m2.group(1) or m2.group(2))
     return None
 
 
@@ -767,7 +796,38 @@ class ChatOrchestrator:
 
         return {"response": NL.join(parts), "type": "quarter_overview", "data": analysis}
 
+    def _handle_month_comparison(self, month_keys: list[str], lang: str) -> dict[str, Any] | None:
+        """"So sánh chi tiêu tháng 7 và tháng 8" — one section per month,
+        each with the same real per-currency totals _handle_month_overview
+        shows, instead of _extract_month_key's single-match .search()
+        silently answering only the first month asked about."""
+        reports = [(mk, report_cache.get_cached_report(mk)) for mk in month_keys]
+        reports = [(mk, c) for mk, c in reports if c is not None]
+        if len(reports) < 2:
+            return None  # let the caller fall back rather than a 1-month "comparison"
+
+        header = "📊 **So sánh theo tháng**" if lang == "vi" else "📊 **Month Comparison**"
+        parts = [header]
+        for month_key, cached in reports:
+            overview = cached["report"].get("overview", {})
+            parts.append(f"\n**Tháng {month_key}**" if lang == "vi" else f"\n**{month_key}**")
+            for currency, group in overview.items():
+                sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+                parts.append(f"- [{currency}]")
+                for k, v in group.items():
+                    parts.append(f"  - **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"  - **{k}:** {v}")
+
+        return {"response": NL.join(parts), "type": "month_comparison", "data": reports}
+
     def _handle_overview(self, message: str, lang: str) -> dict[str, Any]:
+        month_keys = _extract_all_months(message)
+        if len(month_keys) >= 2:
+            comparison = self._handle_month_comparison(month_keys, lang)
+            if comparison:
+                return comparison
+            # Falls through if fewer than 2 of the mentioned months are
+            # cached yet — a single-month answer beats nothing.
+
         quarter = _extract_this_quarter(message)
         if quarter:
             quarter_response = self._handle_quarter_overview(quarter, lang)
@@ -886,12 +946,20 @@ class ChatOrchestrator:
             # merchant's rows — filter by any word from the message (≥4
             # chars, so short connector words like "email"/"nói"/"gì"
             # never accidentally match a transaction description) found
-            # inside the transaction description.
+            # inside the transaction description. Short merchant names
+            # ("HBO", "AWS") are typically written in caps even inside an
+            # otherwise lowercase question, so an all-caps word is let
+            # through regardless of length — split the original message
+            # (not `lower`) to keep that capitalization signal.
             stop_words = {"email", "email?", "nói", "gì", "nói gì?", "says", "says?", "what", "does", "say"}
-            candidate_words = [
-                w.strip("?.,!") for w in lower.split()
-                if len(w.strip("?.,!")) >= 4 and w.strip("?.,!") not in stop_words
-            ]
+            candidate_words = []
+            for raw in message.split():
+                cleaned = raw.strip("?.,!")
+                cleaned_lower = cleaned.lower()
+                if cleaned_lower in stop_words:
+                    continue
+                if len(cleaned) >= 4 or (cleaned.isupper() and len(cleaned) >= 2):
+                    candidate_words.append(cleaned_lower)
             merchant_matches = [
                 m for m in matches
                 if any(w in m["description"].lower() for w in candidate_words)
