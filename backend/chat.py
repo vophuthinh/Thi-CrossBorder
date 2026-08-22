@@ -96,6 +96,132 @@ def _has_any(patterns: list[str], text: str) -> bool:
     return any(re.search(rf"\b{re.escape(p)}\b", text) for p in patterns)
 
 
+# ─── Detail-context summaries (sent to LLM when user opens an item) ────
+# Hoisted to module scope so we don't rebuild these dicts and prefix
+# strings on every chat request. Keys mirror the `type` field the
+# frontend sends in the request body's `context` block.
+
+_CONTEXT_LOCALES = {
+    "vi": {
+        "prefix": "[Ngữ cảnh đang mở — {}]\n{}\n[Hết ngữ cảnh]\n\n",
+        "labels": {
+            "finding": "khoản giao dịch bất thường",
+            "email-audit": "email cần đối soát",
+            "subscription": "gói đăng ký",
+        },
+        "fallback": "mục",
+    },
+    "en": {
+        "prefix": "[Open detail context — {}]\n{}\n[End of context]\n\n",
+        "labels": {
+            "finding": "finding",
+            "email-audit": "email reconciliation item",
+            "subscription": "subscription",
+        },
+        "fallback": "item",
+    },
+}
+
+
+def _first_nonempty(*values: str) -> str:
+    """Return the first value that's a non-empty string, else '' — used
+    everywhere we pull a bilingual field where the backend already
+    provides one but doesn't guarantee which side is populated."""
+    for v in values:
+        if isinstance(v, str) and v:
+            return v
+    return ""
+
+
+def _format_amount(amount: Any, currency: str) -> str:
+    if not isinstance(amount, (int, float)):
+        return ""
+    return f"{amount / 100} {currency or 'USD'}"
+
+
+def _build_finding_summary(data: dict[str, Any]) -> str:
+    title = _first_nonempty(data.get("title_vi"), data.get("title_en"))
+    explanation = _first_nonempty(data.get("explanation_vi"), data.get("explanation_en"))
+    label = _first_nonempty(
+        data.get("label_vi"), data.get("label_en"), data.get("label") or ""
+    )
+    finding_id = data.get("finding_id") or ""
+    currency = data.get("currency") or "USD"
+    occurred_at = data.get("occurred_at") or ""
+    dispute_deadline = data.get("dispute_deadline") or ""
+    confidence = data.get("confidence")
+    lines = []
+    if title:
+        lines.append(f"- title: {title}")
+    if label:
+        lines.append(f"- label: {label}")
+    if finding_id:
+        lines.append(f"- finding_id: {finding_id}")
+    amount_text = _format_amount(data.get("amount_cents"), currency)
+    if amount_text:
+        lines.append(f"- amount: {amount_text}")
+    if occurred_at:
+        lines.append(f"- date: {occurred_at}")
+    if dispute_deadline:
+        lines.append(f"- dispute_deadline: {dispute_deadline}")
+    if isinstance(confidence, (int, float)):
+        lines.append(f"- confidence: {round(confidence * 100)}%")
+    if explanation:
+        lines.append(f"- explanation: {explanation}")
+    return "\n".join(lines)
+
+
+def _build_email_summary(data: dict[str, Any]) -> str:
+    sender = data.get("email_from") or ""
+    subject = data.get("email_subject") or ""
+    ref = data.get("email_ref") or ""
+    date = data.get("email_date") or ""
+    explanation = _first_nonempty(data.get("explanation_vi"), data.get("explanation_en"))
+    group = data.get("email_group") or ""
+    lines = []
+    if sender:
+        lines.append(f"- from: {sender}")
+    if subject:
+        lines.append(f"- subject: {subject}")
+    if ref:
+        lines.append(f"- ref: {ref}")
+    if date:
+        lines.append(f"- date: {date}")
+    if group:
+        lines.append(f"- group: {group}")
+    if explanation:
+        lines.append(f"- detail: {explanation}")
+    return "\n".join(lines)
+
+
+def _build_subscription_summary(data: dict[str, Any]) -> str:
+    name = data.get("name") or ""
+    currency = data.get("currency") or "USD"
+    cycle = data.get("cycle") or ""
+    renewal_date = data.get("renewal_date") or ""
+    cancelled_at = data.get("cancelled_at") or ""
+    lines = []
+    if name:
+        lines.append(f"- name: {name}")
+    amount_text = _format_amount(data.get("amount_cents"), currency)
+    if amount_text:
+        lines.append(f"- amount: {amount_text}")
+    if cycle:
+        lines.append(f"- cycle: {cycle}")
+    if renewal_date:
+        lines.append(f"- renewal_date: {renewal_date}")
+    if cancelled_at:
+        lines.append(f"- cancelled_at: {cancelled_at}")
+    return "\n".join(lines)
+
+
+_CONTEXT_SUMMARY_BUILDERS = {
+    "finding": _build_finding_summary,
+    "email-audit": _build_email_summary,
+    "subscription": _build_subscription_summary,
+}
+
+
 def _greeting_reply(message: str, lang: str) -> str | None:
     lower = message.lower().strip()
     if len(lower) > 30:
@@ -145,15 +271,22 @@ class ChatOrchestrator:
         self.pending_email_draft: dict[str, Any] | None = None
         self.pending_email_lang: str = "vi"
 
-    def process_message(self, message: str) -> dict[str, Any]:
+    def process_message(self, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         """Process a user message and return response."""
         lang = detect_language(message)
 
+        # When the user is in the detail view of an item in the right panel,
+        # the frontend attaches the item's full data as `context` — we
+        # prepend a structured note so the LLM knows which specific finding /
+        # email / subscription the user is asking about without having to
+        # re-derive it from the message text.
+        effective_message = self._inject_context(message, context, lang)
+
         # 1. Safety check — detect trap questions
-        trap = detect_trap_question(message)
+        trap = detect_trap_question(effective_message)
         if trap:
             response_text = get_trap_response(trap, lang)
-            self.conversation_history.append({"role": "user", "content": message})
+            self.conversation_history.append({"role": "user", "content": effective_message})
             self.conversation_history.append({"role": "assistant", "content": response_text})
             return {
                 "response": response_text,
@@ -165,26 +298,53 @@ class ChatOrchestrator:
         # 2. Check for email confirmation
         # Use the language the draft was created in — a short confirmation
         # word ("ok", "có") often isn't enough signal for fresh detection.
-        if self.pending_email_draft and _is_confirmation(message):
+        if self.pending_email_draft and _is_confirmation(effective_message):
             draft = self.pending_email_draft
             draft_lang = self.pending_email_lang
             self.pending_email_draft = None
             return self._send_confirmed_email(draft, draft_lang)
 
         # 3. Detect intent and route to agents
-        intent = self._detect_intent(message, lang)
-        response = self._handle_intent(intent, message, lang)
+        intent = self._detect_intent(effective_message, lang)
+        response = self._handle_intent(intent, effective_message, lang)
 
         # 4. Validate response (no banned phrases)
         response["response"] = validate_response(response["response"])
         response["disclaimer"] = get_disclaimer(lang)
         response["lang"] = lang
 
-        # 5. Update conversation history
-        self.conversation_history.append({"role": "user", "content": message})
+        # 5. Update conversation history — store the context-injected
+        # message so follow-up questions in the same conversation still
+        # see the item context the LLM was first given.
+        self.conversation_history.append({"role": "user", "content": effective_message})
         self.conversation_history.append({"role": "assistant", "content": response["response"]})
 
         return response
+
+    @staticmethod
+    def _inject_context(message: str, context: dict[str, Any] | None, lang: str) -> str:
+        """Prepend a structured summary of the user's current detail-view
+        item so the LLM knows which specific finding / email / subscription
+        the question is about. The summary is plain text wrapped in a
+        clearly-marked block so the LLM can quote it back if the user
+        asks. Returns the original message untouched when no context is
+        provided."""
+        if not context:
+            return message
+        kind = context.get("type") or "item"
+        data = context.get("data") or {}
+        if not isinstance(data, dict):
+            return message
+        builder = _CONTEXT_SUMMARY_BUILDERS.get(kind)
+        if builder is None:
+            return message
+        summary = builder(data)
+        if not summary:
+            return message
+        locale = _CONTEXT_LOCALES.get(lang, _CONTEXT_LOCALES["en"])
+        prefix = locale["prefix"]
+        label = locale["labels"].get(kind, locale["fallback"])
+        return prefix.format(label, summary) + message
 
     def _send_confirmed_email(self, draft: dict[str, Any], lang: str) -> dict[str, Any]:
         """Actually send the confirmed draft via SMTP to the user's own address only."""
@@ -244,9 +404,12 @@ class ChatOrchestrator:
         # keyword score (both often co-occur, e.g. "$9.99 này là gì —
         # có email khớp không?").
         has_amount = bool(re.search(r"\$\s?[\d,]+\.?\d*", message))
-        asks_what_is = any(
-            p in lower for p in ("này là gì", "what is", "giải thích", "explain")
-        )
+        # Only literal "what is this charge" phrasing routes to a single-
+        # transaction lookup. "giải thích"/"explain" are too general — they
+        # could mean "explain how reconciliation works", which is NOT a
+        # transaction lookup, so they go through the normal scoring and
+        # fall into the new `explain` intent below.
+        asks_what_is = any(p in lower for p in ("này là gì", "what is"))
         if has_amount and asks_what_is:
             return "unknown_merchant"
 
@@ -274,6 +437,18 @@ class ChatOrchestrator:
         )
         if has_balance_question and not has_reconcile_signal:
             return "wallet_balance"
+
+        # "giải thích / explain / tại sao / why / how does" without an
+        # amount → route to a dedicated explain handler that calls the LLM
+        # with a focused prompt. Previously these got funnelled into
+        # unknown_merchant (because "giải thích" was in that keyword list)
+        # and the user got the static unknown-merchants list — which has
+        # nothing to do with the explanation they asked for.
+        if not has_amount and _has_any(
+            ["giải thích", "explain", "tại sao", "why", "how does", "how do", "là gì", "what is"],
+            lower,
+        ):
+            return "explain"
 
         intents = {
             "overview": [
@@ -311,8 +486,11 @@ class ChatOrchestrator:
                 "chạy kiểm tra", "run check", "giám sát", "monitor",
             ],
             "unknown_merchant": [
-                "này là gì", "what is", "khoản lạ", "không biết", "unknown",
-                "giải thích", "explain", "$",
+                "này là gì", "what is", "khoản lạ", "không biết", "unknown", "$",
+                # "giải thích"/"explain" moved out: they are general-purpose
+                # verbs, not transaction-lookup phrases. A general "giải
+                # thích X" question should reach the LLM (see `explain`
+                # intent below), not the static unknown-merchants list.
             ],
             "audit_log": [
                 "nhật ký", "audit", "log", "lịch sử cảnh báo", "flag history",
@@ -345,6 +523,7 @@ class ChatOrchestrator:
             "unknown_merchant": self._handle_unknown_merchant,
             "audit_log": self._handle_audit_log,
             "wallet_balance": self._handle_wallet_balance,
+            "explain": self._handle_explain,
             "general": self._handle_general,
         }
         handler = handlers.get(intent, self._handle_general)
@@ -956,84 +1135,115 @@ class ChatOrchestrator:
 
         return {"response": NL.join(parts), "type": "audit_log", "data": flags}
 
+    def _handle_explain(self, message: str, lang: str) -> dict[str, Any]:
+        """Explain-style question ("giải thích X", "tại sao Y", "what is
+        reconciliation?"). The LLM is told to use the financial context as
+        reference data and write a proper explanation — not echo the data
+        back as bullets, not append a label (the 3-label requirement is
+        for flagging anomalies, not for free-form answers)."""
+        if not BYTEPLUS_API_KEY:
+            return self._handle_general(message, lang)
+        try:
+            return self._call_llm_with_context(message, lang)
+        except Exception as e:
+            print(f"[Chat] explain LLM call failed: {e}")
+            return self._handle_general(message, lang)
+
+    def _call_llm_with_context(self, message: str, lang: str) -> dict[str, Any]:
+        """Shared LLM call builder used by `_handle_explain` and
+        `_handle_general`. Kept in one place so any future change to the
+        system/user prompt format applies to both."""
+        from llm_client import call_llm
+
+        analysis = self._get_statement_analysis(lang)
+        anomalies = self._get_anomalies(lang)
+        # analysis["summary"] is {currency: {label: value}} — statement
+        # mixes VND/USD/EUR with no conversion, so each currency is listed
+        # separately rather than summed across currencies.
+        summary_text = " | ".join(
+            f"[{currency}] " + ", ".join(f"{k}: {v}" for k, v in group.items())
+            for currency, group in analysis.get("summary", {}).items()
+        )
+
+        system = (
+            "Bạn là trợ lý tài chính Wealify, chỉ ĐỌC dữ liệu. "
+            "Không được huỷ dịch vụ, chuyển tiền, hay gửi email hộ. "
+            "Trả lời dựa trên dữ liệu được cung cấp bên dưới. "
+            "Không kết luận 'tài khoản an toàn' / 'không có gì bất thường'. "
+            f"Trả lời bằng {'tiếng Việt' if lang == 'vi' else 'tiếng Anh'}."
+            # No "Be concise" — that produced 1-sentence answers when the
+            # user asked for an actual explanation.
+            # No "Always use these 3 labels" — the 3-label requirement is
+            # only for FLAGS emitted by anomaly_detector / reconciler /
+            # email_matcher, not for free-form LLM answers.
+        )
+        prompt = (
+            f"Câu hỏi: {message}\n\n"
+            f"--- DỮ LIỆU THAM KHẢO (chỉ dùng nội bộ để trả lời, không in lại trong output) ---\n"
+            f"{summary_text}\n"
+            f"Bất thường: {anomalies.get('total_anomalies', 0)} | "
+            f"Gói đăng ký: {len(anomalies.get('subscriptions', []))} | "
+            f"Tăng giá: {len(anomalies.get('price_hikes', []))}\n"
+            f"--- HẾT DỮ LIỆU ---\n\n"
+            f"Hãy trả lời câu hỏi ở trên dựa trên dữ liệu. "
+            f"Nếu dữ liệu không đủ, nói rõ là chưa đủ dữ liệu để trả lời."
+        )
+        # DeepSeek V4 Flash is a reasoning model — its "thinking" tokens
+        # count against this budget before the final answer, so keep
+        # plenty of headroom or replies get cut off mid-thought.
+        llm_response = call_llm(prompt, system=system, max_tokens=1500)
+        return {"response": llm_response, "type": "llm_response"}
+
+
     def _handle_general(self, message: str, lang: str) -> dict[str, Any]:
-        greeting_reply = _greeting_reply(message, lang)
-        if greeting_reply:
-            return {"response": greeting_reply, "type": "greeting"}
+            greeting_reply = _greeting_reply(message, lang)
+            if greeting_reply:
+                return {"response": greeting_reply, "type": "greeting"}
 
-        # Try LLM for anything else. Previously gated on len(message) > 20,
-        # which meant short-but-real questions ("bạn tên gì", "how much
-        # fee?") always got the generic capability-list dump below instead
-        # of an actual answer — length alone doesn't mean "not a question".
-        if BYTEPLUS_API_KEY:
-            try:
-                from llm_client import call_llm
-                # Build context from data. analysis["summary"] is
-                # {currency: {label: value}} — statement mixes VND/USD/EUR
-                # with no conversion, so each currency is listed separately.
-                analysis = self._get_statement_analysis(lang)
-                anomalies = self._get_anomalies(lang)
-                summary_text = " | ".join(
-                    f"[{currency}] " + ", ".join(f"{k}: {v}" for k, v in group.items())
-                    for currency, group in analysis.get("summary", {}).items()
-                )
+            # Try LLM for anything else. Previously gated on len(message) > 20,
+            # which meant short-but-real questions ("bạn tên gì", "how much
+            # fee?") always got the generic capability-list dump below instead
+            # of an actual answer — length alone doesn't mean "not a question".
+            if BYTEPLUS_API_KEY:
+                try:
+                    return self._call_llm_with_context(message, lang)
+                except Exception as e:
+                    print(f"[Chat] LLM fallback failed: {e}")
 
-                system = (
-                    "You are Wealify — a financial review assistant for cross-border sellers. "
-                    "You are READ-ONLY: never offer to cancel services, transfer money, or send emails to third parties. "
-                    "Always use one of these 3 labels: 'Định kỳ đã xác định' / 'Cần bạn tự xác nhận' / 'Chưa đủ dữ liệu'. "
-                    "Never say 'your account is safe' or 'nothing unusual'. "
-                    f"Respond in {'Vietnamese' if lang == 'vi' else 'English'}. Be concise."
-                )
-                prompt = (
-                    f"User question: {message}\n\n"
-                    f"Financial data summary: {summary_text}\n"
-                    f"Anomalies: {anomalies.get('total_anomalies', 0)} issues found\n"
-                    f"Subscriptions: {len(anomalies.get('subscriptions', []))} active\n"
-                    f"Price hikes: {len(anomalies.get('price_hikes', []))} detected"
-                )
-                # DeepSeek V4 Flash is a reasoning model — its "thinking" tokens
-                # count against this budget before the final answer, so keep
-                # plenty of headroom or replies get cut off mid-thought.
-                llm_response = call_llm(prompt, system=system, max_tokens=1500)
-                return {"response": llm_response, "type": "llm_response"}
-            except Exception as e:
-                print(f"[Chat] LLM fallback failed: {e}")
+            if lang == "en":
+                resp = NL.join([
+                    "👋 I'm your **Wealify financial review assistant**. I can help you with:",
+                    "- 📊 **Overview** — \"How much did I spend this month/quarter/year?\"",
+                    "- 📧 **Email matching** — \"Does this $9.99 charge have a receipt?\"",
+                    "- 🔍 **3-source check** — \"Any money that left but didn't reach the card?\"",
+                    "- 📋 **Subscriptions** — \"What subscriptions do I have? Any price increases?\"",
+                    "- 🔁 **Duplicates** — \"Any double charges or duplicate fees?\"",
+                    "- 📧 **Send report** — \"Send the report to my email\"",
+                    "- ⏰ **Dispute deadlines** — \"Any items approaching 60-day deadline?\"",
+                    "- 🔍 **Full scan** — \"Run a complete check\"",
+                    "- ❓ **Transaction lookup** — \"What is this $54.99 charge?\"",
+                    "- 📝 **Audit log** — \"Show flag history\"",
+                    "",
+                    "What would you like to check?",
+                ])
+            else:
+                resp = NL.join([
+                    "👋 Mình là **trợ lý rà soát tài chính Wealify**. Mình có thể giúp bạn:",
+                    "- 📊 **Tổng quan** — \"Tháng/quý/năm này tôi chi bao nhiêu?\"",
+                    "- 📧 **Đối soát email** — \"Khoản $9.99 này có email biên lai không?\"",
+                    "- 🔍 **Đối chiếu 3 nguồn** — \"Có tiền rời tài khoản mà chưa lên thẻ không?\"",
+                    "- 📋 **Gói đăng ký** — \"Mình có những gói gì? Gói nào tăng giá?\"",
+                    "- 🔁 **Khoản trùng** — \"Có khoản nào bị tính hai lần không?\"",
+                    "- 📧 **Gửi báo cáo** — \"Gửi báo cáo vào email của tôi\"",
+                    "- ⏰ **Nhắc hạn** — \"Khoản nào sắp hết hạn khiếu nại 60 ngày?\"",
+                    "- 🔍 **Rà soát toàn bộ** — \"Chạy kiểm tra toàn bộ\"",
+                    "- ❓ **Tra cứu** — \"Khoản $54.99 này là gì?\"",
+                    "- 📝 **Nhật ký** — \"Xem lịch sử cảnh báo\"",
+                    "",
+                    "Bạn muốn kiểm tra gì?",
+                ])
 
-        if lang == "en":
-            resp = NL.join([
-                "👋 I'm your **Wealify financial review assistant**. I can help you with:",
-                "- 📊 **Overview** — \"How much did I spend this month/quarter/year?\"",
-                "- 📧 **Email matching** — \"Does this $9.99 charge have a receipt?\"",
-                "- 🔍 **3-source check** — \"Any money that left but didn't reach the card?\"",
-                "- 📋 **Subscriptions** — \"What subscriptions do I have? Any price increases?\"",
-                "- 🔁 **Duplicates** — \"Any double charges or duplicate fees?\"",
-                "- 📧 **Send report** — \"Send the report to my email\"",
-                "- ⏰ **Dispute deadlines** — \"Any items approaching 60-day deadline?\"",
-                "- 🔍 **Full scan** — \"Run a complete check\"",
-                "- ❓ **Transaction lookup** — \"What is this $54.99 charge?\"",
-                "- 📝 **Audit log** — \"Show flag history\"",
-                "",
-                "What would you like to check?",
-            ])
-        else:
-            resp = NL.join([
-                "👋 Mình là **trợ lý rà soát tài chính Wealify**. Mình có thể giúp bạn:",
-                "- 📊 **Tổng quan** — \"Tháng/quý/năm này tôi chi bao nhiêu?\"",
-                "- 📧 **Đối soát email** — \"Khoản $9.99 này có email biên lai không?\"",
-                "- 🔍 **Đối chiếu 3 nguồn** — \"Có tiền rời tài khoản mà chưa lên thẻ không?\"",
-                "- 📋 **Gói đăng ký** — \"Mình có những gói gì? Gói nào tăng giá?\"",
-                "- 🔁 **Khoản trùng** — \"Có khoản nào bị tính hai lần không?\"",
-                "- 📧 **Gửi báo cáo** — \"Gửi báo cáo vào email của tôi\"",
-                "- ⏰ **Nhắc hạn** — \"Khoản nào sắp hết hạn khiếu nại 60 ngày?\"",
-                "- 🔍 **Rà soát toàn bộ** — \"Chạy kiểm tra toàn bộ\"",
-                "- ❓ **Tra cứu** — \"Khoản $54.99 này là gì?\"",
-                "- 📝 **Nhật ký** — \"Xem lịch sử cảnh báo\"",
-                "",
-                "Bạn muốn kiểm tra gì?",
-            ])
-
-        return {"response": resp, "type": "general"}
+            return {"response": resp, "type": "general"}
 
 
 def _is_confirmation(message: str) -> bool:
