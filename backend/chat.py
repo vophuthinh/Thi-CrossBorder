@@ -1534,7 +1534,25 @@ class ChatOrchestrator:
             # only for FLAGS emitted by anomaly_detector / reconciler /
             # email_matcher, not for free-form LLM answers.
         )
+        # Recorded on every turn (process_message) but was never actually
+        # read anywhere — a short reply like "có" to the assistant's own
+        # previous "Bạn muốn mình rà soát không?" had nothing to resolve
+        # what "có" meant and fell back to a generic "your question isn't
+        # clear" answer. Last exchange only (not the full history) — this
+        # model's token budget is tight enough already with the "thinking"
+        # overhead, and a follow-up almost always refers to the immediately
+        # prior turn, not something further back.
+        history_text = ""
+        if self.conversation_history:
+            last_two = self.conversation_history[-2:]
+            lines = [f"{turn['role']}: {turn['content']}" for turn in last_two]
+            history_text = (
+                "--- LƯỢT TRƯỚC (để hiểu câu trả lời ngắn kiểu 'có'/'rồi') ---\n"
+                + "\n".join(lines) + "\n--- HẾT LƯỢT TRƯỚC ---\n\n"
+            )
+
         prompt = (
+            f"{history_text}"
             f"Câu hỏi: {message}\n\n"
             f"--- DỮ LIỆU THAM KHẢO (chỉ dùng nội bộ để trả lời, không in lại trong output) ---\n"
             f"{summary_text}\n"
@@ -1542,7 +1560,9 @@ class ChatOrchestrator:
             f"Gói đăng ký: {len(anomalies.get('subscriptions', []))} | "
             f"Tăng giá: {len(anomalies.get('price_hikes', []))}\n"
             f"--- HẾT DỮ LIỆU ---\n\n"
-            f"Hãy trả lời câu hỏi ở trên dựa trên dữ liệu. "
+            f"Hãy trả lời câu hỏi ở trên dựa trên dữ liệu. Nếu câu hỏi là phản hồi ngắn "
+            f"(vd 'có', 'ừ', 'rồi') cho lượt trước, hãy thực hiện đúng điều lượt trước "
+            f"đã đề nghị (vd rà soát khoản bất thường) thay vì hỏi lại. "
             f"Nếu dữ liệu không đủ, nói rõ là chưa đủ dữ liệu để trả lời."
         )
         # DeepSeek V4 Flash is a reasoning model — its "thinking" tokens
