@@ -655,34 +655,8 @@ ol {
     color: var(--caution-fg);
 }
 
-.report-launch-btn {
-    width: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border: 1px solid var(--line-2);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--ink-soft);
-    transition:
-        background var(--dur) var(--ease),
-        border-color var(--dur) var(--ease),
-        transform var(--dur) var(--ease);
-}
-
-.report-launch-btn:hover {
-    background: var(--surface-2);
-    border-color: var(--ink);
-    color: var(--ink);
-}
-
-.report-launch-btn:active {
-    transform: scale(0.98);
-}
+/* `.report-launch-btn` styles removed along with the button — the
+   report flow is now triggered exclusively by the suggestion chip. */
 
 /* ─── Center panel: chat ───────────────────────────── */
 
@@ -1738,44 +1712,10 @@ ol {
     transform: scale(0.92);
 }
 
-/* ─── Detail-page "Ask AI about this" CTA ─────────────
-   Full-width button at the bottom of every single-item detail view.
-   Visually distinct from the item-management actions above it (which
-   use the hairline .detail-action look) — this one is filled so the
-   user can spot it as the recommended next step after reading. */
-
-.detail-page-ask-ai {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    margin-top: 4px;
-    padding: 10px 14px;
-    border: 0;
-    border-radius: var(--r-md);
-    background: var(--ink);
-    color: #fff;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-        background var(--dur) var(--ease),
-        transform var(--dur) var(--ease);
-}
-
-.detail-page-ask-ai i {
-    font-size: 16px;
-}
-
-.detail-page-ask-ai:hover {
-    background: var(--ink-soft);
-}
-
-.detail-page-ask-ai:active {
-    transform: scale(0.985);
-}
+/* ─── Detail-page Ask-AI CTA styles removed ──────────
+   The `.detail-page-ask-ai` button (full-width CTA at the bottom of
+   every detail view) has been removed; per UX feedback, the chat
+   composer above the input is now the only way to ask about an item. */
 
 /* ─── Active-subs 60/40 split (right panel) ───────────
    Top pane gets the larger share — that's the working list the user reads

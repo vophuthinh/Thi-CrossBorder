@@ -8,13 +8,13 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Optional
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -96,6 +96,11 @@ orchestrator = ChatOrchestrator()
 
 class ChatRequest(BaseModel):
     message: str
+    # Optional context block sent when the user is in a detail view of an
+    # item in the right panel — the orchestrator prepends a structured
+    # summary of the item to the user's message so the LLM can answer
+    # questions about the specific transaction / email / subscription.
+    context: Optional[dict] = None
 
 
 class InsightRequest(BaseModel):
@@ -1000,7 +1005,7 @@ Yêu cầu:
 @app.post("/chat")
 def chat(req: ChatRequest):
     """Chat endpoint — process user message and return response."""
-    result = orchestrator.process_message(req.message)
+    result = orchestrator.process_message(req.message, context=req.context)
     return result
 
 

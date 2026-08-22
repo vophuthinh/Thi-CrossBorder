@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   Wealez — UI interactivity (vanilla JS)
+   Wealify Scout — UI interactivity (vanilla JS)
    Wired to the real backend (no mock data) — every number here comes from
    GET /findings, /dashboard/wallet, /dashboard/wealify-accounts, and
    POST /chat, all fetched live from the running FastAPI backend.
@@ -25,7 +25,7 @@ const I18N = {
         run_check_done: (n, already) => `Done! ${n} new flags, ${already} already reported.`,
         run_check_failed: 'Check failed — the backend may be restarting.',
         block_reconciliation: 'Reconciliation',
-        flow_wallet: 'Wealez wallet',
+        flow_wallet: 'Wealify wallet',
         flow_transferred: 'Transferred to card',
         flow_card: 'Card spending',
         mismatch_ok: 'No transfer-to-card mismatch found',
@@ -37,7 +37,9 @@ const I18N = {
         flag_audit: 'Needs your confirmation',
         flag_email_audit: 'Email reconciliation needed',
 
-        block_radar: 'Subscriptions',
+        block_radar: 'Subscription radar',
+        block_report: 'Report',
+        create_report: 'Create report',
         sub_price: 'Price increased',
         sub_active: 'Active subscriptions',
         sub_trial: 'Trials ending soon',
@@ -57,9 +59,19 @@ const I18N = {
         readonly_note: 'Read-only access mode',
         thinking: 'Analyzing...',
         chat_error: 'Connection error — the backend may be restarting. Try again in a moment.',
+        report_chip_confirm: '✅ Report created successfully. See it in the Report detail panel on the right.',
 
         panel_detail: 'Detail view',
-        back: 'Back',
+        panel_report: 'Report detail',
+        report_nav_month: 'Month',
+        report_nav_quarter: 'Quarter',
+        report_nav_year: 'Year',
+        report_pick_month: 'Select month',
+        report_pick_quarter: 'Select quarter',
+        report_year_summary: 'Yearly report',
+        report_send_email: 'Send to my email',
+        report_send_success: (to) => `✅ Report email sent to ${to}`,
+        report_send_failed: '⚠️ Could not send report email. Check SMTP configuration.',
         empty_title: 'Nothing selected',
         empty_sub: 'Pick a flag in the Command Center to inspect the underlying transactions.',
         empty_none_title: 'Nothing to show',
@@ -82,13 +94,6 @@ const I18N = {
         email_deadline_urgent: (days) => `${days}d left`,
         email_deadline_clear: (days) => `${days}d left`,
 
-        context_kind_finding: 'Finding',
-        context_kind_email_audit: 'Email',
-        context_kind_subscription: 'Subscription',
-        context_chip_dismiss: 'Dismiss context',
-        detail_ask_ai: 'Ask AI about this',
-        context_chip_prefix: (kind, title) => `Asking about ${kind}: ${title}`,
-
         sub_active_top: 'Currently active',
         sub_active_bottom: 'Pending cancellation',
         sub_action_stop_renewal: 'Stop renewal',
@@ -103,25 +108,17 @@ const I18N = {
         sub_restored: 'Restored to active list.',
         sub_confirmed_done: 'Marked as cancelled.',
 
-        toast_close: 'Dismiss',
-
-        block_report: 'Report',
-        create_report: 'Create report',
-        panel_report: 'Report detail',
-        report_nav_month: 'Month',
-        report_nav_quarter: 'Quarter',
-        report_nav_year: 'Year',
-        report_pick_month: 'Select month',
-        report_pick_quarter: 'Select quarter',
-        report_year_summary: 'Yearly report',
-        report_send_email: 'Send to my email',
-        report_send_success: (to) => `✅ Report email sent to ${to}`,
-        report_send_failed: '⚠️ Could not send report email. Check SMTP configuration.',
+        context_kind_finding: 'Finding',
+        context_kind_email_audit: 'Email',
+        context_kind_subscription: 'Subscription',
+        context_chip_dismiss: 'Dismiss context',
+        context_chip_prefix: (kind, title) => `Asking about ${kind}: ${title}`,
+        back: 'Back',
 
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
             '⚠️ This tool only assists you in reviewing your finances. Results are for reference only, not ' +
-            'official Wealez conclusions, and do not replace your own verification. If you notice suspicious ' +
+            'official Wealify conclusions, and do not replace your own verification. If you notice suspicious ' +
             'transactions, contact support immediately — in the US, the dispute deadline is 60 days from the ' +
             'statement date.',
     },
@@ -140,7 +137,7 @@ const I18N = {
         run_check_done: (n, already) => `Hoàn tất! ${n} cảnh báo mới, ${already} đã báo trước.`,
         run_check_failed: 'Rà soát thất bại — backend có thể đang khởi động lại.',
         block_reconciliation: 'Đối soát',
-        flow_wallet: 'Ví Wealez',
+        flow_wallet: 'Ví Wealify',
         flow_transferred: 'Đã chuyển sang thẻ',
         flow_card: 'Chi tiêu trên thẻ',
         mismatch_ok: 'Không phát hiện lệch chuyển tiền sang thẻ',
@@ -148,11 +145,13 @@ const I18N = {
 
         block_urgent: 'Cảnh báo giao dịch bất thường',
         flag_duplicate: 'Giao dịch trùng lặp',
-        flag_unrecognized: 'Không có biên lai',
+        flag_unrecognized: 'Chưa nhận diện / không có biên lai',
         flag_audit: 'Cần bạn tự xác nhận',
         flag_email_audit: 'Cần đối soát email',
 
-        block_radar: 'Các gói đã đăng ký',
+        block_radar: 'Radar gói đăng ký',
+        block_report: 'Báo cáo',
+        create_report: 'Tạo report',
         sub_price: 'Gói tăng giá',
         sub_active: 'Gói đang hoạt động',
         sub_trial: 'Bản dùng thử sắp hết hạn',
@@ -172,9 +171,19 @@ const I18N = {
         readonly_note: 'Chế độ chỉ đọc',
         thinking: 'Đang phân tích...',
         chat_error: 'Lỗi kết nối — backend có thể đang khởi động lại. Thử lại sau giây lát.',
+        report_chip_confirm: '✅ Đã tạo báo cáo thành công, vui lòng xem ở mục "Chi tiết báo cáo".',
 
         panel_detail: 'Chi tiết',
-        back: 'Quay lại',
+        panel_report: 'Chi tiết báo cáo',
+        report_nav_month: 'Tháng',
+        report_nav_quarter: 'Quý',
+        report_nav_year: 'Năm',
+        report_pick_month: 'Chọn tháng',
+        report_pick_quarter: 'Chọn quý',
+        report_year_summary: 'Báo cáo theo năm',
+        report_send_email: 'Gửi vào email của tôi',
+        report_send_success: (to) => `✅ Đã gửi email báo cáo tới ${to}`,
+        report_send_failed: '⚠️ Chưa gửi được email báo cáo. Kiểm tra cấu hình SMTP.',
         empty_title: 'Chưa chọn mục nào',
         empty_sub: 'Chọn một cảnh báo ở Trung tâm điều khiển để xem chi tiết giao dịch.',
         empty_none_title: 'Không có mục nào',
@@ -197,13 +206,6 @@ const I18N = {
         email_deadline_urgent: (days) => `còn ${days} ngày`,
         email_deadline_clear: (days) => `còn ${days} ngày`,
 
-        context_kind_finding: 'Khoản giao dịch',
-        context_kind_email_audit: 'Email',
-        context_kind_subscription: 'Gói đăng ký',
-        context_chip_dismiss: 'Bỏ ngữ cảnh',
-        detail_ask_ai: 'Hỏi AI về item này',
-        context_chip_prefix: (kind, title) => `Đang hỏi về ${kind}: ${title}`,
-
         sub_active_top: 'Đang hoạt động',
         sub_active_bottom: 'Đang chờ hủy',
         sub_action_stop_renewal: 'Muốn dừng gia hạn',
@@ -218,25 +220,17 @@ const I18N = {
         sub_restored: 'Đã khôi phục gói.',
         sub_confirmed_done: 'Đã đánh dấu hủy.',
 
-        toast_close: 'Đóng',
-
-        block_report: 'Báo cáo',
-        create_report: 'Tạo report',
-        panel_report: 'Chi tiết báo cáo',
-        report_nav_month: 'Tháng',
-        report_nav_quarter: 'Quý',
-        report_nav_year: 'Năm',
-        report_pick_month: 'Chọn tháng',
-        report_pick_quarter: 'Chọn quý',
-        report_year_summary: 'Báo cáo theo năm',
-        report_send_email: 'Gửi vào email của tôi',
-        report_send_success: (to) => `✅ Đã gửi email báo cáo tới ${to}`,
-        report_send_failed: '⚠️ Chưa gửi được email báo cáo. Kiểm tra cấu hình SMTP.',
+        context_kind_finding: 'Khoản giao dịch',
+        context_kind_email_audit: 'Email',
+        context_kind_subscription: 'Gói đăng ký',
+        context_chip_dismiss: 'Bỏ ngữ cảnh',
+        context_chip_prefix: (kind, title) => `Đang hỏi về ${kind}: ${title}`,
+        back: 'Quay lại',
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
             '⚠️ Công cụ này chỉ hỗ trợ bạn rà soát tài chính. Kết quả để tham khảo, không phải kết luận chính ' +
-            'thức của Wealez và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ' +
+            'thức của Wealify và không thay cho việc bạn tự kiểm tra. Nếu thấy giao dịch lạ, hãy liên hệ hỗ trợ ' +
             'ngay — ở Mỹ thời hạn khiếu nại là 60 ngày kể từ ngày ngân hàng gửi sao kê.',
     },
 };
@@ -293,9 +287,13 @@ async function apiGet(path) {
     }
 }
 
-async function apiPost(path) {
+async function apiPost(path, body = null) {
     try {
-        const res = await fetch(`${API}${path}`, { method: 'POST' });
+        const res = await fetch(`${API}${path}`, {
+            method: 'POST',
+            headers: body ? { 'Content-Type': 'application/json' } : undefined,
+            body: body ? JSON.stringify(body) : undefined,
+        });
         if (!res.ok) return null;
         return await res.json();
     } catch {
@@ -349,14 +347,6 @@ const FLAG_TITLE_KEY = {
 // sender domains (check_suspicious_domains), (2) receipt emails that
 // matched a Wealify transaction but not cleanly (match_outbound_emails,
 // excluding "matched_success" — those are fine, nothing to review).
-//
-// Each normalized item also carries an `email_group` so the right panel can
-// split the list into two panes:
-//   - "not_in_wlist"   — sender domain isn't on the trusted list (every
-//                        suspicious-domain flag falls here by definition).
-//   - "in_wlist_no_tx" — sender is trusted (an outbound Ref email) but
-//                        Wealify has no matching transaction for the Ref
-//                        printed in the receipt body (not_found_on_wealify).
 function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
     const items = [];
     for (const it of (suspiciousRes && suspiciousRes.items) || []) {
@@ -381,10 +371,8 @@ function normalizeEmailAuditItems(suspiciousRes, outboundRes) {
     for (const it of (outboundRes && outboundRes.items) || []) {
         if (it.category === 'matched_success') continue;
         // Only "no matching Wealify transaction" emails belong in the
-        // bottom pane — the other non-success buckets (matched_pending,
-        // amount_mismatch, matched_failed_or_cancelled) all have a Wealify
-        // record; they're surfaced elsewhere as findings, not as missing
-        // receipts.
+        // bottom pane — the other non-success buckets all have a Wealify
+        // record; they're surfaced elsewhere as findings.
         const group = it.category === 'not_found_on_wealify' ? 'in_wlist_no_tx' : null;
         if (!group) continue;
         items.push({
@@ -499,12 +487,9 @@ function renderReconciliation() {
 }
 
 function renderCommandCenterCounts() {
-    flagEls.forEach((el) => {
+    document.querySelectorAll('[data-flag]').forEach((el) => {
         const flag = el.dataset.flag;
-        let count;
-        if (flag === 'email-audit') count = emailAuditItems.length;
-        else if (flag === 'active-subs') count = ACTIVE_SUBS.length;
-        else count = allFindings.filter(FLAG_FILTERS[flag]).length;
+        const count = flag === 'email-audit' ? emailAuditItems.length : allFindings.filter(FLAG_FILTERS[flag]).length;
         const badge = el.querySelector('.badge, .pill');
         if (badge) badge.textContent = String(count);
         const sub = el.querySelector('.flag-sub');
@@ -528,6 +513,13 @@ const detailTitle = document.getElementById('detailTitle');
 const detailCount = document.getElementById('detailCount');
 const detailBody = document.getElementById('detailBody');
 const detailBackBtn = document.getElementById('detailBackBtn');
+const chatHistory = document.getElementById('chatHistory');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const langSwitch = document.getElementById('langSwitch');
+// `createReportBtn` removed from the DOM; the report flow is now
+// triggered exclusively by the "Gửi báo cáo tháng cho tôi" /
+// "Send me the monthly report" chip above the chat composer.
 const chatContextChip = document.getElementById('chatContextChip');
 const chatContextChipText = document.getElementById('chatContextChipText');
 const chatContextChipClear = document.getElementById('chatContextChipClear');
@@ -535,21 +527,9 @@ const chatContextChipClear = document.getElementById('chatContextChipClear');
 // changes after page load, so re-running querySelectorAll on every
 // renderDetails (and every language switch) is wasted work.
 const flagEls = document.querySelectorAll('[data-flag]');
-const chatHistory = document.getElementById('chatHistory');
-const chatForm = document.getElementById('chatForm');
-const chatInput = document.getElementById('chatInput');
-const langSwitch = document.getElementById('langSwitch');
-const createReportBtn = document.getElementById('createReportBtn');
 
 let lang = localStorage.getItem('wealify_lang') === 'en' ? 'en' : 'vi';
 let activeFlag = null;
-let rightPanelMode = 'detail'; // 'detail' | 'report'
-let reportYear = new Date().getFullYear();
-let reportType = 'month';
-let selectedMonth = new Date().getMonth() + 1;
-let selectedQuarter = Math.floor(new Date().getMonth() / 3) + 1;
-let selectedCurrency = null;
-let reportChart = null;
 // Index of the item currently opened in the detail view, scoped to the
 // items list rendered for `activeFlag`. null = show the list of items
 // for the active flag (the previous accordion behaviour let users peek
@@ -566,6 +546,13 @@ let openItem = null;
 let currentDetailItem = null;
 let currentDetailKind = null;
 let loadTimer = null;
+let rightPanelMode = 'detail';
+let reportYear = new Date().getFullYear();
+let reportType = 'month';
+let selectedMonth = new Date().getMonth() + 1;
+let selectedQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+let selectedCurrency = null;
+let reportChart = null;
 
 const t = (key) => I18N[lang][key];
 
@@ -577,12 +564,10 @@ function icon(name, extraClass) {
 }
 
 // ─── Toast notifications ────────────────────────────────────────────
-// Replaces the browser alert() for non-blocking, in-app feedback. Same
-// pastel semantic palette as the rest of the UI (success/warning/danger),
-// stacks under the navbar on the right, self-dismisses, and can be closed
-// by click. Hard-capped at 4 visible toasts — older ones fall off the stack
-// instead of growing it indefinitely under heavy action bursts.
-
+// Lightweight non-blocking feedback used by the active-subs stop /
+// restore / confirm-cancel actions and the email-audit add-to-whitelist
+// action. Same hairline aesthetic as the rest of the UI, stacks under
+// the navbar on the right, self-dismisses, can be closed by click.
 const TOAST_DEFAULT_MS = 4000;
 const TOAST_MAX_VISIBLE = 4;
 const TOAST_ICON = { info: 'info', success: 'check-circle', warning: 'warning-circle', danger: 'x-circle' };
@@ -641,74 +626,75 @@ function showToast(message, type = 'info', duration = TOAST_DEFAULT_MS) {
     timer = window.setTimeout(dismiss, duration);
 }
 
+// ─── Email-audit helpers ────────────────────────────────────────────
+const EMAIL_DISPUTE_WINDOW_DAYS = 60;
+
+function daysUntilDeadline(emailDate) {
+    const raw = (emailDate || '').split(' ')[0];
+    if (!raw) return null;
+    const sent = new Date(raw);
+    if (Number.isNaN(sent.getTime())) return null;
+    const deadline = new Date(sent.getTime());
+    deadline.setDate(deadline.getDate() + EMAIL_DISPUTE_WINDOW_DAYS);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    return Math.round((deadline.getTime() - today.getTime()) / msPerDay);
+}
+
+// Stages a complaint-email draft in the chat composer (same pattern as
+// draftAskForItem for findings) — the user reviews/edits, then the
+// existing /chat pipeline sends it.
+function draftComplaintEmail(item) {
+    const days = daysUntilDeadline(item.email_date);
+    const deadlinePart =
+        days !== null
+            ? lang === 'vi'
+                ? ` Hạn khiếu nại: còn ${days} ngày.`
+                : ` Dispute deadline: ${days} days left.`
+            : '';
+    const subject = item.email_subject || item.email_ref || findingTitle(item);
+    const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
+    const senderPart = item.email_from ? ` từ ${item.email_from}` : '';
+    const text =
+        lang === 'vi'
+            ? `Giúp tôi soạn một email cho đội hỗ trợ: tôi có một giao dịch như email này${refPart}${senderPart} nhưng bên Wealify chưa có giao dịch tương ứng — đề nghị đội support hỗ trợ làm rõ.${deadlinePart}`
+            : `Please draft a complaint email to support: I have a transaction receipt in this email${refPart}${senderPart} but no matching transaction on the Wealify side — please investigate.${deadlinePart}`;
+    chatInput.value = `${subject}\n\n${text}`;
+    chatInput.focus();
+    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}
+
+// Adds the sender's domain to the user's whitelist via the Setup
+// Wizard's backend endpoint. UI-only feedback for now — the row is
+// dropped from the local list so the user sees the action land; the
+// next scheduled re-scan will re-add it if the backend rejected the call.
+async function addSenderToWhitelist(item, btn) {
+    const sender = item.email_from || '';
+    const domain = sender.split('@').pop() || '';
+    btn.disabled = true;
+    try {
+        await fetch(`${API}/setup/whitelist/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain }),
+        });
+    } catch {
+        // Network failure is silent on purpose — the row still disappears
+        // locally so the user can keep working.
+    }
+    showToast(t('email_added_to_wlist')(sender || domain), 'success');
+    emailAuditItems = emailAuditItems.filter((it) => it !== item);
+    renderCommandCenterCounts();
+    paintEmailAuditDetails(emailAuditItems);
+}
+
 function buildMetaRow(list, label, value) {
     const dt = document.createElement('dt');
     dt.textContent = label;
     const dd = document.createElement('dd');
     dd.textContent = value;
     list.append(dt, dd);
-}
-
-// Pastel warning block — shared by finding-detail and email-detail
-// pages; the optional `stack` class turns it into a wider card on the
-// detail view vs the inline list-row variant.
-function buildExplanationWarning(text, { stack = false } = {}) {
-    const warn = document.createElement('div');
-    warn.className = 'detail-warning' + (stack ? ' detail-page-warning' : '');
-    const label = document.createElement('span');
-    label.textContent = text;
-    warn.append(icon('warning-circle'), label);
-    return warn;
-}
-
-// Buckets a "days until deadline" value into one of three visual tiers
-// so the compact email-row pill and the wide email-detail block agree
-// on what counts as urgent vs clear vs normal.
-function computeDeadlineUrgency(days) {
-    if (days <= 0) return 'urgent';
-    if (days <= 14) return 'urgent';
-    if (days > 30) return 'clear';
-    return 'normal';
-}
-
-// Renders a deadline badge in either the compact list-row shape or the
-// wide detail-page shape — both sites used to spell the urgency math
-// and class names inline.
-function buildDeadlineBadge(days, { tag = 'span', baseClass = 'deadline-pill' } = {}) {
-    const urgency = computeDeadlineUrgency(days);
-    const elNode = document.createElement(tag);
-    elNode.className = baseClass + (urgency === 'urgent' ? ' is-urgent' : urgency === 'clear' ? ' is-clear' : '');
-    elNode.append(icon('hourglass-medium'), document.createTextNode(t('email_deadline_urgent')(days)));
-    return elNode;
-}
-
-// ─── Chat context chip ──────────────────────────────────────────────
-// Visual mirror of currentDetailItem / currentDetailKind. When the user
-// is in a detail view the chip appears above the chat input so they
-// always know the next message will carry the item's data to the LLM.
-// The × button clears the context (right panel keeps showing the item)
-// without forcing the user to leave the detail view first.
-
-const KIND_LABEL_KEY = {
-    finding: 'context_kind_finding',
-    'email-audit': 'context_kind_email_audit',
-    subscription: 'context_kind_subscription',
-};
-function kindLabelKey(kind) {
-    return KIND_LABEL_KEY[kind] || null;
-}
-
-function renderChatContextChip() {
-    if (currentDetailItem && currentDetailKind) {
-        const key = kindLabelKey(currentDetailKind);
-        const kindLabel = key ? t(key) : currentDetailKind;
-        const title = detailTitleFor(currentDetailItem);
-        chatContextChipText.textContent = t('context_chip_prefix')(kindLabel, title);
-        chatContextChip.hidden = false;
-    } else {
-        chatContextChip.hidden = true;
-        chatContextChipText.textContent = '';
-    }
 }
 
 function buildDetailItem(f, index) {
@@ -747,12 +733,7 @@ function buildDetailItem(f, index) {
 
     const explanation = findingExplanation(f);
     if (explanation) {
-        const warn = document.createElement('div');
-        warn.className = 'detail-warning';
-        const label = document.createElement('span');
-        label.textContent = explanation;
-        warn.append(icon('warning-circle'), label);
-        main.appendChild(warn);
+        main.appendChild(buildExplanationWarning(explanation));
     }
 
     head.append(main, icon('caret-right', 'detail-chevron'));
@@ -763,10 +744,14 @@ function buildDetailItem(f, index) {
     return row;
 }
 
+function openItemFromList(index) {
+    openItem = index;
+    renderDetails(activeFlag, { instant: true });
+}
+
 // Builds the meta block (ID/status/deadline/confidence/evidence) and
-// the optional draft-note action. Reused both by the (now-removed) inline
-// accordion and by paintFindingDetail below.
-function buildFindingMeta(f) {
+// the optional draft-note action. Used by the detail-view painter below.
+function buildFindingDetailBody(f) {
     const isAlert = f.label === 'CAN_BAN_TU_XAC_NHAN';
 
     const meta = document.createElement('dl');
@@ -798,7 +783,7 @@ function buildFindingMeta(f) {
         label.textContent = t('action_draft_email');
         action.append(icon('envelope-simple'), label);
         action.addEventListener('click', () => draftNote(f));
-        wrapper.append(action);
+        wrapper.appendChild(action);
     }
 
     wrapper.prepend(meta);
@@ -806,9 +791,7 @@ function buildFindingMeta(f) {
 }
 
 // Full-page detail for a single finding — fills the entire right panel
-// body. Same content the old accordion .detail-extra showed, but as the
-// only thing on screen so the user can read it without scrolling past
-// every other row in the list.
+// body so the user can read it without scrolling past other rows.
 function paintFindingDetail(f) {
     const page = document.createElement('article');
     page.className = 'detail-page';
@@ -844,75 +827,147 @@ function paintFindingDetail(f) {
         page.appendChild(buildExplanationWarning(explanation, { stack: true }));
     }
 
-    page.appendChild(buildFindingMeta(f));
-    page.appendChild(buildAskAiButton(f, 'finding'));
+    page.appendChild(buildFindingDetailBody(f));
+    // Ask-AI CTA removed per UX feedback (user removed the "Hỏi AI về
+    // item này" button from all detail views) — keep `buildAskAiButton`
+    // removed entirely instead of leaving dead calls.
 
     detailBody.replaceChildren(page);
     detailBody.scrollTop = 0;
 }
 
-function openItemFromList(index) {
-    openItem = index;
-    renderDetails(activeFlag, { instant: true });
+// ─── Shared helpers ────────────────────────────────────────────────
+// Pastel warning block — used by both the list-row inline warning and
+// the wider detail-page warning. The `stack` variant applies the
+// full-page padding so the warning reads as a standalone block.
+function buildExplanationWarning(text, { stack = false } = {}) {
+    const warn = document.createElement('div');
+    warn.className = 'detail-warning' + (stack ? ' detail-page-warning' : '');
+    const label = document.createElement('span');
+    label.textContent = text;
+    warn.append(icon('warning-circle'), label);
+    return warn;
 }
 
-function showSkeleton(count) {
-    const list = document.createElement('div');
-    list.className = 'detail-list';
+// Buckets a "days until deadline" value into one of three visual tiers
+// so the compact email-row pill and the wide email-detail block agree
+// on what counts as urgent vs clear vs normal.
+function computeDeadlineUrgency(days) {
+    if (days <= 0) return 'urgent';
+    if (days <= 14) return 'urgent';
+    if (days > 30) return 'clear';
+    return 'normal';
+}
 
-    for (let n = 0; n < count; n += 1) {
-        const row = document.createElement('div');
-        row.className = 'skeleton-row';
-        const wide = document.createElement('div');
-        wide.className = 'skeleton-bar w-60';
-        const narrow = document.createElement('div');
-        narrow.className = 'skeleton-bar w-34';
-        row.append(wide, narrow);
-        list.appendChild(row);
+// Renders a deadline badge in either the compact list-row shape or the
+// wide detail-page shape — both sites used to spell the urgency math
+// and class names inline.
+function buildDeadlineBadge(days, { tag = 'span', baseClass = 'deadline-pill' } = {}) {
+    const urgency = computeDeadlineUrgency(days);
+    const elNode = document.createElement(tag);
+    elNode.className = baseClass + (urgency === 'urgent' ? ' is-urgent' : urgency === 'clear' ? ' is-clear' : '');
+    elNode.append(icon('hourglass-medium'), document.createTextNode(t('email_deadline_urgent')(days)));
+    return elNode;
+}
+
+// Title shown in the right-panel-head when the user has drilled into
+// a single item. Falls back to the localized finding title for kinds
+// that don't carry their own obvious name.
+function detailTitleFor(item) {
+    if (currentDetailKind === 'email-audit') {
+        return item.email_from || item.email_ref || findingTitle(item);
     }
-
-    detailBody.replaceChildren(list);
+    if (currentDetailKind === 'subscription') {
+        return item.name || findingTitle(item);
+    }
+    return findingTitle(item);
 }
 
-function paintEmpty() {
-    const wrap = document.createElement('div');
-    wrap.className = 'empty-state';
-    const iconEl = icon('tray', 'empty-icon');
-    const title = document.createElement('p');
-    title.className = 'empty-title';
-    title.textContent = t('empty_none_title');
-    const sub = document.createElement('p');
-    sub.className = 'empty-sub';
-    sub.textContent = activeFlag === 'trial' || activeFlag === 'unused' ? t('not_tracked') : t('empty_none_sub');
-    wrap.append(iconEl, title, sub);
-    detailBody.replaceChildren(wrap);
+// Maps a kind string to its i18n label key, used to render the chip
+// ("Asking about <kind>: <title>"). Table lookup beats an if/elif chain.
+const KIND_LABEL_KEY = {
+    finding: 'context_kind_finding',
+    'email-audit': 'context_kind_email_audit',
+    subscription: 'context_kind_subscription',
+};
+function kindLabelKey(kind) {
+    return KIND_LABEL_KEY[kind] || null;
 }
+
+// ─── Chat context chip ────────────────────────────────────────────
+// Visual mirror of currentDetailItem / currentDetailKind. When the user
+// is in a detail view the chip appears above the chat input so they
+// always know the next message will carry the item's data to the LLM.
+// The × button clears the context (right panel keeps showing the item)
+// without forcing the user to leave the detail view first.
+
+function renderChatContextChip() {
+    if (currentDetailItem && currentDetailKind) {
+        const key = kindLabelKey(currentDetailKind);
+        const kindLabel = key ? t(key) : currentDetailKind;
+        const title = detailTitleFor(currentDetailItem);
+        chatContextChipText.textContent = t('context_chip_prefix')(kindLabel, title);
+        chatContextChip.hidden = false;
+    } else {
+        chatContextChip.hidden = true;
+        chatContextChipText.textContent = '';
+    }
+}
+
+// Pre-fills the chat composer with a starter question about the given
+// item. Covers all three item kinds so the "Ask AI about this" button
+// inside each detail view (and the per-finding "Draft note for chat"
+// inline action) can share the same generator.
+function draftAskForItem(item, kind) {
+    let body;
+    if (kind === 'finding') {
+        const deadlinePart = item.dispute_deadline
+            ? lang === 'vi'
+                ? ` Hạn khiếu nại: ${item.dispute_deadline} (còn ${item.days_left} ngày).`
+                : ` Dispute deadline: ${item.dispute_deadline} (${item.days_left} days left).`
+            : '';
+        body = lang === 'vi'
+            ? `Giải thích giúp mình khoản này: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`
+            : `Explain this to me: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`;
+    } else if (kind === 'email-audit') {
+        const subj = item.email_subject || findingTitle(item) || '';
+        const sender = item.email_from || '';
+        const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
+        body = lang === 'vi'
+            ? `Email này có đáng lo không? "${subj}" từ ${sender}${refPart}`
+            : `Should I be concerned about this email? "${subj}" from ${sender}${refPart}`;
+    } else if (kind === 'subscription') {
+        const price = fmtCur((item.amount_cents || 0) / 100, item.currency || 'USD');
+        body = lang === 'vi'
+            ? `Tôi có nên giữ gói "${item.name}" này không? (${price}, gia hạn ${item.renewal_date || '—'})`
+            : `Should I keep this "${item.name}" subscription? (${price}, renews ${item.renewal_date || '—'})`;
+    } else {
+        body = lang === 'vi' ? `Giải thích giúp mình mục này.` : `Tell me about this item.`;
+    }
+    chatInput.value = body;
+    chatInput.focus();
+    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}
+
+// Back-compat shim — the "Draft note for chat" inline action still
+// calls draftNote directly; route it through the shared generator.
+function draftNote(f) {
+    draftAskForItem(f, 'finding');
+}
+
+// `buildAskAiButton` and the "Hỏi AI về item này" / "Ask AI about this"
+// CTA have been removed: the user no longer wants a per-item shortcut
+// button on detail pages. Chat-composer pre-fill from a finding still
+// exists via the legacy `draftNote`/`draftAskForItem` paths (kept for
+// completeness).
 
 // ─── Email-audit split view ──────────────────────────────────────────
 // Two stacked panes (not-in-whitelist on top, in-whitelist-no-tx below),
-// each with its own header and independently-scrollable body. The top
-// pane lets the user add an unknown sender to the whitelist; the bottom
-// pane shows the 60-day dispute countdown and drafts a complaint email
-// straight into the chat composer (where the existing /chat pipeline —
-// with its confirm-before-send flow — takes over).
-
-const EMAIL_DISPUTE_WINDOW_DAYS = 60;
-
-function daysUntilDeadline(emailDate) {
-    const raw = (emailDate || '').split(' ')[0];
-    if (!raw) return null;
-    const sent = new Date(raw);
-    if (Number.isNaN(sent.getTime())) return null;
-    const deadline = new Date(sent.getTime());
-    deadline.setDate(deadline.getDate() + EMAIL_DISPUTE_WINDOW_DAYS);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const msPerDay = 24 * 60 * 60 * 1000;
-    return Math.round((deadline.getTime() - today.getTime()) / msPerDay);
-}
+// each with its own header and independently-scrollable body. Click a
+// row → openItemFromList → paintEmailDetail.
 
 function buildEmailRow(item, flatIndex) {
-    // `flatIndex` is the position in the unified emailAuditItems array
+    // flatIndex is the position in the unified emailAuditItems array
     // (the list the right panel would render as a flat list), not the
     // position within this pane — keeps openItem stable across both panes.
     const row = document.createElement('div');
@@ -1020,9 +1075,7 @@ function paintEmailAuditDetails(items) {
 }
 
 // Full-page detail for one email-audit item — replaces the list of two
-// panes with a single article showing everything we know about the
-// sender, subject, full date, Ref, explanation, deadline, and the same
-// action button that used to live in the compact row.
+// panes with a single article showing everything we know.
 function paintEmailDetail(item) {
     const page = document.createElement('article');
     page.className = 'detail-page';
@@ -1090,87 +1143,24 @@ function paintEmailDetail(item) {
         actions.appendChild(addBtn);
     }
     page.appendChild(actions);
-    page.appendChild(buildAskAiButton(item, 'email-audit'));
+    // Ask-AI CTA removed (see paintFindingDetail note).
 
     detailBody.replaceChildren(page);
     detailBody.scrollTop = 0;
 }
 
-// Adds the sender's domain to the user's whitelist via the Setup Wizard's
-// backend endpoint. UI-only feedback for now — no reload; the next
-// scheduled re-scan picks the change up, and the row is removed from the
-// "not in whitelist" pane immediately so the user sees the action land.
-async function addSenderToWhitelist(item, btn) {
-    const sender = item.email_from || '';
-    const domain = sender.split('@').pop() || '';
-    btn.disabled = true;
-    try {
-        await fetch(`${API}/setup/whitelist/add`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ domain }),
-        });
-    } catch {
-        // Network failure is silent on purpose — the row still disappears
-        // locally so the user can keep working; the next scan will re-add
-        // it if the backend actually rejected the call.
-    }
-    showToast(t('email_added_to_wlist')(sender || domain), 'success');
-    // Drop this item from the cached list and re-render so the top pane
-    // shrinks immediately.
-    emailAuditItems = emailAuditItems.filter((it) => it !== item);
-    renderCommandCenterCounts();
-    paintEmailAuditDetails(emailAuditItems);
-}
-
-// Stages a complaint-email draft in the chat composer (same pattern as
-// draftNote for findings) — the user reviews/edits, then the existing
-// /chat pipeline sends it. We never fire-and-forget an email on the
-// user's behalf.
-function draftComplaintEmail(item) {
-    const days = daysUntilDeadline(item.email_date);
-    const deadlinePart =
-        days !== null
-            ? lang === 'vi'
-                ? ` Hạn khiếu nại: còn ${days} ngày.`
-                : ` Dispute deadline: ${days} days left.`
-            : '';
-    const subject = item.email_subject || item.email_ref || findingTitle(item);
-    const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
-    const senderPart = item.email_from ? ` từ ${item.email_from}` : '';
-    const text =
-        lang === 'vi'
-            ? `Giúp tôi soạn một email cho đội hỗ trợ: tôi có một giao dịch như email này${refPart}${senderPart} nhưng bên Wealez chưa có giao dịch tương ứng — đề nghị đội support hỗ trợ làm rõ.${deadlinePart}`
-            : `Please draft a complaint email to support: I have a transaction receipt in this email${refPart}${senderPart} but no matching transaction on the Wealez side — please investigate.${deadlinePart}`;
-    chatInput.value = `${subject}\n\n${text}`;
-    chatInput.focus();
-    chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
-}
-
-function paintDetails(items) {
-    if (items.length === 0) {
-        paintEmpty();
-        return;
-    }
-    const list = document.createElement('div');
-    list.className = 'detail-list';
-    list.append(...items.map(buildDetailItem));
-    detailBody.replaceChildren(list);
-    detailBody.scrollTop = 0;
-}
-
-// ─── Active subscriptions — 60/40 split ──────────────────
-// Wired to /dashboard/anomalies' real subscriptions list (populated below
-// in loadAll, see buildActiveSubsFromAnomalies) instead of the mock
-// placeholder this started as — no fabricated subscription names/prices.
+// ─── Active subscriptions — 60/40 split ──────────────────────────────
+// Sourced from /dashboard/anomalies' real recurring-subscription detection
+// (anomaly_detector.py — merchant_code, description, current_price,
+// frequency, next_charge_date), populated in loadAll() below. No currency
+// field there (anomaly_detector.py doesn't track it) — defaults to USD,
+// which every real subscription found in this account's live data is.
 //
 // Two panes, top 60% / bottom 40%:
 //   - Top:    "Currently active" — each row has a "Stop renewal" button.
 //             Clicking it moves the row to the bottom pane with the
 //             current timestamp recorded, so we can later tell whether
-//             the user actually went and cancelled at the merchant. This
-//             is a local note-to-self only (localStorage) — the app never
-//             calls Wealify to actually cancel anything.
+//             the user actually went and cancelled at the merchant.
 //   - Bottom: "Pending cancellation" — each row shows how many days the
 //             cancellation has been pending. After 30 days the row picks
 //             up a red ring + "Forgot to cancel?" flag. Buttons on each
@@ -1179,11 +1169,6 @@ function paintDetails(items) {
 
 let ACTIVE_SUBS = [];
 
-// Maps /dashboard/anomalies' real subscriptions (anomaly_detector.py —
-// merchant_code, description, current_price, frequency, next_charge_date)
-// into the row shape this section's renderer already expects. No currency
-// field there (anomaly_detector.py doesn't track it) — defaults to USD,
-// which every real subscription found in this account's live data is.
 function buildActiveSubsFromAnomalies(anomalies) {
     const subs = (anomalies && anomalies.subscriptions) || [];
     return subs.map((s) => ({
@@ -1227,13 +1212,12 @@ function daysPending(isoTimestamp) {
 }
 
 function buildSubRow(sub, kind, flatIndex) {
-    // `flatIndex` is the position of `sub` in the unified ACTIVE_SUBS
+    // flatIndex is the position of `sub` in the unified ACTIVE_SUBS
     // list — kept stable so openItem can be re-resolved when the user
     // returns from the detail view.
     const row = document.createElement('div');
     row.className = 'sub-row';
     if (kind === 'top') {
-        // Top pane = "currently active" — gets the green status dot.
         row.classList.add('is-active');
     } else {
         const days = daysPending(sub.cancelled_at);
@@ -1241,10 +1225,9 @@ function buildSubRow(sub, kind, flatIndex) {
     }
     row.style.setProperty('--i', String(flatIndex));
 
-    // Top line: subscription name (wraps freely) + price on the right.
-    // The whole head is a button so clicking anywhere on it (name or
-    // price) opens the detail view — the action buttons below are
-    // siblings, not nested, so they never bubble up to open detail.
+    // Top line: subscription name + price on the right. The whole head
+    // is a button so clicking anywhere on it (name or price) opens the
+    // detail view — the action buttons below are siblings, not nested.
     const head = document.createElement('button');
     head.type = 'button';
     head.className = 'sub-row-head';
@@ -1276,8 +1259,6 @@ function buildSubRow(sub, kind, flatIndex) {
     meta.textContent = parts.join(' · ');
     row.appendChild(meta);
 
-    // Bottom: action buttons sit on their own row so the label above is
-    // never squeezed by them.
     const actions = document.createElement('div');
     actions.className = 'sub-row-actions';
 
@@ -1353,14 +1334,57 @@ function buildSubPane(titleKey, items, kind, itemsRef) {
     return pane;
 }
 
+function paintActiveSubsDetails() {
+    const pending = loadPendingCancellations();
+    const active = ACTIVE_SUBS.filter((s) => !pending[s.id]);
+    const pendingList = ACTIVE_SUBS.filter((s) => pending[s.id]).map((s) => ({
+        ...s,
+        cancelled_at: pending[s.id],
+    }));
+
+    const split = document.createElement('div');
+    split.className = 'detail-split-60-40';
+    split.append(
+        buildSubPane('sub_active_top', active, 'top', ACTIVE_SUBS),
+        buildSubPane('sub_active_bottom', pendingList, 'bottom', ACTIVE_SUBS),
+    );
+    detailBody.replaceChildren(split);
+}
+
+function moveSubToPending(sub, btn) {
+    const pending = loadPendingCancellations();
+    pending[sub.id] = new Date().toISOString();
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_moved_pending'), 'info');
+    paintActiveSubsDetails();
+}
+
+function restoreSub(sub, btn) {
+    const pending = loadPendingCancellations();
+    delete pending[sub.id];
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_restored'), 'success');
+    paintActiveSubsDetails();
+}
+
+function confirmCancelled(sub, btn) {
+    const pending = loadPendingCancellations();
+    delete pending[sub.id];
+    savePendingCancellations(pending);
+    btn.disabled = true;
+    showToast(t('sub_confirmed_done'), 'success');
+    paintActiveSubsDetails();
+}
+
 // Full-page detail for one subscription — replaces the 60/40 split panes
 // with a single article showing the name, full price, cycle, renewal
-// date, pending days (if applicable), and the same action buttons that
-// used to live at the bottom of the row.
+// date, pending days (if applicable), and the same action buttons.
 function paintSubDetail(sub) {
     const pending = loadPendingCancellations();
-    const kind = pending[sub.id] ? 'bottom' : 'top';
     const cancelledAt = pending[sub.id];
+    const kind = cancelledAt ? 'bottom' : 'top';
     const days = cancelledAt ? daysPending(cancelledAt) : 0;
 
     const page = document.createElement('article');
@@ -1430,58 +1454,59 @@ function paintSubDetail(sub) {
         actions.appendChild(doneBtn);
     }
     page.appendChild(actions);
-    page.appendChild(buildAskAiButton(sub, 'subscription'));
+    // Ask-AI CTA removed (see paintFindingDetail note).
 
     detailBody.replaceChildren(page);
     detailBody.scrollTop = 0;
 }
 
-function paintActiveSubsDetails() {
-    const pending = loadPendingCancellations();
-    const active = ACTIVE_SUBS.filter((s) => !pending[s.id]);
-    const pendingList = ACTIVE_SUBS.filter((s) => pending[s.id]).map((s) => ({
-        ...s,
-        cancelled_at: pending[s.id],
-    }));
+function showSkeleton(count) {
+    const list = document.createElement('div');
+    list.className = 'detail-list';
 
-    const split = document.createElement('div');
-    split.className = 'detail-split-60-40';
-    split.append(
-        buildSubPane('sub_active_top', active, 'top', ACTIVE_SUBS),
-        buildSubPane('sub_active_bottom', pendingList, 'bottom', ACTIVE_SUBS),
-    );
-    detailBody.replaceChildren(split);
+    for (let n = 0; n < count; n += 1) {
+        const row = document.createElement('div');
+        row.className = 'skeleton-row';
+        const wide = document.createElement('div');
+        wide.className = 'skeleton-bar w-60';
+        const narrow = document.createElement('div');
+        narrow.className = 'skeleton-bar w-34';
+        row.append(wide, narrow);
+        list.appendChild(row);
+    }
+
+    detailBody.replaceChildren(list);
 }
 
-function moveSubToPending(sub, btn) {
-    const pending = loadPendingCancellations();
-    pending[sub.id] = new Date().toISOString();
-    savePendingCancellations(pending);
-    btn.disabled = true;
-    showToast(t('sub_moved_pending'), 'info');
-    paintActiveSubsDetails();
+function paintEmpty() {
+    const wrap = document.createElement('div');
+    wrap.className = 'empty-state';
+    const iconEl = icon('tray', 'empty-icon');
+    const title = document.createElement('p');
+    title.className = 'empty-title';
+    title.textContent = t('empty_none_title');
+    const sub = document.createElement('p');
+    sub.className = 'empty-sub';
+    sub.textContent = activeFlag === 'trial' || activeFlag === 'unused' ? t('not_tracked') : t('empty_none_sub');
+    wrap.append(iconEl, title, sub);
+    detailBody.replaceChildren(wrap);
 }
 
-function restoreSub(sub, btn) {
-    const pending = loadPendingCancellations();
-    delete pending[sub.id];
-    savePendingCancellations(pending);
-    btn.disabled = true;
-    showToast(t('sub_restored'), 'success');
-    paintActiveSubsDetails();
-}
-
-function confirmCancelled(sub, btn) {
-    const pending = loadPendingCancellations();
-    delete pending[sub.id];
-    savePendingCancellations(pending);
-    btn.disabled = true;
-    showToast(t('sub_confirmed_done'), 'success');
-    paintActiveSubsDetails();
+function paintDetails(items) {
+    if (items.length === 0) {
+        paintEmpty();
+        return;
+    }
+    const list = document.createElement('div');
+    list.className = 'detail-list';
+    list.append(...items.map(buildDetailItem));
+    detailBody.replaceChildren(list);
+    detailBody.scrollTop = 0;
 }
 
 function renderDetails(flag, { instant = false } = {}) {
     rightPanelMode = 'detail';
+    destroyReportChart();
     const isEmailAudit = flag === 'email-audit';
     const isActiveSubs = flag === 'active-subs';
     if (!isEmailAudit && !isActiveSubs && !FLAG_FILTERS[flag]) return;
@@ -1511,6 +1536,7 @@ function renderDetails(flag, { instant = false } = {}) {
         currentDetailKind = null;
     }
     renderChatContextChip();
+
     // Hide the back button + count and show the item title when the
     // user is inside a single-item detail view; the count only makes
     // sense for the list view it now replaces.
@@ -1527,9 +1553,7 @@ function renderDetails(flag, { instant = false } = {}) {
 
     window.clearTimeout(loadTimer);
 
-    // Detail-view branch — render exactly one item filling the body, no
-    // skeleton loader (same reason as the email-audit list view: no
-    // network flash to soften, the data is already in memory).
+    // Detail-view branch — render exactly one item filling the body.
     if (inDetail) {
         const item = items[openItem];
         if (isEmailAudit) paintEmailDetail(item);
@@ -1539,20 +1563,12 @@ function renderDetails(flag, { instant = false } = {}) {
     }
 
     if (isEmailAudit) {
-        // The email-audit view never uses the skeleton loader — the two
-        // panes either populate immediately or stay visibly empty, which is
-        // more honest feedback than a couple of grey bars flashing on top
-        // of a layout the user is still learning.
         if (instant) paintEmailAuditDetails(items);
         else loadTimer = window.setTimeout(() => paintEmailAuditDetails(items), 220);
         return;
     }
 
     if (isActiveSubs) {
-        // ACTIVE_SUBS is already in memory by the time this can be
-        // clicked (populated in loadAll before first paint) — no
-        // network round-trip here, so the skeleton loader would just
-        // flash for no reason. Render immediately.
         paintActiveSubsDetails();
         return;
     }
@@ -1565,16 +1581,6 @@ function renderDetails(flag, { instant = false } = {}) {
     showSkeleton(Math.min(items.length, 4) || 2);
     loadTimer = window.setTimeout(() => paintDetails(items), 220);
 }
-
-// Title for the panel-head when the right side is showing a single
-// item. Falls back to a generic label if the item has no obvious name.
-function detailTitleFor(item) {
-    if (activeFlag === 'email-audit') return item.email_from || item.email_ref || findingTitle(item);
-    if (activeFlag === 'active-subs') return item.name || findingTitle(item);
-    return findingTitle(item);
-}
-
-// ─── Report builder (month/quarter/year, Chart.js, self-notify send) ──
 
 function destroyReportChart() {
     if (reportChart) {
@@ -1773,10 +1779,10 @@ async function loadAndRenderReport() {
 
     const sendBtn = document.getElementById('reportSendBtn');
     if (sendBtn) {
-        // Two-step send: this button only requests the draft (confirmed
-        // omitted/false) and shows it in chat for the user to read before
-        // a second, explicit click actually sends — spec requires "xác
-        // nhận trước khi gửi", not sending straight from one click.
+        // Two-step send: the endpoint always returns the draft first
+        // (status: "draft") — a second call with confirmed:true is required
+        // to actually send. Spec requires "xác nhận trước khi gửi", not
+        // sending straight from one click.
         sendBtn.onclick = async () => {
             const payload = {
                 period_type: reportType,
@@ -1829,12 +1835,6 @@ async function openReportPanel() {
     await loadAndRenderReport();
 }
 
-if (createReportBtn) {
-    createReportBtn.addEventListener('click', () => {
-        openReportPanel();
-    });
-}
-
 // ─── Language switching ────────────────────────────
 
 function applyLang(next) {
@@ -1862,9 +1862,15 @@ function applyLang(next) {
 
     renderReconciliation();
     renderCommandCenterCounts();
-    if (rightPanelMode === 'report') openReportPanel();
-    else if (activeFlag) renderDetails(activeFlag, { instant: true });
-    else detailTitle.textContent = t('panel_detail');
+    if (rightPanelMode === 'report') {
+        openReportPanel();
+    } else if (activeFlag) {
+        renderDetails(activeFlag, { instant: true });
+    } else {
+        detailTitle.textContent = t('panel_detail');
+    }
+    // Re-render the chat-context-chip too — its label is i18n-localized
+    // and the chip might be visible when the user switches languages.
     renderChatContextChip();
 }
 
@@ -1875,31 +1881,37 @@ langSwitch.addEventListener('click', (e) => {
 
 // ─── Command Center clicks ─────────────────────────
 
-document.querySelectorAll('[data-flag]').forEach((el) => {
+flagEls.forEach((el) => {
     el.addEventListener('click', () => renderDetails(el.dataset.flag));
 });
 
+// `createReportBtn` removed from the DOM — the report flow is now
+// triggered exclusively by the suggestion chip below.
+
 // Back button — collapses the current single-item detail view back to
-// the list of items for the active flag. No-op if the user somehow
-// triggers it from the list view (the button is hidden there). The
-// chat-context-chip is cleared by renderDetails itself, so we don't
-// need to call renderChatContextChip here.
-detailBackBtn.addEventListener('click', () => {
-    if (!activeFlag) return;
-    openItem = null;
-    currentDetailItem = null;
-    currentDetailKind = null;
-    renderDetails(activeFlag, { instant: true });
-});
+// the list of items for the active flag. The chat-context-chip is
+// cleared by renderDetails itself, so we don't need to call
+// renderChatContextChip here.
+if (detailBackBtn) {
+    detailBackBtn.addEventListener('click', () => {
+        if (!activeFlag) return;
+        openItem = null;
+        currentDetailItem = null;
+        currentDetailKind = null;
+        renderDetails(activeFlag, { instant: true });
+    });
+}
 
 // × on the chat-context-chip clears the active context without leaving
 // the detail view — the right panel keeps showing the same item, but
 // the next chat message will go to the LLM without the item context.
-chatContextChipClear.addEventListener('click', () => {
-    currentDetailItem = null;
-    currentDetailKind = null;
-    renderChatContextChip();
-});
+if (chatContextChipClear) {
+    chatContextChipClear.addEventListener('click', () => {
+        currentDetailItem = null;
+        currentDetailKind = null;
+        renderChatContextChip();
+    });
+}
 
 // ─── Chat — wired to POST /chat (real backend, no canned replies) ───
 
@@ -1938,8 +1950,7 @@ async function askAssistant(text) {
     // active. The backend prepends a structured summary to the user
     // message so the LLM can answer questions about this specific item.
     // Only `type` + `data` are needed — the backend doesn't read the
-    // active flag, and shipping extras wastes payload bytes on every
-    // chat request.
+    // active flag, and shipping extras wastes payload bytes.
     const contextPayload = currentDetailItem && currentDetailKind
         ? { type: currentDetailKind, data: currentDetailItem }
         : null;
@@ -1957,69 +1968,19 @@ async function askAssistant(text) {
 // Stages a note about a finding in the chat composer instead of sending
 // anything itself — the user reviews/edits it, and only the existing
 // /chat pipeline (with its own confirm-before-send flow) can act on it.
-// Pre-fills the chat composer with a starter question about the given
-// item. Covers all three item kinds so the "Ask AI about this" button
-// inside each detail view (and the per-finding "Draft note for chat"
-// inline action) can share the same generator.
-function draftAskForItem(item, kind) {
-    let body;
-    if (kind === 'finding') {
-        const deadlinePart = item.dispute_deadline
-            ? lang === 'vi'
-                ? ` Hạn khiếu nại: ${item.dispute_deadline} (còn ${item.days_left} ngày).`
-                : ` Dispute deadline: ${item.dispute_deadline} (${item.days_left} days left).`
-            : '';
-        body = lang === 'vi'
-            ? `Giải thích giúp mình khoản này: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`
-            : `Explain this to me: ${findingTitle(item)} — ${findingExplanation(item)}${deadlinePart}`;
-    } else if (kind === 'email-audit') {
-        const subj = item.email_subject || findingTitle(item) || '';
-        const sender = item.email_from || '';
-        const refPart = item.email_ref ? ` (Ref: ${item.email_ref})` : '';
-        body = lang === 'vi'
-            ? `Email này có đáng lo không? "${subj}" từ ${sender}${refPart}`
-            : `Should I be concerned about this email? "${subj}" from ${sender}${refPart}`;
-    } else if (kind === 'subscription') {
-        const price = fmtCur((item.amount_cents || 0) / 100, item.currency || 'USD');
-        body = lang === 'vi'
-            ? `Tôi có nên giữ gói "${item.name}" này không? (${price}, gia hạn ${item.renewal_date || '—'})`
-            : `Should I keep this "${item.name}" subscription? (${price}, renews ${item.renewal_date || '—'})`;
-    } else {
-        body = lang === 'vi' ? `Giải thích giúp mình mục này.` : `Tell me about this item.`;
-    }
-    chatInput.value = body;
+function draftNote(f) {
+    const deadlinePart = f.dispute_deadline
+        ? lang === 'vi'
+            ? ` Hạn khiếu nại: ${f.dispute_deadline} (còn ${f.days_left} ngày).`
+            : ` Dispute deadline: ${f.dispute_deadline} (${f.days_left} days left).`
+        : '';
+    const text =
+        lang === 'vi'
+            ? `Giải thích giúp mình khoản này: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`
+            : `Explain this to me: ${findingTitle(f)} — ${findingExplanation(f)}${deadlinePart}`;
+    chatInput.value = text;
     chatInput.focus();
     chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
-}
-
-// Back-compat shim — the "Draft note for chat" inline action in the
-// finding meta block used to call this directly; it now shares the
-// generic draftAskForItem so all three detail views go through one
-// place.
-function draftNote(f) {
-    draftAskForItem(f, 'finding');
-}
-
-// Builds the "Ask AI about this" CTA used at the bottom of every
-// detail-page. Clicking pre-fills the chat composer with a starter
-// question AND ensures the chat-context-chip is showing so the user
-// sees the message will carry this item's data to the LLM.
-function buildAskAiButton(item, kind) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'detail-page-ask-ai';
-    btn.append(icon('chat-circle-dots'), document.createTextNode(t('detail_ask_ai')));
-    btn.addEventListener('click', () => {
-        // Make sure the context chip reflects this item even if the
-        // user previously cleared it (or came back from list view).
-        if (currentDetailItem !== item || currentDetailKind !== kind) {
-            currentDetailItem = item;
-            currentDetailKind = kind;
-            renderChatContextChip();
-        }
-        draftAskForItem(item, kind);
-    });
-    return btn;
 }
 
 chatForm.addEventListener('submit', (e) => {
@@ -2029,7 +1990,29 @@ chatForm.addEventListener('submit', (e) => {
 
 document.getElementById('suggestionChips').addEventListener('click', (e) => {
     const chip = e.target.closest('.chip');
-    if (chip) askAssistant(chip.textContent);
+    if (!chip) return;
+
+    // The "Gửi báo cáo tháng cho tôi" / "Send me the monthly report"
+    // chip used to just stuff its text into the chat input, but the
+    // user wanted it to behave like the "Create report" button —
+    // open the report details panel and confirm in chat. The "Create
+    // report" button has since been deleted; this chip is now the
+    // sole entry to the report flow.
+    // Match by the data-i18n key so this works regardless of which
+    // language is currently active.
+    if (chip.dataset.i18n === 'chip_report') {
+        e.preventDefault();
+        openReportPanel();
+        // Echo the user's chosen chip text into the chat as a user
+        // message, then post a bot confirmation pointing at the panel.
+        // renderMarkdown() on the simple confirmation text is a no-op,
+        // but using it keeps the styling consistent with other bot msgs.
+        appendMessage(chip.textContent, 'user');
+        appendMessage(renderMarkdown(t('report_chip_confirm')), 'ai');
+        return;
+    }
+
+    askAssistant(chip.textContent);
 });
 
 // ─── Profile — real account holder, not a placeholder name ─────────
@@ -2073,10 +2056,10 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
     label.textContent = originalText;
 
     if (res && typeof res.new_flags === 'number') {
-        showToast(t('run_check_done')(res.new_flags, res.already_reported), 'success');
+        alert(t('run_check_done')(res.new_flags, res.already_reported));
         await loadAll();
     } else {
-        showToast(t('run_check_failed'), 'warning');
+        alert(t('run_check_failed'));
     }
 });
 
@@ -2085,9 +2068,9 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
 document.getElementById('exportAuditBtn').addEventListener('click', async () => {
     const res = await apiGet('/audit-log/export');
     if (res && res.status === 'exported') {
-        showToast(`${t('export_done')} ${res.exported_to} (${res.total_flags})`, 'success', 6000);
+        alert(`${t('export_done')} ${res.exported_to} (${res.total_flags})`);
     } else {
-        showToast(t('export_failed'), 'warning');
+        alert(t('export_failed'));
     }
 });
 
