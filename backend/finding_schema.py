@@ -26,6 +26,7 @@ FINDING_TYPES = {
     "SUSPICIOUS_EMAIL",
     "UNKNOWN_MERCHANT",
     "UNRECOGNIZED_CHARGE",
+    "UNUSUAL_AMOUNT_SPIKE",
 }
 
 # ─── Label codes (Phụ lục C) ────────────────────────────
@@ -65,10 +66,12 @@ THRESHOLDS = {
     "lookalike_domain_distance": 2,
     "dispute_window_days": 60,
     "deadline_warning_days": 14,
+    "amount_spike_multiplier": 5,      # flagged if ≥ 5x this account's own average
+    "amount_spike_min_baseline": 5,    # need ≥5 charges in that currency to trust the average
 }
 
 
-# ─── Rule table R-01→R-15 (Mục 6) ───────────────────────
+# ─── Rule table R-01→R-16 (Mục 6) ───────────────────────
 
 RULE_TABLE = {
     "R-01": {
@@ -145,6 +148,11 @@ RULE_TABLE = {
         "type": "UNRECOGNIZED_CHARGE",
         "label": "CAN_BAN_TU_XAC_NHAN",
         "desc": "Không thuộc chuỗi định kỳ, không có email, merchant_key = null",
+    },
+    "R-16": {
+        "type": "UNUSUAL_AMOUNT_SPIKE",
+        "label": "CAN_BAN_TU_XAC_NHAN",
+        "desc": "Khoản chi ≥ N lần mức chi tiêu trung bình cùng loại tiền của tài khoản",
     },
     "R-99": {
         "type": "",

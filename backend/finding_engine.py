@@ -70,6 +70,9 @@ def generate_all_findings(
     # D6: Unknown merchants → R-14
     findings.extend(_detect_unknown_merchants(charges))
 
+    # D4: Amount unusually large vs this account's own average → R-16
+    findings.extend(_detect_amount_spikes(charges))
+
     # R-15: Unrecognized charges
     recognized_refs = {
         ref
@@ -785,6 +788,73 @@ def _detect_unknown_merchants(charges: list[dict]) -> list[dict]:
                 evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
                 merchant_key=None,
                 confidence=compute_confidence(merchant_known=False),
+                severity_rank=2,
+            ))
+
+    return findings
+
+
+def _detect_amount_spikes(charges: list[dict]) -> list[dict]:
+    """D4: Detect a charge that's a large multiple of this account's own
+    average card spending, per currency (R-16).
+
+    Catches a different kind of "khoản lạ" than the other D4 checks: a
+    charge at a perfectly recognized, legitimate merchant can still be
+    wildly out of line with how this account normally spends (e.g. one
+    $2,000 charge among $50 averages) — recurring/duplicate/unknown-merchant
+    detection never looks at magnitude relative to the account's own
+    history, only at repetition or identity. Scoped to card charges only
+    (not VA payin/payout) — "chi tiêu" in the spec's own wording, and the
+    clearest, least ambiguous slice to flag confidently as "cần xác nhận"
+    without overreaching. Never claims fraud, matching the spec's ban on
+    definitive fraud/no-fraud verdicts — confidence is deliberately low
+    (this is one unconfirmed statistical signal, not a corroborated
+    pattern), same intent as every other "Cần bạn tự xác nhận" finding here.
+    """
+    findings = []
+    min_baseline = THRESHOLDS["amount_spike_min_baseline"]
+    multiplier = THRESHOLDS["amount_spike_multiplier"]
+
+    by_currency: dict[str, list[dict]] = defaultdict(list)
+    for txn in charges:
+        by_currency[txn.get("_currency", "USD")].append(txn)
+
+    for curr, txns in by_currency.items():
+        if len(txns) < min_baseline:
+            continue
+        amounts = [abs(t["amount"]) for t in txns]
+        avg = sum(amounts) / len(amounts)
+        if avg <= 0:
+            continue
+        sym = CURRENCY_SYMBOLS.get(curr, curr + " ")
+
+        for txn, amt in zip(txns, amounts):
+            if amt < avg * multiplier:
+                continue
+            ratio = amt / avg
+            merchant_key = _resolve_merchant(txn)
+            info = MERCHANT_DICT.get(merchant_key, {}) if merchant_key else {}
+            findings.append(make_finding(
+                finding_type="UNUSUAL_AMOUNT_SPIKE",
+                label_rule_id="R-16",
+                title_vi=f"Giao dịch đột biến {sym}{amt:.2f} tại {info.get('name', txn.get('description', ''))}",
+                title_en=f"Unusual spike {sym}{amt:.2f} at {info.get('name', txn.get('description', ''))}",
+                explanation_vi=(
+                    f"Cao gấp {ratio:.1f} lần mức chi tiêu trung bình {sym}{avg:.2f} "
+                    f"của tài khoản (dựa trên {len(txns)} giao dịch cùng loại tiền)."
+                ),
+                explanation_en=(
+                    f"{ratio:.1f}x this account's average spending of {sym}{avg:.2f} "
+                    f"(based on {len(txns)} charges in the same currency)."
+                ),
+                amount_cents=int(amt * 100),
+                currency=curr,
+                occurred_at=txn.get("date", ""),
+                evidence_refs=[txn.get("reference", "")],
+                evidence_sources=[{"source": "account_statement", "file": "account_statement.csv"}],
+                merchant_key=merchant_key,
+                merchant_display_vi=info.get("name", ""),
+                confidence=compute_confidence(merchant_known=bool(merchant_key)),
                 severity_rank=2,
             ))
 
