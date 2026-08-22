@@ -40,3 +40,4 @@ backend/out/*.json
 backend/data/audit_log_export.json
 backend/data/audit_log_export.jsonl
 backend/data/email_classification_cache.json
+backend/data/email_extraction_cache.json

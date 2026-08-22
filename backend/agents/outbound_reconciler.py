@@ -12,6 +12,7 @@ import re
 from typing import Any
 
 from finding_engine import _levenshtein
+from agents.email_extractor import extract_email_fields
 
 
 def check_suspicious_domains(
@@ -85,13 +86,22 @@ def match_outbound_emails(
     for email in emails:
         body = email.get("body", "")
         ref_match = re.search(r"Ref:\s*([A-Z]+-\d+)", body)
-        if not ref_match or not ref_match.group(1).startswith("CD-"):
-            continue
-
-        ref = ref_match.group(1)
-        full_id = f"WLF15-{ref}"
         amount_match = re.search(r"Amount\s+([\d.]+)", body)
-        email_amount = float(amount_match.group(1)) if amount_match else None
+
+        if ref_match and ref_match.group(1).startswith("CD-"):
+            ref = ref_match.group(1)
+            email_amount = float(amount_match.group(1)) if amount_match else None
+        else:
+            # Regex template didn't match — ask the LLM to read this one
+            # instead of silently skipping a real receipt phrased
+            # differently. See agents/email_extractor.py.
+            extracted = extract_email_fields(email)
+            if not extracted.get("ref") or not str(extracted["ref"]).startswith("CD-"):
+                continue
+            ref = extracted["ref"]
+            email_amount = extracted.get("amount")
+
+        full_id = f"WLF15-{ref}"
 
         txn = vc_by_id.get(full_id)
         entry: dict[str, Any] = {

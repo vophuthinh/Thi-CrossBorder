@@ -15,6 +15,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from agents.email_extractor import extract_email_fields
+
 
 def check_inbound_emails(
     emails: list[dict[str, Any]],
@@ -29,13 +31,24 @@ def check_inbound_emails(
         body = email.get("body", "")
         ref_match = re.search(r"Ref:\s*([A-Z]+-\d+)", body)
         amount_match = re.search(r"received USD\s+([\d.]+)", body, re.IGNORECASE)
-        if ref_match is None and amount_match is None:
-            continue
-        ref = ref_match.group(1) if ref_match else None
-        if ref and not ref.startswith("VA-"):
-            continue  # CD-side handled by outbound_reconciler
 
-        email_amount = float(amount_match.group(1)) if amount_match else None
+        if ref_match is not None or amount_match is not None:
+            ref = ref_match.group(1) if ref_match else None
+            if ref and not ref.startswith("VA-"):
+                continue  # CD-side handled by outbound_reconciler
+            email_amount = float(amount_match.group(1)) if amount_match else None
+        else:
+            # Neither template matched — ask the LLM to read this one
+            # instead of silently skipping a real payout notification
+            # phrased differently. See agents/email_extractor.py.
+            extracted = extract_email_fields(email)
+            ref = extracted.get("ref")
+            if ref and not str(ref).startswith("VA-"):
+                continue  # CD-side handled by outbound_reconciler
+            email_amount = extracted.get("amount")
+            if ref is None and email_amount is None:
+                continue
+
         full_id = f"WLF15-{ref}" if ref else None
         txn = va_by_id.get(full_id) if full_id else None
 

@@ -1,4 +1,4 @@
-# Hướng dẫn chạy trong 10 phút — Wealez (WLF-01)
+# Hướng dẫn chạy dự án — Wealez (WLF-01)
 
 Trợ lý AI trò chuyện: đọc sao kê Wealify, đối soát email, đối chiếu 3 nguồn tiền (tài khoản/ví/thẻ), phát hiện bất thường & gói quên huỷ — chỉ đọc, không tự thao tác tiền.
 
