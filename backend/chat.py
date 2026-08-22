@@ -105,6 +105,25 @@ def _extract_month_key(message: str, year: int = 2026) -> str | None:
     return None
 
 
+_THIS_QUARTER_RE = re.compile(
+    r"qu[yý]\s*(n[aà]y|hi[eệ]n\s*t[aạ]i)|(this|current)\s*quarter", re.IGNORECASE
+)
+
+
+def _extract_this_quarter(message: str) -> int | None:
+    """Same relative-period gap as "tháng này", one level up: "quý này"
+    ("Chi tiêu quý này là bao nhiêu?") had no quarter equivalent of
+    _extract_month_key and fell through to the full-period overview.
+    Explicit quarters ("quý 2", "Q3") aren't handled here — no cached
+    per-quarter report exists yet to answer them from, and building one
+    speculatively risked being the wrong scope for how it'd actually be
+    asked; "quý này" is the one the spec's own scenario needs answered now."""
+    if _THIS_QUARTER_RE.search(message):
+        now = datetime.now(timezone.utc)
+        return (now.month - 1) // 3 + 1
+    return None
+
+
 def _has_any(patterns: list[str], text: str) -> bool:
     """Word-boundary match — plain substring would let "hi" match inside
     "this" and misfire the greeting reply on a real question."""
@@ -271,7 +290,7 @@ class ChatOrchestrator:
         # free-form LLM, which has no month-filtered data and guesses (seen
         # producing two different wrong transaction counts for the same
         # real question in testing).
-        if _extract_month_key(message) is not None:
+        if _extract_month_key(message) is not None or _extract_this_quarter(message) is not None:
             return "overview"
 
         # A plain "what's my balance" question shares the word "số dư"
@@ -304,6 +323,26 @@ class ChatOrchestrator:
         )
         if has_inbound_signal and has_email_signal:
             return "inbound_match"
+
+        # "Tóm tắt email" / "email đáng ngờ" / "email từ X nói gì" always
+        # mean email_match, but "tóm tắt"/"tổng" also live in overview's
+        # keyword list and outweigh a bare "email" hit there (word-count
+        # scoring below) — misrouting "Tóm tắt các email tôi nhận được
+        # tuần này" to the full-period financial overview, and "Có email
+        # nào đáng ngờ không?" to the same overview instead of answering
+        # the actual question. has_reconcile_signal reuses the check above.
+        has_suspicious_email_signal = _has_any(
+            ["đáng ngờ", "nghi giả", "suspicious", "phishing", "giả mạo"], lower,
+        )
+        has_email_summary_signal = _has_any(["tóm tắt", "summary", "summarize", "nói gì", "says"], lower)
+        if has_email_signal and not has_reconcile_signal and (has_suspicious_email_signal or has_email_summary_signal):
+            return "email_match"
+
+        # "Giao dịch đột biến" (R-16, added this session) had no chat path
+        # at all — fell through to the generic capability list instead of
+        # the 11 real spikes /findings already has.
+        if _has_any(["đột biến", "bất thường", "spike", "unusual"], lower):
+            return "amount_spikes"
 
         intents = {
             "overview": [
@@ -375,6 +414,7 @@ class ChatOrchestrator:
             "scheduled_check": self._handle_scheduled_check,
             "unknown_merchant": self._handle_unknown_merchant,
             "audit_log": self._handle_audit_log,
+            "amount_spikes": self._handle_amount_spikes,
             "wallet_balance": self._handle_wallet_balance,
             "general": self._handle_general,
         }
@@ -391,6 +431,27 @@ class ChatOrchestrator:
         cache_key = f"anomalies_{lang}"
         if cache_key not in self._cache:
             self._cache[cache_key] = detect_anomalies(self.data["account_statement"], lang)
+        return self._cache[cache_key]
+
+    def _get_all_findings(self) -> list[dict[str, Any]]:
+        """finding_engine.py's unified R-01→R-16 pipeline — the same data
+        /findings (and the frontend's Command Center) reads. Some chat
+        handlers (_handle_subscriptions' price-hike section) used only the
+        older, narrower agents/anomaly_detector.py, which missed real price
+        increases that finding_engine.py catches (e.g. Namecheap/Google
+        Cloud/Booking.com price hikes were entirely invisible to
+        "gói nào tăng giá?" even though /findings had them). No lang param
+        needed — every Finding carries both _vi and _en text already."""
+        cache_key = "all_findings"
+        if cache_key not in self._cache:
+            from finding_engine import generate_all_findings
+
+            self._cache[cache_key] = generate_all_findings(
+                self.data["account_statement"],
+                self.data["card_statement"],
+                self.data["wallet_balance"],
+                self.data["emails"],
+            )
         return self._cache[cache_key]
 
     def _get_reconciliation(self, lang: str) -> dict[str, Any]:
@@ -463,7 +524,44 @@ class ChatOrchestrator:
 
         return {"response": NL.join(parts), "type": "month_overview", "data": cached}
 
+    def _handle_quarter_overview(self, quarter: int, lang: str) -> dict[str, Any] | None:
+        """"Quý này" — no pre-generated per-quarter cache exists (report_cache.py
+        only does month + year), so this filters account_statement to the
+        quarter's 3 months directly and re-runs analyze_statement on just
+        that slice, same real data + same currency-separated summary shape
+        as _handle_month_overview, just computed on demand instead of cached."""
+        now = datetime.now(timezone.utc)
+        months = {3 * (quarter - 1) + i for i in (1, 2, 3)}
+        txns = [
+            t for t in self.data["account_statement"]
+            if t.get("date", "").startswith(f"{now.year}-") and int(t["date"][5:7]) in months
+        ]
+        if not txns:
+            return None
+        analysis = analyze_statement(txns, lang)
+        summary = analysis.get("summary", {})
+        if not summary:
+            return None
+
+        header = f"📊 **Tổng quan quý {quarter}/{now.year}**" if lang == "vi" else f"📊 **Overview for Q{quarter}/{now.year}**"
+        parts = [header]
+        for currency, group in summary.items():
+            sym = CURRENCY_SYMBOLS.get(currency, currency + " ")
+            parts.append(f"\n**[{currency}]**")
+            for k, v in group.items():
+                parts.append(f"- **{k}:** {sym}{v:,.2f}" if isinstance(v, float) else f"- **{k}:** {v}")
+
+        return {"response": NL.join(parts), "type": "quarter_overview", "data": analysis}
+
     def _handle_overview(self, message: str, lang: str) -> dict[str, Any]:
+        quarter = _extract_this_quarter(message)
+        if quarter:
+            quarter_response = self._handle_quarter_overview(quarter, lang)
+            if quarter_response:
+                return quarter_response
+            # Falls through to full-period overview if that quarter has no
+            # transactions yet — better to show something than nothing.
+
         month_key = _extract_month_key(message)
         if month_key:
             month_response = self._handle_month_overview(month_key, lang)
@@ -549,6 +647,44 @@ class ChatOrchestrator:
 
     def _handle_email_match(self, message: str, lang: str) -> dict[str, Any]:
         matches = self._get_email_matches(lang)
+        lower = message.lower()
+
+        # A question specifically about suspicious emails ("Có email nào
+        # đáng ngờ không?") used to get the entire ~200-row reconciliation
+        # table back, with the actual answer buried inside it. Filter to
+        # just that category — and say so plainly when there are none,
+        # rather than a wall of unrelated matched/no-email rows.
+        asks_suspicious_only = _has_any(
+            ["đáng ngờ", "nghi giả", "suspicious", "phishing", "giả mạo"], lower,
+        )
+        if asks_suspicious_only:
+            matches = [m for m in matches if m["match_status"] == "suspicious_email"]
+            if not matches:
+                text = (
+                    "Không có email nào bị gắn nghi giả trong lần rà soát này."
+                    if lang == "vi" else
+                    "No emails were flagged as suspicious in this scan."
+                )
+                return {"response": text, "type": "email_match", "data": []}
+        else:
+            # A question naming one merchant ("Email từ Netflix nói gì?")
+            # used to also get the full table instead of just that
+            # merchant's rows — filter by any word from the message (≥4
+            # chars, so short connector words like "email"/"nói"/"gì"
+            # never accidentally match a transaction description) found
+            # inside the transaction description.
+            stop_words = {"email", "email?", "nói", "gì", "nói gì?", "says", "says?", "what", "does", "say"}
+            candidate_words = [
+                w.strip("?.,!") for w in lower.split()
+                if len(w.strip("?.,!")) >= 4 and w.strip("?.,!") not in stop_words
+            ]
+            merchant_matches = [
+                m for m in matches
+                if any(w in m["description"].lower() for w in candidate_words)
+            ]
+            if candidate_words and merchant_matches:
+                matches = merchant_matches
+
         summary = get_match_summary(matches, lang)
 
         if lang == "en":
@@ -685,7 +821,9 @@ class ChatOrchestrator:
     def _handle_subscriptions(self, message: str, lang: str) -> dict[str, Any]:
         anomalies = self._get_anomalies(lang)
         subs = anomalies["subscriptions"]
-        hikes = anomalies["price_hikes"]
+        # SILENT_PRICE_INCREASE findings from finding_engine.py, not
+        # anomalies["price_hikes"] — see _get_all_findings' docstring.
+        hikes = [f for f in self._get_all_findings() if f.get("type") == "SILENT_PRICE_INCREASE"]
 
         if lang == "en":
             parts = [f"📋 **Active Subscriptions** — {len(subs)} found"]
@@ -713,27 +851,31 @@ class ChatOrchestrator:
             if s.get("explanation") and s["explanation"] != "chưa xác định được":
                 parts.append(f"- `{s['description']}`: {s['explanation']}")
 
-        # Price hikes
+        # Price hikes — from finding_engine.py (see hikes assignment above),
+        # so title/explanation are already fully formatted per-currency text.
         if hikes:
             parts.append("")
             hike_header = "⚠️ **Phát hiện tăng giá âm thầm:**" if lang == "vi" else "⚠️ **Price Increases Detected:**"
             parts.append(hike_header)
 
             for h in hikes:
-                parts.append(f"- 🔺 **{h['merchant']}**: `${h['old_price']:.2f}` → `${h['new_price']:.2f}` (+`${h['increase']:.2f}`, +{h['increase_pct']}%)")
-                parts.append(f"  - 🏷️ *{_label_text(h['label'], lang)}*")
+                title = h["title_vi"] if lang == "vi" else h["title_en"]
+                explanation = h["explanation_vi"] if lang == "vi" else h["explanation_en"]
+                label = h["label_vi"] if lang == "vi" else h["label_en"]
+                parts.append(f"- 🔺 **{title}**")
+                parts.append(f"  {explanation}")
+                parts.append(f"  - 🏷️ *{label}*")
 
                 audit_log.log_flag(
-                    # Must match main.py's _run_scheduled_check ref format
-                    # (merchant + old/new prices) — merchant alone would
-                    # dedup a merchant's second, different price hike
-                    # against its first instead of logging it as new.
-                    transaction_ref=f"{h['merchant']}|{h['old_price']}->{h['new_price']}",
+                    # fingerprint is stable across calls (unlike finding_id,
+                    # which increments every generate_all_findings() run) —
+                    # needed so this doesn't re-log the same hike every time.
+                    transaction_ref=h.get("fingerprint", title),
                     reason="price_hike",
                     confidence="high",
                     label=LABEL_NEEDS_REVIEW,
-                    source="anomaly_detector",
-                    details=f"Price increased from ${h['old_price']} to ${h['new_price']}",
+                    source="finding_engine",
+                    details=explanation,
                 )
 
         return {"response": NL.join(parts), "type": "subscriptions", "data": anomalies}
@@ -782,6 +924,37 @@ class ChatOrchestrator:
                 parts.append(f"- 🏷️ *{LABEL_NEEDS_REVIEW}*")
 
         return {"response": NL.join(parts), "type": "duplicates", "data": all_dups}
+
+    def _handle_amount_spikes(self, message: str, lang: str) -> dict[str, Any]:
+        """UNUSUAL_AMOUNT_SPIKE findings (R-16) — charges far above this
+        account's own average spending, per currency. Never claims fraud;
+        same "Cần bạn tự xác nhận" framing as every other heuristic finding."""
+        spikes = [f for f in self._get_all_findings() if f.get("type") == "UNUSUAL_AMOUNT_SPIKE"]
+
+        if lang == "en":
+            parts = [f"💰 **Unusual Amount Spikes** — {len(spikes)} found"]
+            empty_msg = "No charge stood out as an unusual spike vs. this account's average spending."
+        else:
+            parts = [f"💰 **Giao dịch đột biến** — {len(spikes)} khoản"]
+            empty_msg = "Không có khoản chi nào đột biến so với mức chi tiêu trung bình của tài khoản."
+
+        if not spikes:
+            parts.append(empty_msg)
+        else:
+            for f in spikes:
+                title = f["title_vi"] if lang == "vi" else f["title_en"]
+                explanation = f["explanation_vi"] if lang == "vi" else f["explanation_en"]
+                label = f["label_vi"] if lang == "vi" else f["label_en"]
+                deadline = f.get("dispute_deadline", "")
+                dl_label = "Hạn khiếu nại" if lang == "vi" else "Dispute deadline"
+                parts.append("---")
+                parts.append(f"⚠️ **{title}**")
+                parts.append(f"> {explanation}")
+                if deadline:
+                    parts.append(f"- ⏰ {dl_label}: **{deadline}**")
+                parts.append(f"- 🏷️ *{label}*")
+
+        return {"response": NL.join(parts), "type": "amount_spikes", "data": spikes}
 
     def _handle_send_report(self, message: str, lang: str) -> dict[str, Any]:
         analysis = self._get_statement_analysis(lang)
