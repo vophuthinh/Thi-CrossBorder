@@ -338,8 +338,10 @@ class ChatOrchestrator:
             self.pending_email_draft = None
             return self._send_confirmed_email(draft, draft_lang)
 
-        # 3. Detect intent and route to agents
-        intent = self._detect_intent(effective_message, lang)
+        # 3. Detect intent and route to agents.
+        # MUST use the original 'message' to avoid the injected context
+        # keywords (like 'bất thường') triggering the wrong intent.
+        intent = self._detect_intent(message, lang)
         response = self._handle_intent(intent, effective_message, lang)
 
         # 4. Validate response (no banned phrases)
@@ -381,7 +383,7 @@ class ChatOrchestrator:
         return prefix.format(label, summary) + message
 
     def _send_confirmed_email(self, draft: dict[str, Any], lang: str) -> dict[str, Any]:
-        """Actually send the confirmed draft via SMTP to the user's own address only."""
+        """Actually send the confirmed draft (Gmail API, SMTP fallback) to the user's own address only."""
         from email_sender import send_email, is_configured, EmailSendError
 
         if is_configured():
@@ -396,7 +398,11 @@ class ChatOrchestrator:
                 confirm_msg = self._email_failed_message(draft, lang, str(e))
                 result_type = "email_send_failed"
         else:
-            reason = "SMTP chưa được cấu hình" if lang == "vi" else "SMTP not configured"
+            reason = (
+                "Chưa cấu hình cách gửi email (cần USE_GMAIL_API=true hoặc SMTP)"
+                if lang == "vi"
+                else "No way to send email is configured (need USE_GMAIL_API=true or SMTP)"
+            )
             confirm_msg = self._email_failed_message(draft, lang, reason)
             result_type = "email_send_failed"
 
@@ -507,13 +513,10 @@ class ChatOrchestrator:
         if _has_any(["đột biến", "bất thường", "spike", "unusual"], lower):
             return "amount_spikes"
 
-        # "giải thích / explain / tại sao / why / how does" without an
-        # amount → route to a dedicated explain handler that calls the LLM
-        # with a focused prompt. Previously these got funnelled into
-        # unknown_merchant (because "giải thích" was in that keyword list)
-        # and the user got the static unknown-merchants list — which has
-        # nothing to do with the explanation they asked for.
-        if not has_amount and _has_any(
+        # "giải thích / explain / tại sao / why / how does"
+        # routes to a dedicated explain handler that calls the LLM
+        # with a focused prompt.
+        if _has_any(
             ["giải thích", "explain", "tại sao", "why", "how does", "how do", "là gì", "what is"],
             lower,
         ):

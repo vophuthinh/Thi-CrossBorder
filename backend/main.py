@@ -256,8 +256,17 @@ def dashboard_report():
 _REPORT_CATEGORY_LABELS_VI = {
     "top_up": "Nạp tiền",
     "withdrawal": "Rút tiền",
-    "adjustment": "Điều chỉnh",
+    "transfer": "Chuyển sang thẻ",
+    "spending": "Chi tiêu",
     "refund": "Hoàn tiền",
+}
+
+_REPORT_CATEGORY_LABELS_EN = {
+    "top_up": "Deposit",
+    "withdrawal": "Withdrawal",
+    "transfer": "Transfer to card",
+    "spending": "Spending",
+    "refund": "Refund",
 }
 
 
@@ -271,120 +280,39 @@ def _report_year() -> int:
 
 
 def _normalize_report_type(type_value: str) -> str | None:
+    # account_statement's real type values (wealify_adapter.py's mapped_type):
+    # payin, payout, transfer, charge, refund, withdrawal.
     t = (type_value or "").strip().lower()
     mapping = {
-        "top_up": "top_up",
-        "topup": "top_up",
         "payin": "top_up",
-        "transfer": "top_up",
-        "withdrawal": "withdrawal",
-        "withdraw": "withdrawal",
         "payout": "withdrawal",
-        "adjustment": "adjustment",
+        "transfer": "transfer",
+        "charge": "spending",
         "refund": "refund",
+        "withdrawal": "withdrawal",
     }
     return mapping.get(t)
 
 
-def _is_success_status(status_value: str | None) -> bool:
-    if status_value is None:
-        return True
-    return str(status_value).strip().lower() == "success"
-
-
 def _extract_report_transactions(year: int, month: int | None = None) -> list[dict]:
+    """Built from _data["account_statement"] — the same adapter-processed,
+    SUCCESS-only, correctly-signed data every other endpoint/chat handler
+    reads (analyze_statement, report_cache.py, chat.py's overview handlers).
+
+    This used to re-derive category/sign directly from raw va_transactions/
+    vc_transactions, which had three real bugs: (1) no None-guard on the
+    vc_transactions loop, so a live payload with vc_transactions: null
+    crashed every /dashboard/reporting/* call; (2) VC "TOP_UP" (a
+    wallet→card transfer, an outflow per wealify_adapter.py's own
+    "Top-ups are outflows from wallet" comment) was counted as money_in;
+    (3) VC "PAYMENT" (ordinary card charges — the most common transaction
+    type) had no mapping at all and was silently dropped, so a report for
+    an account whose spending is mostly card charges undercounted
+    "Tổng tiền ra". Rebuilding from account_statement gets the correct
+    sign/category for free since wealify_adapter.py already got it right
+    once, instead of maintaining a second, drifting reimplementation.
+    """
     out = []
-    raw = _data.get("_wealify_raw", {})
-    va_transactions = raw.get("va_transactions") if isinstance(raw, dict) else None
-    vc_transactions = raw.get("vc_transactions") if isinstance(raw, dict) else None
-
-    if isinstance(va_transactions, list) or isinstance(vc_transactions, list):
-        for txn in (va_transactions or []):
-            if not _is_success_status(txn.get("va_transaction_status")):
-                continue
-            date = str(txn.get("created_at", ""))[:10]
-            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
-                continue
-            y = int(date[:4])
-            m = int(date[5:7])
-            if y != year or (month is not None and m != month):
-                continue
-
-            category_key = _normalize_report_type(str(txn.get("transaction_type", "")))
-            if category_key is None:
-                continue
-
-            amount_raw = float(txn.get("amount", 0.0) or 0.0)
-            amount_abs = abs(amount_raw)
-            if category_key == "top_up":
-                money_in, money_out = amount_abs, 0.0
-            elif category_key == "withdrawal":
-                money_in, money_out = 0.0, amount_abs
-            else:
-                money_in, money_out = (amount_abs, 0.0) if amount_raw >= 0 else (0.0, amount_abs)
-
-            currency = txn.get("currency_symbol") or "VND"
-            out.append(
-                {
-                    "date": date,
-                    "currency": currency,
-                    "category_key": category_key,
-                    "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
-                    "amount_abs": amount_abs,
-                    "money_in": money_in,
-                    "money_out": money_out,
-                }
-            )
-
-        for txn in vc_transactions:
-            if not _is_success_status(txn.get("transaction_vc_status")):
-                continue
-            date = str(txn.get("created_at", ""))[:10]
-            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
-                continue
-            y = int(date[:4])
-            m = int(date[5:7])
-            if y != year or (month is not None and m != month):
-                continue
-
-            category_key = _normalize_report_type(str(txn.get("transaction_vc_type", "")))
-            if category_key is None:
-                continue
-
-            amount_raw = float(txn.get("amount", 0.0) or 0.0)
-            amount_abs = abs(amount_raw)
-            if category_key in ("top_up", "refund"):
-                money_in = amount_abs
-                money_out = 0.0
-            elif category_key == "withdrawal":
-                money_in = 0.0
-                money_out = amount_abs
-            else:  # adjustment
-                if amount_raw >= 0:
-                    money_in = amount_abs
-                    money_out = 0.0
-                else:
-                    money_in = 0.0
-                    money_out = amount_abs
-
-            currency = "USD"
-            if isinstance(txn.get("currency"), dict):
-                currency = txn["currency"].get("symbol", "USD")
-
-            out.append(
-                {
-                    "date": date,
-                    "currency": currency,
-                    "category_key": category_key,
-                    "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
-                    "amount_abs": amount_abs,
-                    "money_in": money_in,
-                    "money_out": money_out,
-                }
-            )
-        return out
-
-    # Fallback for non-live/mock mode
     for txn in _data["account_statement"]:
         date = str(txn.get("date", ""))
         if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
@@ -392,8 +320,6 @@ def _extract_report_transactions(year: int, month: int | None = None) -> list[di
         y = int(date[:4])
         m = int(date[5:7])
         if y != year or (month is not None and m != month):
-            continue
-        if not _is_success_status(txn.get("status")):
             continue
 
         category_key = _normalize_report_type(str(txn.get("type", "")))
@@ -410,6 +336,7 @@ def _extract_report_transactions(year: int, month: int | None = None) -> list[di
                 "currency": currency,
                 "category_key": category_key,
                 "category_label": _REPORT_CATEGORY_LABELS_VI[category_key],
+                "category_label_en": _REPORT_CATEGORY_LABELS_EN[category_key],
                 "amount_abs": amount_abs,
                 "money_in": money_in,
                 "money_out": money_out,
@@ -419,32 +346,12 @@ def _extract_report_transactions(year: int, month: int | None = None) -> list[di
 
 
 def _count_success_transactions(year: int, month: int) -> int:
-    raw = _data.get("_wealify_raw", {})
-    va_transactions = raw.get("va_transactions") if isinstance(raw, dict) else None
-    vc_transactions = raw.get("vc_transactions") if isinstance(raw, dict) else None
-
-    if isinstance(va_transactions, list) or isinstance(vc_transactions, list):
-        total = 0
-        for txn in (va_transactions or []):
-            date = str(txn.get("created_at", ""))[:10]
-            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
-                continue
-            y = int(date[:4])
-            m = int(date[5:7])
-            if y == year and m == month and _is_success_status(txn.get("va_transaction_status")):
-                total += 1
-        for txn in (vc_transactions or []):
-            date = str(txn.get("created_at", ""))[:10]
-            if not (len(date) >= 7 and date[:4].isdigit() and date[5:7].isdigit()):
-                continue
-            y = int(date[:4])
-            m = int(date[5:7])
-            if y == year and m == month and _is_success_status(txn.get("transaction_vc_status")):
-                total += 1
-        return total
-
-    # Fallback for non-live/mock mode where explicit status may not exist.
-    return len([t for t in _data["account_statement"] if str(t.get("date", "")).startswith(f"{year}-{month:02d}")])
+    """account_statement is already SUCCESS-only (wealify_adapter.py filters
+    at adapt time) — no separate status re-check needed."""
+    return len([
+        t for t in _data["account_statement"]
+        if str(t.get("date", "")).startswith(f"{year}-{month:02d}")
+    ])
 
 
 def _money_series_for_year(year: int) -> dict:
@@ -530,8 +437,8 @@ def _build_month_report(year: int, month: int) -> dict:
         "money_summary_by_currency": money_summary_by_currency,
         "text_summary": (
             f"Tháng {month}/{year} có {success_total_count} giao dịch SUCCESS, "
-            f"trong đó {len(transactions)} giao dịch thuộc 4 loại báo cáo: "
-            "nạp tiền, rút tiền, điều chỉnh, hoàn tiền."
+            f"trong đó {len(transactions)} giao dịch thuộc các loại: "
+            "nạp tiền, rút tiền, chuyển sang thẻ, chi tiêu, hoàn tiền."
         ),
     }
 
@@ -707,7 +614,7 @@ def dashboard_reporting_send_email(req: ReportEmailRequest):
         return {
             "status": "email_send_failed",
             "to": USER_EMAIL,
-            "reason": "SMTP chưa được cấu hình",
+            "reason": "Chưa cấu hình cách gửi email (cần USE_GMAIL_API=true hoặc SMTP)",
             "subject": subject,
             "body": body,
         }
@@ -832,6 +739,14 @@ def _run_scheduled_check() -> dict:
     )
     risk = calculate_risk_score(anomalies, recon, email_matches)
 
+    all_findings = generate_all_findings(
+        _data["account_statement"],
+        _data["card_statement"],
+        _data["wallet_balance"],
+        _data["emails"],
+    )
+    price_hike_findings = [f for f in all_findings if f.get("type") == "SILENT_PRICE_INCREASE"]
+
     new_flags = 0
     total_issues = 0
 
@@ -850,15 +765,20 @@ def _run_scheduled_check() -> dict:
                               f"Duplicate of {d.get('duplicate_of', '')}"):
             new_flags += 1
 
-    for h in anomalies.get("price_hikes", []):
+    # finding_engine.py's SILENT_PRICE_INCREASE, not anomalies["price_hikes"]
+    # (agents/anomaly_detector.py) — chat.py's "gói nào tăng giá?" handler
+    # already switched to finding_engine.py because it catches real hikes
+    # (Namecheap, Google Cloud, Booking.com) anomaly_detector.py misses
+    # entirely. Logging from the older, narrower source here would double-
+    # report the same real-world price hike under two different ref
+    # formats (fingerprint vs merchant|old->new), since audit_log dedups
+    # strictly by (ref, reason) — violating "chạy định kỳ không báo trùng".
+    for h in price_hike_findings:
         total_issues += 1
-        # Ref includes the specific old→new prices, not just the merchant
-        # name — otherwise a merchant's *second* (different) price hike
-        # would be silently deduped forever against its first.
-        ref = f"{h['merchant']}|{h['old_price']}->{h['new_price']}"
-        if audit_log.log_flag(ref, "price_hike", "high",
-                              "Cần bạn tự xác nhận", "anomaly_detector",
-                              f"${h['old_price']} → ${h['new_price']}"):
+        title = h.get("title_vi", "")
+        if audit_log.log_flag(h.get("fingerprint", title), "price_hike", "high",
+                              "Cần bạn tự xác nhận", "finding_engine",
+                              h.get("explanation_vi", title)):
             new_flags += 1
 
     for disc in recon.get("discrepancies", []):

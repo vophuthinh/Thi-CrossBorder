@@ -257,4 +257,4 @@ Toàn bộ dữ liệu mẫu và nhật ký được tạo/lưu trong lúc chạ
 ---
 
 > 🛡️ **Wealify Smart Finance** — AI Cross-Border Hackathon 2026  
-> Powered by **BytePlus ModelArk (DeepSeek V4 Flash)**
+

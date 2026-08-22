@@ -114,6 +114,7 @@ const I18N = {
         context_chip_dismiss: 'Dismiss context',
         context_chip_prefix: (kind, title) => `Asking about ${kind}: ${title}`,
         back: 'Back',
+        toast_close: 'Dismiss',
 
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
@@ -226,6 +227,7 @@ const I18N = {
         context_chip_dismiss: 'Bỏ ngữ cảnh',
         context_chip_prefix: (kind, title) => `Đang hỏi về ${kind}: ${title}`,
         back: 'Quay lại',
+        toast_close: 'Đóng',
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
@@ -487,9 +489,20 @@ function renderReconciliation() {
 }
 
 function renderCommandCenterCounts() {
-    document.querySelectorAll('[data-flag]').forEach((el) => {
+    // flagEls is the cached querySelectorAll('[data-flag]') result (see its
+    // declaration below) — re-querying here on every render/lang-switch
+    // defeats the whole point of caching it.
+    flagEls.forEach((el) => {
         const flag = el.dataset.flag;
-        const count = flag === 'email-audit' ? emailAuditItems.length : allFindings.filter(FLAG_FILTERS[flag]).length;
+        let count;
+        if (flag === 'email-audit') count = emailAuditItems.length;
+        // active-subs must count from the same source paintActiveSubsDetails
+        // renders (ACTIVE_SUBS, from /dashboard/anomalies), not from
+        // finding_engine.py's RECURRING_SUBSCRIPTION findings — the two
+        // detectors can disagree, which would show a badge count that
+        // doesn't match the number of rows you see after clicking it.
+        else if (flag === 'active-subs') count = ACTIVE_SUBS.length;
+        else count = allFindings.filter(FLAG_FILTERS[flag]).length;
         const badge = el.querySelector('.badge, .pill');
         if (badge) badge.textContent = String(count);
         const sub = el.querySelector('.flag-sub');
@@ -2056,10 +2069,10 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
     label.textContent = originalText;
 
     if (res && typeof res.new_flags === 'number') {
-        alert(t('run_check_done')(res.new_flags, res.already_reported));
+        showToast(t('run_check_done')(res.new_flags, res.already_reported), 'success');
         await loadAll();
     } else {
-        alert(t('run_check_failed'));
+        showToast(t('run_check_failed'), 'error');
     }
 });
 
@@ -2068,9 +2081,9 @@ document.getElementById('scheduledCheckBtn').addEventListener('click', async () 
 document.getElementById('exportAuditBtn').addEventListener('click', async () => {
     const res = await apiGet('/audit-log/export');
     if (res && res.status === 'exported') {
-        alert(`${t('export_done')} ${res.exported_to} (${res.total_flags})`);
+        showToast(`${t('export_done')} ${res.exported_to} (${res.total_flags})`, 'success');
     } else {
-        alert(t('export_failed'));
+        showToast(t('export_failed'), 'error');
     }
 });
 
