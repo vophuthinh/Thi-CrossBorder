@@ -1,7 +1,7 @@
 {
   "name": "thi-crossborder",
   "version": "1.0.0",
-  "description": "> **WLF-01** — AI Cross-Border Hackathon 2026  \r > Built with **BytePlus Seed 2.0** × **Wealify**",
+  "description": "WLF-01 — AI Cross-Border Hackathon 2026 — Built with BytePlus ModelArk (DeepSeek V4 Flash) x Wealify",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

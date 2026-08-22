@@ -2,7 +2,7 @@
 """
 ═══════════════════════════════════════════════════════════════
   LLM Benchmark Test — Tốc độ & Chất lượng
-  Wealify Smart Finance × BytePlus Seed 2.0
+  Wealify Smart Finance × BytePlus ModelArk (DeepSeek V4 Flash)
 ═══════════════════════════════════════════════════════════════
 
 Chạy: python3 test_llm_benchmark.py [--server http://localhost:8000]
