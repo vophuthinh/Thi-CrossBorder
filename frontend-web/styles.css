@@ -287,18 +287,18 @@ ol {
 }
 
 .panel-left {
-    flex: 0 0 25%;
-    max-width: 25%;
+    flex: 0 0 28%;
+    max-width: 28%;
 }
 
 .panel-center {
-    flex: 1 1 50%;
+    flex: 1 1 44%;
     background: var(--surface);
 }
 
 .panel-right {
-    flex: 0 0 25%;
-    max-width: 25%;
+    flex: 0 0 28%;
+    max-width: 28%;
 }
 
 .panel-head {
@@ -653,6 +653,35 @@ ol {
 .pill-caution {
     background: var(--caution-bg);
     color: var(--caution-fg);
+}
+
+.report-launch-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    transition:
+        background var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+
+.report-launch-btn:hover {
+    background: var(--surface-2);
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.report-launch-btn:active {
+    transform: scale(0.98);
 }
 
 /* ─── Center panel: chat ───────────────────────────── */
@@ -1148,6 +1177,103 @@ ol {
 
 .detail-action:active {
     transform: scale(0.98);
+}
+
+.report-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.report-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.report-nav-btn,
+.report-pick-btn,
+.report-currency-btn {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--r-sm);
+    padding: 7px 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.report-nav-btn.is-active,
+.report-pick-btn.is-active,
+.report-currency-btn.is-active {
+    border-color: var(--ink);
+    background: #f0f1f3;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.report-picker-title {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.report-picker,
+.report-currency-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.report-chart-wrap {
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    padding: 10px;
+    min-height: 280px;
+}
+
+.report-text {
+    white-space: pre-wrap;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px;
+    background: var(--surface);
+}
+
+.report-send-btn {
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--r-sm);
+    padding: 9px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.report-send-btn:hover {
+    background: var(--ink-soft);
+}
+
+.report-send-confirm-btn {
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--r-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.report-send-confirm-btn:hover {
+    background: var(--ink-soft);
+}
+
+.report-send-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 /* Skeleton loader — matches the row shape */

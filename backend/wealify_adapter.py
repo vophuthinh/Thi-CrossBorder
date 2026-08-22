@@ -399,6 +399,7 @@ def adapt_all(wealify_data: dict[str, Any]) -> dict[str, Any]:
             "va_accounts": va_accounts,
             "va_transactions": va_transactions,
             "vc_cards": vc_cards,
+            "vc_transactions": vc_transactions,
             "wallets": wallets,
             "user_info": wealify_data.get("user_info", {}),
         },

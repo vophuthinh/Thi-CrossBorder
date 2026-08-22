@@ -105,6 +105,19 @@ const I18N = {
 
         toast_close: 'Dismiss',
 
+        block_report: 'Report',
+        create_report: 'Create report',
+        panel_report: 'Report detail',
+        report_nav_month: 'Month',
+        report_nav_quarter: 'Quarter',
+        report_nav_year: 'Year',
+        report_pick_month: 'Select month',
+        report_pick_quarter: 'Select quarter',
+        report_year_summary: 'Yearly report',
+        report_send_email: 'Send to my email',
+        report_send_success: (to) => `✅ Report email sent to ${to}`,
+        report_send_failed: '⚠️ Could not send report email. Check SMTP configuration.',
+
         disclaimer_label: 'Disclaimer',
         disclaimer_text:
             '⚠️ This tool only assists you in reviewing your finances. Results are for reference only, not ' +
@@ -206,6 +219,19 @@ const I18N = {
         sub_confirmed_done: 'Đã đánh dấu hủy.',
 
         toast_close: 'Đóng',
+
+        block_report: 'Báo cáo',
+        create_report: 'Tạo report',
+        panel_report: 'Chi tiết báo cáo',
+        report_nav_month: 'Tháng',
+        report_nav_quarter: 'Quý',
+        report_nav_year: 'Năm',
+        report_pick_month: 'Chọn tháng',
+        report_pick_quarter: 'Chọn quý',
+        report_year_summary: 'Báo cáo theo năm',
+        report_send_email: 'Gửi vào email của tôi',
+        report_send_success: (to) => `✅ Đã gửi email báo cáo tới ${to}`,
+        report_send_failed: '⚠️ Chưa gửi được email báo cáo. Kiểm tra cấu hình SMTP.',
 
         disclaimer_label: 'Lưu ý',
         disclaimer_text:
@@ -513,9 +539,17 @@ const chatHistory = document.getElementById('chatHistory');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
 const langSwitch = document.getElementById('langSwitch');
+const createReportBtn = document.getElementById('createReportBtn');
 
 let lang = localStorage.getItem('wealify_lang') === 'en' ? 'en' : 'vi';
 let activeFlag = null;
+let rightPanelMode = 'detail'; // 'detail' | 'report'
+let reportYear = new Date().getFullYear();
+let reportType = 'month';
+let selectedMonth = new Date().getMonth() + 1;
+let selectedQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+let selectedCurrency = null;
+let reportChart = null;
 // Index of the item currently opened in the detail view, scoped to the
 // items list rendered for `activeFlag`. null = show the list of items
 // for the active flag (the previous accordion behaviour let users peek
@@ -1447,6 +1481,7 @@ function confirmCancelled(sub, btn) {
 }
 
 function renderDetails(flag, { instant = false } = {}) {
+    rightPanelMode = 'detail';
     const isEmailAudit = flag === 'email-audit';
     const isActiveSubs = flag === 'active-subs';
     if (!isEmailAudit && !isActiveSubs && !FLAG_FILTERS[flag]) return;
@@ -1539,6 +1574,267 @@ function detailTitleFor(item) {
     return findingTitle(item);
 }
 
+// ─── Report builder (month/quarter/year, Chart.js, self-notify send) ──
+
+function destroyReportChart() {
+    if (reportChart) {
+        reportChart.destroy();
+        reportChart = null;
+    }
+}
+
+function buildReportShell() {
+    const wrap = document.createElement('div');
+    wrap.className = 'report-shell';
+    wrap.innerHTML = `
+        <div class="report-nav" id="reportNav">
+            <button type="button" class="report-nav-btn" data-report-type="month">${t('report_nav_month')}</button>
+            <button type="button" class="report-nav-btn" data-report-type="quarter">${t('report_nav_quarter')}</button>
+            <button type="button" class="report-nav-btn" data-report-type="year">${t('report_nav_year')}</button>
+        </div>
+        <div class="report-picker-title" id="reportPickerTitle"></div>
+        <div class="report-picker" id="reportPicker"></div>
+        <div class="report-currency-picker" id="reportCurrencyPicker"></div>
+        <div class="report-chart-wrap">
+            <canvas id="reportChartCanvas"></canvas>
+        </div>
+        <div class="report-text" id="reportText"></div>
+        <button type="button" class="report-send-btn" id="reportSendBtn">${t('report_send_email')}</button>
+    `;
+    return wrap;
+}
+
+function renderReportPicker() {
+    const titleEl = document.getElementById('reportPickerTitle');
+    const pickerEl = document.getElementById('reportPicker');
+    if (!titleEl || !pickerEl) return;
+
+    pickerEl.innerHTML = '';
+    if (reportType === 'month') {
+        titleEl.textContent = t('report_pick_month');
+        for (let m = 1; m <= 12; m += 1) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `report-pick-btn${m === selectedMonth ? ' is-active' : ''}`;
+            btn.textContent = String(m);
+            btn.addEventListener('click', () => {
+                selectedMonth = m;
+                loadAndRenderReport();
+            });
+            pickerEl.appendChild(btn);
+        }
+        return;
+    }
+
+    if (reportType === 'quarter') {
+        titleEl.textContent = t('report_pick_quarter');
+        for (let q = 1; q <= 4; q += 1) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `report-pick-btn${q === selectedQuarter ? ' is-active' : ''}`;
+            btn.textContent = `Q${q}`;
+            btn.addEventListener('click', () => {
+                selectedQuarter = q;
+                loadAndRenderReport();
+            });
+            pickerEl.appendChild(btn);
+        }
+        return;
+    }
+
+    titleEl.textContent = t('report_year_summary');
+}
+
+function renderCurrencyPicker(currencies) {
+    const wrap = document.getElementById('reportCurrencyPicker');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!Array.isArray(currencies) || currencies.length <= 1) return;
+
+    if (!selectedCurrency || !currencies.includes(selectedCurrency)) {
+        selectedCurrency = currencies[0];
+    }
+
+    for (const cur of currencies) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `report-currency-btn${cur === selectedCurrency ? ' is-active' : ''}`;
+        btn.textContent = cur;
+        btn.addEventListener('click', () => {
+            selectedCurrency = cur;
+            loadAndRenderReport();
+        });
+        wrap.appendChild(btn);
+    }
+}
+
+function renderReportChart(data) {
+    const canvas = document.getElementById('reportChartCanvas');
+    if (!canvas || !window.Chart) return;
+    destroyReportChart();
+
+    const type = data.period_type;
+    const currencies = data.currencies || [];
+    const currency = selectedCurrency && currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0];
+    selectedCurrency = currency || null;
+
+    if (!currency) return;
+
+    if (type === 'month') {
+        const rows = (data.categories_by_currency && data.categories_by_currency[currency]) || [];
+        const labels = rows.map((r) => r.category_label);
+        const totals = rows.map((r) => r.total_amount);
+        reportChart = new window.Chart(canvas, {
+            type: 'pie',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        data: totals,
+                        backgroundColor: ['#355070', '#6d597a', '#b56576', '#e56b6f', '#eaac8b', '#5f6f52', '#8ab17d'],
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+            },
+        });
+        return;
+    }
+
+    const rows = (data.comparison_by_currency && data.comparison_by_currency[currency]) || [];
+    const labels = rows.map((r) => r.month);
+    reportChart = new window.Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Tiền vào', data: rows.map((r) => r.money_in), backgroundColor: '#5f6f52' },
+                { label: 'Tiền ra', data: rows.map((r) => r.money_out), backgroundColor: '#355070' },
+            ],
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+            plugins: { legend: { position: 'bottom' } },
+        },
+    });
+}
+
+function renderReportText(data) {
+    const textEl = document.getElementById('reportText');
+    if (!textEl) return;
+    const currencies = data.currencies || [];
+    const currency = selectedCurrency && currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0];
+    if (!currency) {
+        textEl.textContent = data.text_summary || '';
+        return;
+    }
+
+    if (data.period_type === 'month') {
+        const rows = (data.categories_by_currency && data.categories_by_currency[currency]) || [];
+        const money = (data.money_summary_by_currency && data.money_summary_by_currency[currency]) || {};
+        const lines = rows.map((r) => `• ${r.category_label}: ${fmtCur(r.total_amount, currency)} · ${r.transaction_count} giao dịch`);
+        textEl.textContent =
+            `${data.text_summary}\n\n[${currency}]\n${lines.join('\n')}\n\n` +
+            `• Tổng tiền vào: ${fmtCur(money.money_in || 0, currency)}\n` +
+            `• Tổng tiền ra: ${fmtCur(money.money_out || 0, currency)}`;
+        return;
+    }
+
+    const rows = (data.comparison_by_currency && data.comparison_by_currency[currency]) || [];
+    const lines = rows.map(
+        (r) =>
+            `• ${r.month}: Tiền vào ${fmtCur(r.money_in, currency)} | Tiền ra ${fmtCur(r.money_out, currency)}`,
+    );
+    textEl.textContent = `${data.text_summary}\n\n[${currency}]\n${lines.join('\n')}`;
+}
+
+async function loadAndRenderReport() {
+    const nav = document.getElementById('reportNav');
+    if (nav) {
+        nav.querySelectorAll('.report-nav-btn').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.reportType === reportType);
+        });
+    }
+
+    let data = null;
+    if (reportType === 'month') data = await apiGet(`/dashboard/reporting/month/${selectedMonth}`);
+    else if (reportType === 'quarter') data = await apiGet(`/dashboard/reporting/quarter/${selectedQuarter}`);
+    else data = await apiGet('/dashboard/reporting/year');
+    if (!data || data.status?.startsWith('invalid')) return;
+
+    reportYear = data.year || reportYear;
+    renderReportPicker();
+    renderCurrencyPicker(data.currencies || []);
+    renderReportChart(data);
+    renderReportText(data);
+
+    const sendBtn = document.getElementById('reportSendBtn');
+    if (sendBtn) {
+        // Two-step send: this button only requests the draft (confirmed
+        // omitted/false) and shows it in chat for the user to read before
+        // a second, explicit click actually sends — spec requires "xác
+        // nhận trước khi gửi", not sending straight from one click.
+        sendBtn.onclick = async () => {
+            const payload = {
+                period_type: reportType,
+                period_value: reportType === 'year' ? null : reportType === 'month' ? selectedMonth : selectedQuarter,
+            };
+            const draft = await apiPost('/dashboard/reporting/send-email', payload);
+            if (!draft || draft.status !== 'draft') {
+                appendMessage(t('report_send_failed'), 'ai');
+                return;
+            }
+            appendMessage(
+                `📧 <strong>${draft.subject}</strong><br>${t('report_send_email')}: ${draft.to}` +
+                    `<br><br><button type="button" class="report-send-confirm-btn" id="reportSendConfirmBtn">${t('report_send_email')}</button>`,
+                'ai',
+            );
+            const confirmBtn = document.getElementById('reportSendConfirmBtn');
+            if (confirmBtn) {
+                confirmBtn.onclick = async () => {
+                    confirmBtn.disabled = true;
+                    const res = await apiPost('/dashboard/reporting/send-email', { ...payload, confirmed: true });
+                    if (res && res.status === 'sent') {
+                        appendMessage(t('report_send_success')(res.to), 'ai');
+                    } else {
+                        appendMessage(t('report_send_failed'), 'ai');
+                    }
+                };
+            }
+        };
+    }
+}
+
+async function openReportPanel() {
+    rightPanelMode = 'report';
+    activeFlag = null;
+    detailTitle.textContent = t('panel_report');
+    detailCount.textContent = '';
+    detailBody.replaceChildren(buildReportShell());
+
+    const nav = document.getElementById('reportNav');
+    if (nav) {
+        nav.querySelectorAll('.report-nav-btn').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.reportType === reportType);
+            btn.addEventListener('click', () => {
+                reportType = btn.dataset.reportType;
+                loadAndRenderReport();
+            });
+        });
+    }
+
+    await loadAndRenderReport();
+}
+
+if (createReportBtn) {
+    createReportBtn.addEventListener('click', () => {
+        openReportPanel();
+    });
+}
+
 // ─── Language switching ────────────────────────────
 
 function applyLang(next) {
@@ -1566,7 +1862,8 @@ function applyLang(next) {
 
     renderReconciliation();
     renderCommandCenterCounts();
-    if (activeFlag) renderDetails(activeFlag, { instant: true });
+    if (rightPanelMode === 'report') openReportPanel();
+    else if (activeFlag) renderDetails(activeFlag, { instant: true });
     else detailTitle.textContent = t('panel_detail');
     renderChatContextChip();
 }
