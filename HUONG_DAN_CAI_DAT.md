@@ -33,6 +33,26 @@ python main.py
 
 Mở **http://localhost:8000** — giao diện chat + dashboard phục vụ tại đây, không cần chạy thêm service nào.
 
+## Chạy bằng Docker (tuỳ chọn)
+
+Thay vì cài Python trực tiếp, có thể build và chạy trong container:
+
+```bash
+docker build -t wealez .
+docker run -p 8000:8000 --env-file .env wealez
+```
+
+- `.env` không được build vào image (đọc kỹ `Dockerfile` — chỉ copy code) mà truyền vào lúc chạy qua `--env-file`, tránh lộ key khi image bị chia sẻ.
+- Nếu có `gmail_credentials.json`/`gmail_token.json`, mount thêm vào đúng đường dẫn `backend/` bên trong container:
+  ```bash
+  docker run -p 8000:8000 --env-file .env \
+    -v "$(pwd)/backend/gmail_credentials.json:/app/backend/gmail_credentials.json" \
+    -v "$(pwd)/backend/gmail_token.json:/app/backend/gmail_token.json" \
+    wealez
+  ```
+- Mở **http://localhost:8000** như bình thường.
+- `.dockerignore` đã loại `.env`, `gmail_credentials.json`, `gmail_token.json` khỏi build context — không lo image chứa nhầm secret.
+
 ## Thử nhanh (đúng 6 tình huống mẫu của đề)
 
 Gõ trực tiếp vào khung chat:
